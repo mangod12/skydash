@@ -1,0 +1,13 @@
+# Base requirements
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.6
+
+# For MAVLink drones (ArduPilot, PX4, etc.)
+pymavlink==2.4.41
+
+# For WebSocket streaming (optional)
+websockets==12.0
+
+# For serial communication
+pyserial==3.5
