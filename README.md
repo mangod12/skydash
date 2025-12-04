@@ -259,11 +259,6 @@ MIT License - see LICENSE file for details
 - Tailwind CSS team
 - Recharts library
 
-## Support
-
-- 📖 [Integration Guide](./INTEGRATION_GUIDE.md)
-- 🐛 [Issue Tracker](https://github.com/yourusername/skydash/issues)
-- 📧 Contact: your.email@example.com
 
 ---
 
