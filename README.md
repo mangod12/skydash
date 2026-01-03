@@ -4,6 +4,31 @@ A real-time drone telemetry dashboard built with FastAPI and React, featuring a 
 
 ![SkyDash Dashboard](https://img.shields.io/badge/status-active-brightgreen) ![Python](https://img.shields.io/badge/python-3.12-blue) ![React](https://img.shields.io/badge/react-18.3-61dafb)
 
+## What Problem This Solves
+
+Drone operators need real-time visibility into their aircraft's critical telemetry data to ensure safe and effective flight operations. Existing solutions are often:
+- **Expensive**: Commercial ground control stations can cost thousands of dollars
+- **Complex**: Overwhelming interfaces with steep learning curves
+- **Platform-locked**: Tied to specific drone manufacturers or protocols
+- **Heavy**: Resource-intensive applications that struggle with high-frequency updates
+
+SkyDash provides a lightweight, open-source alternative that works with any MAVLink-compatible drone (ArduPilot, PX4) and offers a modern, intuitive interface for monitoring critical flight parameters in real-time.
+
+## What the System Does
+
+SkyDash is a web-based telemetry monitoring system that:
+
+1. **Connects to Drones**: Interfaces with MAVLink-compatible drones via USB, serial, TCP, or UDP connections
+2. **Streams Real-Time Data**: Polls telemetry at 50ms intervals (20Hz) for live updates on altitude, battery, attitude, GPS, and system status
+3. **Visualizes Flight Data**: Displays critical information through an intuitive glass morphism UI with:
+   - Live attitude indicators (roll, pitch, yaw)
+   - Real-time altitude history charts
+   - Battery monitoring with color-coded voltage alerts
+   - GPS position and satellite count
+   - Flight mode and connection status
+4. **Simulates for Testing**: Includes a realistic drone simulator for development and testing without physical hardware
+5. **Supports Multiple Protocols**: Works with MAVLink drones out-of-the-box and includes adapters for DJI SDK integration
+
 ## Features
 
 - 🚁 **Real-time Telemetry**: 50ms polling for live drone data
@@ -239,6 +264,35 @@ uvicorn main:app --port 8001
 - Verify connection string
 - Check USB permissions (Linux: add user to dialout group)
 - Test with MAVProxy first
+
+## Future Improvements
+
+Here are planned enhancements and features that would make SkyDash even better:
+
+### High Priority
+- **WebSocket Implementation**: Replace HTTP polling with WebSocket connections for true real-time streaming and reduced latency
+- **Authentication & Authorization**: Add JWT-based authentication and role-based access control for multi-user deployments
+- **3D Visualization**: Integrate Three.js or Cesium for true 3D drone position and orientation display
+- **Mission Planning**: Add waypoint creation and mission upload capabilities
+
+### Medium Priority
+- **Recording & Playback**: Record flight sessions and replay telemetry data for analysis and training
+- **Multi-Drone Support**: Monitor and manage multiple drones simultaneously with separate dashboard panels
+- **Alerts & Notifications**: Configurable alerts for battery warnings, GPS loss, and geofence violations
+- **Mobile App**: Native mobile application using React Native for on-the-go monitoring
+
+### Low Priority
+- **Customizable Dashboard**: Drag-and-drop widget system for personalized layouts
+- **Advanced Charting**: Additional graphs for velocity, acceleration, and battery discharge curves
+- **Flight Log Export**: Export telemetry data to CSV, KML, or industry-standard formats
+- **Dark/Light Theme Toggle**: User preference for color schemes beyond the current dark mode
+- **Internationalization**: Multi-language support for global drone community
+
+### Technical Debt
+- **Unit Tests**: Comprehensive test coverage for backend API and frontend components
+- **TypeScript Migration**: Convert frontend codebase to TypeScript for better type safety
+- **Docker Deployment**: Containerized deployment with Docker Compose for easy setup
+- **CI/CD Pipeline**: Automated testing and deployment workflows
 
 ## Contributing
 
