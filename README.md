@@ -291,7 +291,7 @@ Here are planned enhancements and features that would make SkyDash even better:
 ### Technical Debt
 - **Unit Tests**: Comprehensive test coverage for backend API and frontend components
 - **TypeScript Migration**: Convert frontend codebase to TypeScript for better type safety
-- **Docker Deployment**: Containerized deployment with docker-compose for easy setup
+- **Docker Deployment**: Containerized deployment with Docker Compose for easy setup
 - **CI/CD Pipeline**: Automated testing and deployment workflows
 
 ## Contributing
