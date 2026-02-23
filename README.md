@@ -3,7 +3,11 @@
 A real-time drone telemetry dashboard built with FastAPI and React, featuring a "High-Voltage / Dark Mode" aesthetic with glass morphism design.
 
 ![SkyDash Dashboard](https://img.shields.io/badge/status-active-brightgreen) ![Python](https://img.shields.io/badge/python-3.12-blue) ![React](https://img.shields.io/badge/react-18.3-61dafb)
+## 📸 Dashboard Preview
 
+<p align="center">
+  <img src="./skydash-dashboard.png" alt="SkyDash Real-Time Dashboard" width="100%" />
+</p>
 ## What Problem This Solves
 
 Drone operators need real-time visibility into their aircraft's critical telemetry data to ensure safe and effective flight operations. Existing solutions are often:
