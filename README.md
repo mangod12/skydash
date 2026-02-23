@@ -2,7 +2,7 @@
 
 A real-time drone telemetry dashboard built with FastAPI and React, featuring a "High-Voltage / Dark Mode" aesthetic with glass morphism design.
 
-![SkyDash Dashboard](https://img.shields.io/badge/status-active-brightgreen) ![Python](https://img.shields.io/badge/python-3.12-blue) ![React](https://img.shields.io/badge/react-18.3-61dafb)
+[![CI](https://github.com/mangod12/skydash/actions/workflows/ci.yml/badge.svg)](https://github.com/mangod12/skydash/actions/workflows/ci.yml) ![SkyDash Dashboard](https://img.shields.io/badge/status-active-brightgreen) ![Python](https://img.shields.io/badge/python-3.12-blue) ![React](https://img.shields.io/badge/react-18.3-61dafb)
 ## 📸 Dashboard Preview
 
 <p align="center">
