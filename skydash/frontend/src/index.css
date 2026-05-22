@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import './styles/tokens.css';
+@import './styles/animations.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-zinc-800;
+  }
+
+  body {
+    @apply bg-zinc-950 text-zinc-100 antialiased;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-display);
+  }
+
+  #app {
+    @apply h-screen w-screen overflow-hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.leaflet-container {
+  background: #09090b !important;
+  font-family: var(--font-display) !important;
+}
+
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+/* Leaflet tooltip dark theme */
+.leaflet-tooltip {
+  background: rgba(9, 9, 11, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  color: #e4e4e7 !important;
+  padding: 6px 10px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(8px);
+}
+
+.leaflet-tooltip-top::before {
+  border-top-color: rgba(9, 9, 11, 0.9) !important;
+}
+
+.leaflet-tooltip-bottom::before {
+  border-bottom-color: rgba(9, 9, 11, 0.9) !important;
+}
+
+/* Focus ring for accessibility */
+*:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
