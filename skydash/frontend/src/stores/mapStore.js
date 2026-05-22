@@ -7,7 +7,6 @@ export const useMapStore = create((set) => ({
   flightPath: [],
   layers: {
     satellite: false,
-    heatmap: false,
     grid: true,
     flightPath: true,
   },

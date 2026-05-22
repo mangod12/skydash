@@ -2,18 +2,18 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import {
   Plus, Minus, Layers, Locate, Ruler,
-  Circle, Camera, Maximize2,
+  Camera, Maximize2,
 } from 'lucide-react';
 import { useMapStore } from '../../stores/mapStore';
+import { toast } from '../common/Toast';
 
 const LAYER_OPTIONS = [
   { id: 'satellite', label: 'Satellite' },
   { id: 'flightPath', label: 'Flight Path' },
   { id: 'grid', label: 'Grid Overlay' },
-  { id: 'heatmap', label: 'Heatmap' },
 ];
 
-function ControlButton({ icon: Icon, label, active, onClick, danger }) {
+function ControlButton({ icon: Icon, label, active, onClick }) {
   return (
     <button
       onClick={onClick}
@@ -23,9 +23,7 @@ function ControlButton({ icon: Icon, label, active, onClick, danger }) {
         'border border-white/[0.06]',
         active
           ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
-          : danger
-            ? 'bg-zinc-900/80 text-red-400 hover:bg-red-500/10'
-            : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80',
+          : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80',
         'backdrop-blur-sm',
       )}
     >
@@ -44,6 +42,22 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring }) {
   const handleFlyToDrone = () => {
     if (dronePosition && mapRef?.current) {
       mapRef.current.flyTo([dronePosition.lat, dronePosition.lng], 17, { duration: 1 });
+    }
+  };
+
+  const handleScreenshot = () => {
+    const mapEl = document.querySelector('.map-container');
+    if (!mapEl) return;
+    // Use the leaflet canvas if available, otherwise grab the container
+    const canvas = mapEl.querySelector('canvas');
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `skydash-map-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      toast('Map screenshot saved', 'success');
+    } else {
+      toast('Screenshot requires canvas renderer', 'warning');
     }
   };
 
@@ -72,7 +86,7 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring }) {
 
         <div className="h-px bg-white/[0.06] my-1" />
 
-        <ControlButton icon={Camera} label="Screenshot" onClick={() => {}} />
+        <ControlButton icon={Camera} label="Screenshot" onClick={handleScreenshot} />
         <ControlButton icon={Maximize2} label="Fullscreen" onClick={() => {
           document.querySelector('.map-container')?.requestFullscreen?.();
         }} />
