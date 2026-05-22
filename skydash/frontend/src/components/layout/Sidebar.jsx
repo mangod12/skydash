@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 import {
   Map, Radio, Brain, Users, Clock, Settings,
-  ChevronLeft, ChevronRight, Crosshair, BarChart3,
+  ChevronLeft, ChevronRight, Crosshair, BarChart3, Target,
 } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { id: 'map', icon: Map, label: 'Map' },
   { id: 'telemetry', icon: Radio, label: 'Telemetry' },
   { id: 'intel', icon: Brain, label: 'Intel' },
+  { id: 'missions', icon: Target, label: 'Missions' },
   { id: 'entities', icon: Users, label: 'Entities' },
   { id: 'timeline', icon: Clock, label: 'Timeline' },
   { id: 'analytics', icon: BarChart3, label: 'Analytics' },

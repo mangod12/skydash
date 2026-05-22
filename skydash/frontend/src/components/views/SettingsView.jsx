@@ -1,5 +1,6 @@
 import { clsx } from 'clsx';
 import GlassCard from '../common/GlassCard';
+import DataSources from '../common/DataSources';
 import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
@@ -87,6 +88,11 @@ export default function SettingsView() {
               </div>
             ))}
           </div>
+        </GlassCard>
+
+        {/* Data Sources */}
+        <GlassCard animate={false}>
+          <DataSources />
         </GlassCard>
 
         {/* About */}

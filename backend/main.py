@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from simulation import FleetSimulator
 from entities import EntityStore
+from missions import MissionStore
 
 # ─── Config ──────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ app.add_middleware(
 
 fleet = FleetSimulator()
 entity_store = EntityStore()
+mission_store = MissionStore()
 start_time = time.time()
 
 
@@ -83,6 +85,7 @@ async def health():
         "uptime": round(time.time() - start_time, 1),
         "drones": len(fleet.drones),
         "entities": len(entity_store.entities),
+        "missions": mission_store.count(),
     }
 
 
@@ -98,6 +101,7 @@ async def root():
             "/telemetry/{drone_id}": "Single drone telemetry",
             "/ws/telemetry": "WebSocket telemetry stream",
             "/api/entities": "Entity CRUD",
+            "/api/missions": "Mission CRUD",
             "/api/timeline": "Event timeline",
             "/docs": "API documentation",
         },
@@ -130,6 +134,11 @@ async def reset_simulation():
 
 @app.websocket("/ws/telemetry")
 async def ws_telemetry(websocket: WebSocket):
+    if API_KEY:
+        token = websocket.query_params.get("token", "")
+        if token != API_KEY:
+            await websocket.close(code=4001, reason="Unauthorized")
+            return
     await websocket.accept()
     log.info(f"WebSocket client connected: {websocket.client}")
     try:
@@ -227,6 +236,101 @@ async def get_timeline(limit: int = 50, offset: int = 0):
 async def create_event(body: Dict):
     event = entity_store.add_event(body)
     return {"success": True, "data": event}
+
+
+# ─── REST: Missions ──────────────────────────────────────────
+
+class MissionCreate(BaseModel):
+    name: str
+    description: str = ""
+    status: str = "active"
+    center_lat: Optional[float] = None
+    center_lng: Optional[float] = None
+    zoom_level: Optional[int] = None
+    tags: List[str] = []
+
+
+class MissionEntityAdd(BaseModel):
+    entity_id: str
+
+
+class MissionNoteAdd(BaseModel):
+    content: str
+
+
+@app.post("/api/missions", status_code=201)
+async def create_mission(body: MissionCreate):
+    mission = mission_store.create_mission(body.model_dump())
+    log.info(f"Mission created: {mission['id']} ({mission['name']})")
+    return {"success": True, "data": mission}
+
+
+@app.get("/api/missions")
+async def list_missions(status: Optional[str] = Query(None)):
+    data = mission_store.list_missions(status=status)
+    return {"success": True, "data": data, "metadata": {"count": len(data)}}
+
+
+@app.get("/api/missions/{mission_id}")
+async def get_mission(mission_id: str):
+    mission = mission_store.get_mission(mission_id)
+    if not mission:
+        raise HTTPException(status_code=404, detail="Mission not found")
+    mission["entities"] = mission_store.get_mission_entities(mission_id)
+    mission["notes"] = mission_store.get_notes(mission_id)
+    return {"success": True, "data": mission}
+
+
+@app.put("/api/missions/{mission_id}")
+async def update_mission(mission_id: str, body: Dict):
+    mission = mission_store.update_mission(mission_id, body)
+    if not mission:
+        raise HTTPException(status_code=404, detail="Mission not found")
+    return {"success": True, "data": mission}
+
+
+@app.delete("/api/missions/{mission_id}")
+async def delete_mission(mission_id: str):
+    if not mission_store.delete_mission(mission_id):
+        raise HTTPException(status_code=404, detail="Mission not found")
+    return {"success": True, "data": {"deleted": mission_id}}
+
+
+@app.post("/api/missions/{mission_id}/entities")
+async def add_entity_to_mission(mission_id: str, body: MissionEntityAdd):
+    if not mission_store.add_entity_to_mission(mission_id, body.entity_id):
+        raise HTTPException(status_code=404, detail="Mission not found or entity already linked")
+    return {"success": True, "data": {"mission_id": mission_id, "entity_id": body.entity_id}}
+
+
+@app.delete("/api/missions/{mission_id}/entities/{entity_id}")
+async def remove_entity_from_mission(mission_id: str, entity_id: str):
+    if not mission_store.remove_entity_from_mission(mission_id, entity_id):
+        raise HTTPException(status_code=404, detail="Link not found")
+    return {"success": True, "data": {"removed": entity_id, "from_mission": mission_id}}
+
+
+@app.post("/api/missions/{mission_id}/notes", status_code=201)
+async def add_mission_note(mission_id: str, body: MissionNoteAdd):
+    note = mission_store.add_note(mission_id, body.content)
+    if not note:
+        raise HTTPException(status_code=404, detail="Mission not found")
+    return {"success": True, "data": note}
+
+
+@app.get("/api/missions/{mission_id}/notes")
+async def get_mission_notes(mission_id: str):
+    if not mission_store.get_mission(mission_id):
+        raise HTTPException(status_code=404, detail="Mission not found")
+    notes = mission_store.get_notes(mission_id)
+    return {"success": True, "data": notes, "metadata": {"count": len(notes)}}
+
+
+@app.delete("/api/missions/{mission_id}/notes/{note_id}")
+async def delete_mission_note(mission_id: str, note_id: str):
+    if not mission_store.delete_note(note_id):
+        raise HTTPException(status_code=404, detail="Note not found")
+    return {"success": True, "data": {"deleted": note_id}}
 
 
 # ─── REST: Export ─────────────────────────────────────────────

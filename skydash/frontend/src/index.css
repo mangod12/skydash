@@ -73,6 +73,30 @@
   border-radius: 4px;
 }
 
+/* Tabular numerics globally for metric displays */
+.font-mono {
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-feature-settings: 'tnum', 'zero';
+}
+
+/* ARIA live region for screen readers */
+.sr-only-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* Cyber grid background pattern */
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

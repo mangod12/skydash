@@ -101,3 +101,40 @@
 .stagger-4 { animation-delay: 400ms; }
 .stagger-5 { animation-delay: 500ms; }
 .stagger-6 { animation-delay: 600ms; }
+
+/* Critical alert pulse */
+@keyframes alert-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(239, 68, 68, 0.2); }
+}
+
+.animate-alert-pulse {
+  animation: alert-pulse 2s ease-in-out infinite;
+}
+
+/* Data flow animation for graph edges */
+@keyframes data-flow {
+  0% { stroke-dashoffset: 20; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-data-flow {
+  stroke-dasharray: 5 15;
+  animation: data-flow 1.5s linear infinite;
+}
+
+/* Slide in from right for panels */
+@keyframes slide-in-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-from-right 0.3s var(--ease-out-expo) both;
+}

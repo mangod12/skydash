@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Search, Bell, Command, Info } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
+import useNotificationStore from '../../stores/notificationStore';
 
 function UtcClock() {
   const [time, setTime] = useState('');
@@ -21,10 +22,11 @@ function UtcClock() {
   );
 }
 
-export default function TopBar({ onInfoOpen }) {
+export default function TopBar({ onInfoOpen, onNotificationToggle }) {
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
   const alerts = useTelemetryStore((s) => s.alerts);
   const activeView = useUIStore((s) => s.activeView);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
 
   return (
     <header className="h-12 flex items-center justify-between px-4 border-b border-white/[0.06] bg-[var(--surface-0)] shrink-0 z-20">
@@ -58,11 +60,15 @@ export default function TopBar({ onInfoOpen }) {
         >
           <Info size={17} strokeWidth={1.5} />
         </button>
-        <button className="relative text-zinc-500 hover:text-zinc-300 transition-colors">
+        <button
+          onClick={onNotificationToggle}
+          className="relative text-zinc-500 hover:text-zinc-300 transition-colors"
+          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+        >
           <Bell size={18} strokeWidth={1.5} />
-          {alerts.length > 0 && (
+          {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center animate-pulse">
-              {alerts.length}
+              {unreadCount}
             </span>
           )}
         </button>

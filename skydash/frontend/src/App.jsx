@@ -5,6 +5,7 @@ import TelemetryView from './components/views/TelemetryView';
 import IntelView from './components/views/IntelView';
 import AnalyticsView from './components/views/AnalyticsView';
 import SettingsView from './components/views/SettingsView';
+import MissionView from './components/views/MissionView';
 import { useUIStore } from './stores/uiStore';
 
 function ViewRouter() {
@@ -18,6 +19,7 @@ function ViewRouter() {
     case 'timeline':
       return <IntelView />;
     case 'analytics': return <AnalyticsView />;
+    case 'missions': return <MissionView />;
     case 'settings': return <SettingsView />;
     case 'dashboard':
     default:

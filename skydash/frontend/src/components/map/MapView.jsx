@@ -13,6 +13,7 @@ import EntityMarkers from './EntityMarkers';
 import FleetMarkers from './FleetMarkers';
 import TimelineSlider from './TimelineSlider';
 import AdsbLayer from './AdsbLayer';
+import HeatmapLayer from './HeatmapLayer';
 import GeofenceDraw from './GeofenceDraw';
 import 'leaflet/dist/leaflet.css';
 
@@ -151,6 +152,9 @@ export default function MapView() {
 
         {/* Fleet secondary drones */}
         <FleetMarkers />
+
+        {/* Activity heatmap layer */}
+        <HeatmapLayer visible={layers.heatmap} />
 
         {/* ADS-B aircraft layer */}
         <AdsbLayer />

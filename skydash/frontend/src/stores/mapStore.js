@@ -10,6 +10,7 @@ export const useMapStore = create((set) => ({
     grid: true,
     flightPath: true,
     adsb: true,
+    heatmap: true,
   },
   drawingGeofence: false,
   geofenceMode: 'circle',

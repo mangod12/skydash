@@ -9,14 +9,17 @@ import NoiseOverlay from '../common/NoiseOverlay';
 import KeyboardHelp from '../common/KeyboardHelp';
 import InfoPanel from '../common/InfoPanel';
 import ConnectionLost from '../common/ConnectionLost';
+import NotificationCenter from '../common/NotificationCenter';
 import ToastContainer, { toast } from '../common/Toast';
 import { useTelemetry } from '../../hooks/useTelemetry';
 import { useKeyboard } from '../../hooks/useKeyboard';
 import { useTelemetryStore } from '../../stores/telemetryStore';
+import { useUIStore } from '../../stores/uiStore';
 
 export default function Shell({ children }) {
   const [showHelp, setShowHelp] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const { notificationOpen, setNotificationOpen, toggleNotifications } = useUIStore();
   const prevAlertCountRef = useRef(0);
 
   useTelemetry();
@@ -44,7 +47,7 @@ export default function Shell({ children }) {
         <Sidebar />
 
         <div className="flex-1 flex flex-col min-w-0">
-          <TopBar onInfoOpen={() => setShowInfo(true)} />
+          <TopBar onInfoOpen={() => setShowInfo(true)} onNotificationToggle={toggleNotifications} />
 
           <main className="flex-1 min-h-0 overflow-hidden">
             {children}
@@ -56,6 +59,7 @@ export default function Shell({ children }) {
         <CommandPalette />
         <KeyboardHelp open={showHelp} onClose={() => setShowHelp(false)} />
         <InfoPanel open={showInfo} onClose={() => setShowInfo(false)} />
+        <NotificationCenter isOpen={notificationOpen} onClose={() => setNotificationOpen(false)} />
         <ConnectionLost />
       </div>
 
