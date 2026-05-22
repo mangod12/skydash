@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { clsx } from 'clsx';
-import { Search, Filter } from 'lucide-react';
+import { Search } from 'lucide-react';
 import EntityCard from './EntityCard';
 import ThreatMatrix from './ThreatMatrix';
-import GlassCard from '../common/GlassCard';
 import { useIntelStore } from '../../stores/intelStore';
 
 const TYPE_FILTERS = [

@@ -13,7 +13,9 @@ export default function ConnectionLost() {
       const timer = setTimeout(() => setShowOverlay(true), 5000);
       return () => clearTimeout(timer);
     }
-    setShowOverlay(false);
+    // Connected — hide overlay via timeout cleanup + explicit reset
+    const id = setTimeout(() => setShowOverlay(false), 0);
+    return () => clearTimeout(id);
   }, [isConnected]);
 
   return (

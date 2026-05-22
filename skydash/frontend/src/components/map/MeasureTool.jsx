@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useMapEvents, Polyline, CircleMarker } from 'react-leaflet';
 import { distanceBetween } from '../../utils/coordinates';
 
@@ -13,12 +12,6 @@ export default function MeasureTool({ active, points, onAddPoint }) {
   if (!active || points.length === 0) return null;
 
   const positions = points.map((p) => [p.lat, p.lng]);
-
-  // Calculate total distance
-  let totalDist = 0;
-  for (let i = 1; i < points.length; i++) {
-    totalDist += distanceBetween(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng);
-  }
 
   return (
     <>

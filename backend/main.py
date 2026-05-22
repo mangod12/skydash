@@ -1,20 +1,41 @@
 import asyncio
-import json
+import logging
+import os
 import time
 from typing import Dict, List, Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from simulation import FleetSimulator
 from entities import EntityStore
 
-app = FastAPI(title="SkyDash Spatial Intelligence API", version="2.0.0")
+# ─── Config ──────────────────────────────────────────────────
+
+PORT = int(os.getenv("SKYDASH_PORT", "8001"))
+HOST = os.getenv("SKYDASH_HOST", "0.0.0.0")
+CORS_ORIGINS = os.getenv(
+    "SKYDASH_CORS_ORIGINS",
+    "http://localhost:5173,http://localhost:5174,http://localhost:4173,http://localhost:80,http://localhost"
+).split(",")
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+log = logging.getLogger("skydash")
+
+# ─── App ─────────────────────────────────────────────────────
+
+app = FastAPI(
+    title="SkyDash Spatial Intelligence API",
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url=None,
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,9 +43,31 @@ app.add_middleware(
 
 fleet = FleetSimulator()
 entity_store = EntityStore()
+start_time = time.time()
 
 
-# ─── REST: Root ──────────────────────────────────────────────
+# ─── Error handling ──────────────────────────────────────────
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    log.error(f"Unhandled error: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"success": False, "error": "Internal server error"},
+    )
+
+
+# ─── Health ──────────────────────────────────────────────────
+
+@app.get("/health")
+async def health():
+    return {
+        "status": "healthy",
+        "uptime": round(time.time() - start_time, 1),
+        "drones": len(fleet.drones),
+        "entities": len(entity_store.entities),
+    }
+
 
 @app.get("/")
 async def root():
@@ -33,6 +76,7 @@ async def root():
         "version": "2.0.0",
         "drones": list(fleet.drones.keys()),
         "endpoints": {
+            "/health": "Health check",
             "/telemetry": "All drones telemetry",
             "/telemetry/{drone_id}": "Single drone telemetry",
             "/ws/telemetry": "WebSocket telemetry stream",
@@ -61,6 +105,7 @@ async def get_drone_telemetry(drone_id: str):
 @app.post("/reset")
 async def reset_simulation():
     fleet.reset()
+    log.info("Simulation reset")
     return {"success": True, "data": {"message": "Simulation reset"}}
 
 
@@ -69,15 +114,16 @@ async def reset_simulation():
 @app.websocket("/ws/telemetry")
 async def ws_telemetry(websocket: WebSocket):
     await websocket.accept()
+    log.info(f"WebSocket client connected: {websocket.client}")
     try:
         while True:
             payload = fleet.get_all_telemetry()
             await websocket.send_json({"type": "telemetry", "data": payload, "timestamp": time.time()})
             await asyncio.sleep(0.1)
     except WebSocketDisconnect:
-        pass
-    except Exception:
-        pass
+        log.info(f"WebSocket client disconnected: {websocket.client}")
+    except Exception as e:
+        log.warning(f"WebSocket error: {e}")
 
 
 # ─── REST: Entities ──────────────────────────────────────────
@@ -116,9 +162,10 @@ async def get_entity(entity_id: str):
     return {"success": True, "data": entity}
 
 
-@app.post("/api/entities")
+@app.post("/api/entities", status_code=201)
 async def create_entity(body: EntityCreate):
     entity = entity_store.create_entity(body.model_dump())
+    log.info(f"Entity created: {entity['id']} ({entity['name']})")
     return {"success": True, "data": entity}
 
 
@@ -159,7 +206,7 @@ async def get_timeline(limit: int = 50, offset: int = 0):
     return {"success": True, "data": events, "metadata": {"limit": limit, "offset": offset}}
 
 
-@app.post("/api/events")
+@app.post("/api/events", status_code=201)
 async def create_event(body: Dict):
     event = entity_store.add_event(body)
     return {"success": True, "data": event}
@@ -194,6 +241,4 @@ async def export_geojson():
 
 if __name__ == "__main__":
     import uvicorn
-    import sys
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8001
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host=HOST, port=PORT)

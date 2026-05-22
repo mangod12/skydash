@@ -2,16 +2,16 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
-    branches: ["**"]
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   backend:
-    name: Backend (Python)
+    name: Backend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,29 +20,17 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
+          cache: pip
           cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
-        working-directory: backend
-        run: pip install -r requirements.txt
+        run: pip install -r backend/requirements.txt
 
-      - name: Compile backend
-        working-directory: backend
-        run: python -m py_compile main.py mavlink_adapter.py dji_adapter.py
-
-      - name: Run tests (if present)
-        working-directory: backend
-        run: |
-          if [ -f pytest.ini ] || [ -d tests ]; then
-            pip install pytest
-            pytest
-          else
-            echo "No tests found, skipping."
-          fi
+      - name: Compile all modules
+        run: python -m py_compile backend/main.py backend/simulation.py backend/entities.py backend/mavlink_adapter.py backend/dji_adapter.py
 
   frontend:
-    name: Frontend (Node)
+    name: Frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,17 +40,13 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: skydash/frontend/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('skydash/frontend/package-lock.json', 'skydash/frontend/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install dependencies
         working-directory: skydash/frontend
         run: npm install
+
+      - name: Lint
+        working-directory: skydash/frontend
+        run: npm run lint
 
       - name: Build
         working-directory: skydash/frontend

@@ -16,7 +16,7 @@ export default function BootSequence({ onComplete }) {
   const [lines, setLines] = useState([]);
 
   useEffect(() => {
-    BOOT_LINES.forEach((line, i) => {
+    BOOT_LINES.forEach((line) => {
       setTimeout(() => {
         setLines((prev) => [...prev, line]);
       }, line.delay);

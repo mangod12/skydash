@@ -4,7 +4,6 @@ import TimelineView from '../intel/TimelineView';
 import NaturalLanguageQuery from '../intel/NaturalLanguageQuery';
 import AnomalyDetector from '../intel/AnomalyDetector';
 import ReportExport from '../intel/ReportExport';
-import GlassCard from '../common/GlassCard';
 import { useIntelStore } from '../../stores/intelStore';
 
 export default function IntelView() {

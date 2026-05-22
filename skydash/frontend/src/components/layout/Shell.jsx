@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import StatusBar from './StatusBar';
@@ -14,26 +14,24 @@ import { useKeyboard } from '../../hooks/useKeyboard';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
 export default function Shell({ children }) {
-  const [booted, setBooted] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const prevAlertCountRef = useRef(0);
 
   useTelemetry();
   useKeyboard({ onHelp: () => setShowHelp(true) });
 
   const handleBootComplete = useCallback(() => {
-    setBooted(true);
     toast('System online — telemetry streaming', 'success');
   }, []);
 
   // Alert toasts
   const alerts = useTelemetryStore((s) => s.alerts);
-  const prevAlertCount = useState(0);
   useEffect(() => {
-    if (alerts.length > prevAlertCount[0]) {
+    if (alerts.length > prevAlertCountRef.current) {
       const newAlert = alerts[alerts.length - 1];
       toast(newAlert.message, newAlert.severity === 'critical' ? 'error' : 'warning');
     }
-    prevAlertCount[0] = alerts.length;
+    prevAlertCountRef.current = alerts.length;
   }, [alerts]);
 
   return (

@@ -28,7 +28,7 @@ export default function CommandPalette() {
       setActiveView(cmd.action);
     }
     if (cmd.id === 'reset') {
-      fetch('http://localhost:8001/reset', { method: 'POST' });
+      fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8001'}/reset`, { method: 'POST' });
     }
     toggleCommandPalette();
   };

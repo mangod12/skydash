@@ -25,7 +25,6 @@ export function toUTM(lat, lng) {
   const f = 1 / 298.257223563;
   const e = Math.sqrt(2 * f - f * f);
   const e2 = e * e / (1 - e * e);
-  const n = f / (2 - f);
   const k0 = 0.9996;
 
   const latRad = (lat * Math.PI) / 180;

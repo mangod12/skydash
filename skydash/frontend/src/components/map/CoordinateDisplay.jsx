@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { clsx } from 'clsx';
 import { toDMS, toUTM, toMGRS, formatDecimal } from '../../utils/coordinates';
 
 const FORMATS = ['DD', 'DMS', 'UTM', 'MGRS'];

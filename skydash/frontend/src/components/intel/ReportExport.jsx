@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { FileText, Download, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { useIntelStore } from '../../stores/intelStore';
