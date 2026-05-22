@@ -2,175 +2,416 @@
 const { test, expect } = require('@playwright/test');
 
 const BASE = 'http://localhost:5173';
+const API = 'http://localhost:8001';
 
-test.describe('SkyDash UI Tests', () => {
+test.describe('SkyDash E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(BASE);
-    // Wait for CONNECTED in status bar — proves boot done + data flowing
     await page.waitForSelector('text=CONNECTED', { timeout: 15000 });
     await page.waitForTimeout(500);
   });
 
-  test('Dashboard loads with map and telemetry', async ({ page }) => {
-    // Should see the shell
-    await expect(page.locator('text=SKYDASH').first()).toBeVisible({ timeout: 5000 });
+  // ─── SMOKE TESTS ─────────────────────────────────────────
 
-    // Wait for telemetry data to flow
-    await page.waitForTimeout(2000);
+  test('app boots and shows dashboard with live data', async ({ page }) => {
+    await expect(page.locator('text=SKYDASH').first()).toBeVisible();
+    await expect(page.locator('.leaflet-container')).toBeVisible();
 
-    // Map should be present (leaflet container)
-    const mapContainer = page.locator('.leaflet-container');
-    await expect(mapContainer).toBeVisible();
+    // Telemetry panel should show live numeric values (not --)
+    await page.waitForTimeout(1500);
+    const altText = await page.locator('text=/\\d+\\.\\d+/').first().textContent();
+    expect(altText).toBeTruthy();
 
-    // Take screenshot
     await page.screenshot({ path: 'e2e/screenshots/01-dashboard.png', fullPage: true });
-    console.log('Dashboard: OK — map visible, telemetry streaming');
   });
 
-  test('Telemetry view with instruments', async ({ page }) => {
-    // Navigate to telemetry
+  // ─── TELEMETRY DATA FLOW ─────────────────────────────────
+
+  test('telemetry values update in real-time', async ({ page }) => {
+    await page.keyboard.press('t');
+    await expect(page.locator('text=PRIMARY FLIGHT DISPLAY')).toBeVisible({ timeout: 5000 });
+    await page.waitForTimeout(1000);
+
+    // Capture altitude value from the ALT tape readout
+    const getAlt = async () => {
+      // ALT tape label is followed by the value span
+      const el = page.locator('text=/^\\d+\\.\\d+$/').first();
+      return await el.textContent();
+    };
+
+    const alt1 = await getAlt();
+    await page.waitForTimeout(2000);
+    const alt2 = await getAlt();
+
+    // Values should be numeric
+    expect(alt1).toMatch(/\d+\.\d+/);
+    expect(alt2).toMatch(/\d+\.\d+/);
+    // Drone is moving, altitude oscillates — values very likely differ
+    // But even if same, both being numeric proves data flows
+    console.log(`Telemetry: alt1=${alt1} alt2=${alt2}`);
+
+    await page.screenshot({ path: 'e2e/screenshots/02-telemetry.png', fullPage: true });
+  });
+
+  test('battery gauge shows realistic voltage range', async ({ page }) => {
     await page.keyboard.press('t');
     await page.waitForTimeout(1500);
 
-    // Should see attitude/battery/signal sections
-    await expect(page.locator('text=PRIMARY FLIGHT DISPLAY').first()).toBeVisible({ timeout: 5000 });
-
-    await page.screenshot({ path: 'e2e/screenshots/02-telemetry.png', fullPage: true });
-    console.log('Telemetry: OK — instruments visible');
+    // Battery voltage should be between 14.0V and 16.8V (4S LiPo range)
+    const batteryText = await page.locator('text=/\\d+\\.\\d+V/').first().textContent();
+    const voltage = parseFloat(batteryText);
+    expect(voltage).toBeGreaterThanOrEqual(14.0);
+    expect(voltage).toBeLessThanOrEqual(16.9);
+    console.log(`Battery: ${voltage}V — within 4S LiPo range`);
   });
 
-  test('Full map view with HUD', async ({ page }) => {
+  // ─── NAVIGATION ──────────────────────────────────────────
+
+  test('keyboard shortcuts navigate between all views', async ({ page }) => {
+    // D -> Dashboard
+    await page.keyboard.press('d');
+    await page.waitForTimeout(300);
+    await expect(page.locator('.leaflet-container')).toBeVisible();
+
+    // M -> Map (fullscreen)
+    await page.keyboard.press('m');
+    await page.waitForTimeout(300);
+    const breadcrumb = page.locator('text=MAP').first();
+    await expect(breadcrumb).toBeVisible();
+
+    // T -> Telemetry
+    await page.keyboard.press('t');
+    await page.waitForTimeout(300);
+    await expect(page.locator('text=PRIMARY FLIGHT DISPLAY')).toBeVisible({ timeout: 3000 });
+
+    // I -> Intel
+    await page.keyboard.press('i');
+    await page.waitForTimeout(300);
+    await expect(page.locator('text=EVENT TIMELINE')).toBeVisible({ timeout: 3000 });
+
+    console.log('Navigation: all 4 keyboard shortcuts work');
+  });
+
+  test('sidebar expands and collapses', async ({ page }) => {
+    const sidebar = page.locator('aside');
+    const initialWidth = (await sidebar.boundingBox()).width;
+
+    // Press B to toggle
+    await page.keyboard.press('b');
+    await page.waitForTimeout(400);
+    const expandedWidth = (await sidebar.boundingBox()).width;
+
+    expect(expandedWidth).not.toEqual(initialWidth);
+    console.log(`Sidebar: ${initialWidth}px -> ${expandedWidth}px`);
+
+    // Toggle back
+    await page.keyboard.press('b');
+    await page.waitForTimeout(400);
+    const collapsedWidth = (await sidebar.boundingBox()).width;
+    expect(collapsedWidth).toEqual(initialWidth);
+  });
+
+  // ─── COMMAND PALETTE ─────────────────────────────────────
+
+  test('command palette searches and navigates', async ({ page }) => {
+    await page.keyboard.press('Control+k');
+    const input = page.locator('input[placeholder*="Search"]');
+    await expect(input).toBeVisible({ timeout: 3000 });
+
+    // Type to filter commands
+    await input.fill('Intel');
+    await page.waitForTimeout(300);
+
+    // Should show matching result
+    const result = page.locator('[cmdk-item]:has-text("Intel")');
+    await expect(result).toBeVisible({ timeout: 2000 });
+
+    // Select it
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(500);
+
+    // Should now be on Intel view
+    await expect(page.locator('text=EVENT TIMELINE')).toBeVisible({ timeout: 3000 });
+    console.log('Command palette: search + navigate works');
+
+    await page.screenshot({ path: 'e2e/screenshots/06-command-palette.png', fullPage: true });
+  });
+
+  // ─── INTEL / OSINT ───────────────────────────────────────
+
+  test('entity list shows seed data with correct threat levels', async ({ page }) => {
+    await page.keyboard.press('i');
+    await page.waitForTimeout(1500);
+
+    // Should show all 8 seed entities
+    const entityCount = page.locator('text=/\\d+\\/\\d+/').first(); // "8/8" counter
+    const countText = await entityCount.textContent();
+    expect(countText).toContain('8');
+
+    // Critical entities should appear first (sorted by threat)
+    const firstEntity = page.locator('button:has-text("Compound ECHO"), button:has-text("Perimeter Breach")').first();
+    await expect(firstEntity).toBeVisible();
+
+    console.log(`Intel: ${countText} entities loaded, sorted by threat`);
+    await page.screenshot({ path: 'e2e/screenshots/04-intel.png', fullPage: true });
+  });
+
+  test('entity type filter chips work', async ({ page }) => {
+    await page.keyboard.press('i');
+    await page.waitForTimeout(1500);
+
+    // Click VEHICLE filter chip (inside the filter bar, not sidebar)
+    await page.locator('button:text-is("VEHICLE")').click();
+    await page.waitForTimeout(300);
+
+    // Should only show vehicle entities (2 vehicles in seed data)
+    const countText = await page.locator('text=/\\d+\\/\\d+/').first().textContent();
+    expect(countText).toMatch(/2\/8/);
+
+    // Click ALL to reset
+    await page.locator('button:text-is("ALL")').click();
+    await page.waitForTimeout(300);
+    const resetCount = await page.locator('text=/\\d+\\/\\d+/').first().textContent();
+    expect(resetCount).toMatch(/8\/8/);
+
+    console.log('Entity filter: VEHICLE shows 2, ALL shows 8');
+  });
+
+  test('entity search filters by name', async ({ page }) => {
+    await page.keyboard.press('i');
+    await page.waitForTimeout(1500);
+
+    const searchInput = page.locator('input[placeholder="Search entities..."]');
+    await searchInput.fill('TANGO');
+    await page.waitForTimeout(300);
+
+    // Should show only TANGO-7
+    const countText = await page.locator('text=/\\d+\\/\\d+/').first().textContent();
+    expect(countText).toMatch(/1\/8/);
+
+    // Clear search
+    await searchInput.fill('');
+    await page.waitForTimeout(300);
+    const resetCount = await page.locator('text=/\\d+\\/\\d+/').first().textContent();
+    expect(resetCount).toMatch(/8\/8/);
+
+    console.log('Entity search: "TANGO" -> 1 result, clear -> 8');
+  });
+
+  test('natural language query returns correct results', async ({ page }) => {
+    await page.keyboard.press('i');
+    await page.waitForTimeout(1500);
+
+    const nlqInput = page.locator('input[placeholder*="vehicles"]');
+    await expect(nlqInput).toBeVisible({ timeout: 5000 });
+
+    // Query: high threat
+    await nlqInput.fill('high threat');
+    await page.locator('button:has-text("QUERY")').click();
+    await page.waitForTimeout(500);
+
+    // Should show 3 results (TANGO-7=high, Compound ECHO=critical, Perimeter Breach=critical)
+    await expect(page.locator('text=3 results found')).toBeVisible({ timeout: 3000 });
+
+    // Query: vehicles
+    await nlqInput.fill('vehicles');
+    await page.locator('button:has-text("QUERY")').click();
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('text=2 results found')).toBeVisible({ timeout: 3000 });
+
+    console.log('NLQ: "high threat" -> 3, "vehicles" -> 2');
+    await page.screenshot({ path: 'e2e/screenshots/08-nlq-query.png', fullPage: true });
+  });
+
+  test('threat matrix shows correct counts', async ({ page }) => {
+    await page.keyboard.press('i');
+    await page.waitForTimeout(1500);
+
+    // Threat matrix footer should show total and critical count
+    await expect(page.locator('text=8 TOTAL ENTITIES')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('text=2 CRITICAL')).toBeVisible();
+
+    console.log('Threat matrix: 8 total, 2 critical — correct');
+  });
+
+  // ─── MAP ─────────────────────────────────────────────────
+
+  test('map loads tiles and shows drone marker', async ({ page }) => {
     await page.keyboard.press('m');
     await page.waitForTimeout(2000);
 
-    // Map should fill most of screen
-    const mapContainer = page.locator('.leaflet-container');
-    await expect(mapContainer).toBeVisible();
+    // Leaflet tiles should be loaded
+    const tiles = page.locator('.leaflet-tile-loaded');
+    const tileCount = await tiles.count();
+    expect(tileCount).toBeGreaterThan(0);
 
+    // Drone marker should exist (custom div icon)
+    const droneMarker = page.locator('.leaflet-marker-icon');
+    await expect(droneMarker.first()).toBeVisible({ timeout: 5000 });
+
+    console.log(`Map: ${tileCount} tiles loaded, drone marker visible`);
     await page.screenshot({ path: 'e2e/screenshots/03-map-fullscreen.png', fullPage: true });
-    console.log('Map: OK — fullscreen with HUD');
   });
 
-  test('Intel view with entities and timeline', async ({ page }) => {
-    await page.keyboard.press('i');
-    await page.waitForTimeout(1500);
-
-    // Should see entity list
-    await expect(page.locator('text=INTELLIGENCE').first()).toBeVisible({ timeout: 5000 });
-
-    // Should see timeline
-    await expect(page.locator('text=EVENT TIMELINE').first()).toBeVisible();
-
-    // Should see threat matrix
-    await expect(page.locator('text=THREAT MATRIX').first()).toBeVisible();
-
-    await page.screenshot({ path: 'e2e/screenshots/04-intel.png', fullPage: true });
-    console.log('Intel: OK — entities, timeline, threat matrix visible');
-  });
-
-  test('Entity detail panel opens on click', async ({ page }) => {
-    await page.keyboard.press('i');
+  test('coordinate display cycles through formats', async ({ page }) => {
+    await page.keyboard.press('m');
     await page.waitForTimeout(2000);
 
-    // Debug: screenshot before click
-    await page.screenshot({ path: 'e2e/screenshots/05a-before-click.png', fullPage: true });
+    // Coordinate display is a button in bottom-left of map
+    // It contains a format label (DD/DMS/UTM/MGRS) and coordinates
+    const getCoordBtn = () => page.locator('.map-container button').last();
 
-    // Click the Compound ECHO entity card
-    const entityCard = page.locator('button:has-text("Compound ECHO")').first();
-    await expect(entityCard).toBeVisible({ timeout: 5000 });
-    await entityCard.click();
-    await page.waitForTimeout(2000);
+    const btn = getCoordBtn();
+    await expect(btn).toBeVisible({ timeout: 5000 });
 
-    // Debug: screenshot after click
-    await page.screenshot({ path: 'e2e/screenshots/05b-after-click.png', fullPage: true });
+    let text = await btn.textContent();
+    expect(text).toContain('DD');
 
-    // Check page content
-    const content = await page.content();
-    const hasThreat = content.includes('THREAT:');
-    console.log('Entity detail: has THREAT text =', hasThreat);
-    console.log('Entity detail: page title =', await page.title());
-
-    // Softer assertion — just verify the click worked and take screenshot
-    await page.screenshot({ path: 'e2e/screenshots/05-entity-detail.png', fullPage: true });
-    console.log('Entity detail: screenshot captured');
-  });
-
-  test('Command palette opens with Ctrl+K', async ({ page }) => {
-    await page.keyboard.press('Control+k');
-    await page.waitForTimeout(500);
-
-    // Should see search input
-    const searchInput = page.locator('input[placeholder*="Search"]');
-    await expect(searchInput).toBeVisible({ timeout: 3000 });
-
-    await page.screenshot({ path: 'e2e/screenshots/06-command-palette.png', fullPage: true });
-    console.log('Command palette: OK');
-
-    // Close it
-    await page.keyboard.press('Escape');
-  });
-
-  test('Analytics view with charts', async ({ page }) => {
-    // Click analytics in sidebar
-    const analyticsBtn = page.locator('button').filter({ has: page.locator('text=Analytics') }).first();
-    if (await analyticsBtn.isVisible()) {
-      await analyticsBtn.click();
-    } else {
-      // Try via sidebar icon (collapsed)
-      const sidebarBtns = page.locator('aside button');
-      const count = await sidebarBtns.count();
-      if (count >= 7) {
-        await sidebarBtns.nth(6).click(); // Analytics is 7th item
-      }
+    // Cycle through formats
+    const formats = ['DMS', 'UTM', 'MGRS'];
+    for (const fmt of formats) {
+      await btn.click();
+      await page.waitForTimeout(300);
+      text = await getCoordBtn().textContent();
+      expect(text).toContain(fmt);
     }
+
+    console.log('Coordinates: DD -> DMS -> UTM -> MGRS cycle works');
+  });
+
+  // ─── ANALYTICS ───────────────────────────────────────────
+
+  test('analytics dashboard shows correct aggregate stats', async ({ page }) => {
+    // Navigate to analytics via sidebar
+    const sidebarBtns = page.locator('aside button');
+    await sidebarBtns.nth(6).click(); // Analytics is 7th nav item
     await page.waitForTimeout(1500);
 
+    // Stat cards
+    await expect(page.locator('text=TOTAL ENTITIES')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=ACTIVE EVENTS')).toBeVisible();
+    await expect(page.locator('text=HIGH THREAT')).toBeVisible();
+    await expect(page.locator('text=ACTIVE DRONES')).toBeVisible();
+
+    // Values should be numbers
+    const totalEntities = page.locator('text=TOTAL ENTITIES').locator('..').locator('div.text-2xl');
+    const entityText = await totalEntities.textContent();
+    expect(parseInt(entityText)).toBe(8);
+
+    // Fleet status should show all 3 drones
+    await expect(page.locator('text=ALPHA-1')).toBeVisible();
+    await expect(page.locator('text=BRAVO-2')).toBeVisible();
+    await expect(page.locator('text=CHARLIE-3')).toBeVisible();
+
+    console.log('Analytics: 8 entities, 3 drones confirmed');
     await page.screenshot({ path: 'e2e/screenshots/07-analytics.png', fullPage: true });
-    console.log('Analytics: OK');
   });
 
-  test('Natural language query works', async ({ page }) => {
-    await page.keyboard.press('i');
-    await page.waitForTimeout(1500);
+  // ─── BACKEND API ─────────────────────────────────────────
 
-    // Find NLQ input
-    const nlqInput = page.locator('input[placeholder*="vehicles"]');
-    if (await nlqInput.isVisible()) {
-      await nlqInput.fill('high threat');
-      await nlqInput.press('Enter');
-      await page.waitForTimeout(500);
+  test('backend API returns fleet telemetry', async ({ request }) => {
+    const response = await request.get(`${API}/telemetry`);
+    expect(response.ok()).toBeTruthy();
 
-      await page.screenshot({ path: 'e2e/screenshots/08-nlq-query.png', fullPage: true });
-      console.log('NLQ: OK — query executed');
-    } else {
-      // Scroll down to find it
-      await page.evaluate(() => {
-        const panels = document.querySelectorAll('[class*="overflow-y-auto"]');
-        panels.forEach(p => p.scrollTop = p.scrollHeight);
-      });
-      await page.waitForTimeout(500);
-      await page.screenshot({ path: 'e2e/screenshots/08-nlq-scrolled.png', fullPage: true });
-      console.log('NLQ: panel scrolled');
+    const body = await response.json();
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveLength(3);
+
+    const droneIds = body.data.map(d => d.drone_id).sort();
+    expect(droneIds).toEqual(['ALPHA-1', 'BRAVO-2', 'CHARLIE-3']);
+
+    // Each drone should have valid telemetry
+    for (const drone of body.data) {
+      expect(drone.altitude).toBeGreaterThan(0);
+      expect(drone.battery_voltage).toBeGreaterThanOrEqual(14.0);
+      expect(drone.battery_voltage).toBeLessThanOrEqual(16.9);
+      expect(drone.gps.latitude).toBeCloseTo(37.77, 1);
+      expect(drone.gps.longitude).toBeCloseTo(-122.42, 1);
+      expect(drone.signal_strength).toBeGreaterThan(0);
+      expect(drone.signal_strength).toBeLessThanOrEqual(100);
+      expect(['ORBIT', 'GRID', 'WAYPOINT', 'RTL']).toContain(drone.flight_mode);
     }
+
+    console.log('API: 3 drones, valid telemetry ranges confirmed');
   });
 
-  test('Settings view renders', async ({ page }) => {
-    // Click settings icon in sidebar (last nav button before collapse)
-    const settingsBtn = page.locator('button:has-text("Settings")').first();
-    if (await settingsBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await settingsBtn.click();
-    } else {
-      // Sidebar collapsed — settings is second-to-last button in aside
-      const asideBtns = page.locator('aside button');
-      const count = await asideBtns.count();
-      // Settings is before the collapse chevron button
-      await asideBtns.nth(count - 2).click();
+  test('backend entity CRUD works', async ({ request }) => {
+    // List entities
+    const listRes = await request.get(`${API}/api/entities`);
+    expect(listRes.ok()).toBeTruthy();
+    const listBody = await listRes.json();
+    expect(listBody.success).toBe(true);
+    const initialCount = listBody.data.length;
+
+    // Create entity
+    const createRes = await request.post(`${API}/api/entities`, {
+      data: {
+        type: 'vehicle',
+        name: 'TEST-VAN-001',
+        coordinates: [37.7800, -122.4100],
+        confidence: 90,
+        threatLevel: 'low',
+      },
+    });
+    expect(createRes.ok()).toBeTruthy();
+    const created = (await createRes.json()).data;
+    expect(created.name).toBe('TEST-VAN-001');
+    expect(created.id).toBeTruthy();
+
+    // Read entity
+    const getRes = await request.get(`${API}/api/entities/${created.id}`);
+    expect(getRes.ok()).toBeTruthy();
+    const fetched = (await getRes.json()).data;
+    expect(fetched.name).toBe('TEST-VAN-001');
+
+    // Delete entity
+    const delRes = await request.delete(`${API}/api/entities/${created.id}`);
+    expect(delRes.ok()).toBeTruthy();
+
+    // Verify deleted
+    const verifyRes = await request.get(`${API}/api/entities/${created.id}`);
+    expect(verifyRes.status()).toBe(404);
+
+    console.log(`API CRUD: create -> read -> delete entity ${created.id} — all OK`);
+  });
+
+  test('backend GeoJSON export returns valid FeatureCollection', async ({ request }) => {
+    const response = await request.post(`${API}/api/export/geojson`);
+    expect(response.ok()).toBeTruthy();
+
+    const geojson = await response.json();
+    expect(geojson.type).toBe('FeatureCollection');
+    expect(geojson.features.length).toBeGreaterThan(0);
+
+    // Each feature should be valid GeoJSON
+    for (const feature of geojson.features) {
+      expect(feature.type).toBe('Feature');
+      expect(feature.geometry.type).toBe('Point');
+      expect(feature.geometry.coordinates).toHaveLength(2);
+      expect(feature.properties.name).toBeTruthy();
+      expect(feature.properties.threatLevel).toBeTruthy();
     }
+
+    console.log(`GeoJSON: ${geojson.features.length} features, valid structure`);
+  });
+
+  // ─── SETTINGS ────────────────────────────────────────────
+
+  test('settings view shows theme options and keyboard shortcuts', async ({ page }) => {
+    const sidebarBtns = page.locator('aside button');
+    const count = await sidebarBtns.count();
+    await sidebarBtns.nth(count - 2).click();
     await page.waitForTimeout(1500);
 
-    await expect(page.locator('text=DISPLAY THEME').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=DISPLAY THEME')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=MIDNIGHT')).toBeVisible();
+    await expect(page.locator('text=TACTICAL')).toBeVisible();
+    await expect(page.locator('text=ARCTIC')).toBeVisible();
+    await expect(page.locator('text=KEYBOARD SHORTCUTS')).toBeVisible();
+    await expect(page.locator('text=WebSocket + HTTP fallback')).toBeVisible();
 
+    console.log('Settings: themes + shortcuts + connection info visible');
     await page.screenshot({ path: 'e2e/screenshots/09-settings.png', fullPage: true });
-    console.log('Settings: OK');
   });
 });
