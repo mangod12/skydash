@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Bell, Command } from 'lucide-react';
+import { Search, Bell, Command, Info } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
@@ -21,7 +21,7 @@ function UtcClock() {
   );
 }
 
-export default function TopBar() {
+export default function TopBar({ onInfoOpen }) {
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
   const alerts = useTelemetryStore((s) => s.alerts);
   const activeView = useUIStore((s) => s.activeView);
@@ -49,8 +49,15 @@ export default function TopBar() {
         </kbd>
       </button>
 
-      {/* Right: Notifications + Clock */}
-      <div className="flex items-center gap-4">
+      {/* Right: Info + Notifications + Clock */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onInfoOpen}
+          className="text-zinc-600 hover:text-indigo-400 transition-colors"
+          title="Platform Guide"
+        >
+          <Info size={17} strokeWidth={1.5} />
+        </button>
         <button className="relative text-zinc-500 hover:text-zinc-300 transition-colors">
           <Bell size={18} strokeWidth={1.5} />
           {alerts.length > 0 && (

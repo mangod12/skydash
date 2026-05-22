@@ -7,6 +7,7 @@ import BootSequence from '../common/BootSequence';
 import ScanLine from '../common/ScanLine';
 import NoiseOverlay from '../common/NoiseOverlay';
 import KeyboardHelp from '../common/KeyboardHelp';
+import InfoPanel from '../common/InfoPanel';
 import ConnectionLost from '../common/ConnectionLost';
 import ToastContainer, { toast } from '../common/Toast';
 import { useTelemetry } from '../../hooks/useTelemetry';
@@ -15,6 +16,7 @@ import { useTelemetryStore } from '../../stores/telemetryStore';
 
 export default function Shell({ children }) {
   const [showHelp, setShowHelp] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const prevAlertCountRef = useRef(0);
 
   useTelemetry();
@@ -42,7 +44,7 @@ export default function Shell({ children }) {
         <Sidebar />
 
         <div className="flex-1 flex flex-col min-w-0">
-          <TopBar />
+          <TopBar onInfoOpen={() => setShowInfo(true)} />
 
           <main className="flex-1 min-h-0 overflow-hidden">
             {children}
@@ -53,6 +55,7 @@ export default function Shell({ children }) {
 
         <CommandPalette />
         <KeyboardHelp open={showHelp} onClose={() => setShowHelp(false)} />
+        <InfoPanel open={showInfo} onClose={() => setShowInfo(false)} />
         <ConnectionLost />
       </div>
 
