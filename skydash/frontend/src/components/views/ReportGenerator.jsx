@@ -5,6 +5,7 @@ import { useMissionStore } from '../../stores/missionStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { audit } from '../../stores/auditStore';
+import { escapeHtml } from '../../utils/sanitize';
 
 const THREAT_ORDER = ['critical', 'high', 'medium', 'low', 'unknown'];
 const VERSION = 'SkyDash v2.0';
@@ -77,8 +78,65 @@ export default function ReportGenerator({ open, onClose, missionId }) {
   const handlePrint = useCallback(() => { window.print(); audit('export', 'export', 'Printed report'); }, []);
   const handleCopy = useCallback(() => { navigator.clipboard.writeText(plainText); audit('export', 'export', 'Copied report to clipboard'); }, [plainText]);
   const handleDownload = useCallback(() => {
-    const html = document.getElementById('skydash-report')?.outerHTML || '';
-    const full = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>SkyDash Report</title><style>body{font-family:monospace;background:#fff;color:#000;padding:2rem;max-width:800px;margin:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid #333;padding:4px 8px;text-align:left;font-size:12px}th{background:#e5e7eb}h1,h2,h3{font-family:sans-serif}hr{border-color:#333}</style></head><body>${html}</body></html>`;
+    const safeTitle = escapeHtml(title);
+    const safeStatus = escapeHtml(status);
+    const safeCreated = escapeHtml(created);
+    const safeVersion = escapeHtml(VERSION);
+
+    const entityRows = entities.map((e) =>
+      `<tr><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.type)}</td><td>${escapeHtml((e.threatLevel || '').toUpperCase())}</td><td>${e.confidence}%</td></tr>`
+    ).join('');
+
+    const threatSection = tc.map((t) =>
+      `<p><strong>${escapeHtml(t.level.toUpperCase())}</strong> ${t.count} entit${t.count === 1 ? 'y' : 'ies'}</p>`
+    ).join('');
+
+    const relSection = relationships.length === 0
+      ? '<p>No relationships recorded.</p>'
+      : relationships.map((rel) => {
+          const from = escapeHtml(entities.find((e) => e.id === rel.from)?.name || rel.from);
+          const to = escapeHtml(entities.find((e) => e.id === rel.to)?.name || rel.to);
+          return `<p>${from} --[${escapeHtml(rel.type)}]--&gt; ${to} (${rel.confidence}%)</p>`;
+        }).join('');
+
+    const eventSection = events.length === 0
+      ? '<p>No events recorded.</p>'
+      : events.slice(0, 25).map((e) =>
+          `<p>${escapeHtml(format(e.time, 'HH:mm:ss'))} [${escapeHtml(e.severity.toUpperCase())}] ${escapeHtml(e.description)}</p>`
+        ).join('');
+
+    const noteSection = notes.length === 0
+      ? '<p>No analyst notes.</p>'
+      : notes.map((n) => `<p>- ${escapeHtml(n.content)}</p>`).join('');
+
+    const fleetSection = fleet.length === 0
+      ? '<p>No fleet data available.</p>'
+      : fleet.map((d) =>
+          `<p>${escapeHtml(d.drone_id || d.id)} | ALT ${d.altitude?.toFixed(0) ?? '—'}m | BAT ${d.battery_voltage?.toFixed(1) ?? '—'}V | SPD ${d.ground_speed?.toFixed(1) ?? '—'}m/s</p>`
+        ).join('');
+
+    const full = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>SkyDash Report</title><style>body{font-family:monospace;background:#fff;color:#000;padding:2rem;max-width:800px;margin:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid #333;padding:4px 8px;text-align:left;font-size:12px}th{background:#e5e7eb}h1,h2,h3{font-family:sans-serif}hr{border-color:#333}</style></head><body>
+<h1>SKYDASH INTELLIGENCE REPORT</h1>
+<p>CLASSIFIED — UNCLASSIFIED</p>
+<p>MISSION: ${safeTitle} | STATUS: ${safeStatus} | CREATED: ${safeCreated}</p>
+<hr>
+<h2>1. EXECUTIVE SUMMARY</h2>
+<p>Entities: ${entities.length} | High/Critical: ${high} | Events: ${events.length} | Fleet: ${fleet.length}</p>
+<h2>2. ENTITY INVENTORY</h2>
+<table><tr><th>NAME</th><th>TYPE</th><th>THREAT</th><th>CONFID.</th></tr>${entityRows}</table>
+<h2>3. THREAT ASSESSMENT</h2>
+${threatSection}
+<h2>4. RELATIONSHIP MAP</h2>
+${relSection}
+<h2>5. TIMELINE OF EVENTS</h2>
+${eventSection}
+<h2>6. ANALYST NOTES</h2>
+${noteSection}
+<h2>7. FLEET STATUS</h2>
+${fleetSection}
+<hr>
+<p>Generated: ${escapeHtml(format(now, "yyyy-MM-dd'T'HH:mm:ss"))}Z by ${safeVersion}</p>
+</body></html>`;
     const blob = new Blob([full], { type: 'text/html' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -86,7 +144,7 @@ export default function ReportGenerator({ open, onClose, missionId }) {
     a.click();
     URL.revokeObjectURL(a.href);
     audit('export', 'export', 'Downloaded HTML report');
-  }, [now]);
+  }, [now, title, status, created, entities, tc, relationships, events, notes, fleet, high]);
 
   if (!open) return null;
 

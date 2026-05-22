@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { Marker, Polyline, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import { useMapStore } from '../../stores/mapStore';
+import { sanitizeLabel } from '../../utils/sanitize';
 import AnnotationHandler from './AnnotationHandler';
 
 const INDIGO = '#6366f1';
@@ -15,7 +16,7 @@ function makeTextIcon(label) {
       padding:2px 8px;color:#a5b4fc;font-size:12px;
       font-family:'Inter',sans-serif;white-space:nowrap;
       pointer-events:auto;
-    ">${label}</div>`,
+    ">${sanitizeLabel(label)}</div>`,
     iconAnchor: [0, 0],
   });
 }
@@ -30,7 +31,7 @@ function makePinIcon(number) {
       font-family:'JetBrains Mono','monospace';
       display:flex;align-items:center;justify-content:center;
       pointer-events:auto;box-shadow:0 0 8px rgba(99,102,241,0.4);
-    ">${number}</div>`,
+    ">${sanitizeLabel(String(number))}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   });

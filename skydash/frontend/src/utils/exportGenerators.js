@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { escapeHtml } from './sanitize';
 
 const TIMESTAMP = () => format(new Date(), 'yyyy-MM-dd HH:mm:ss');
 const SEPARATOR = '='.repeat(60);
@@ -13,11 +14,7 @@ const THREAT_KML_COLORS = {
 };
 
 function escapeXml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return escapeHtml(String(str));
 }
 
 function escapeCsv(val) {

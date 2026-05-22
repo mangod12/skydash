@@ -68,3 +68,6 @@ playwright-report/
 
 # Database
 *.db
+skydash.db
+*.db
+*.db-journal

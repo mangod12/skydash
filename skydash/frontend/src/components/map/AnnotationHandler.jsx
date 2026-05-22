@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useMapStore } from '../../stores/mapStore';
+import { sanitizeLabel } from '../../utils/sanitize';
 
 const INDIGO = '#6366f1';
 
@@ -15,7 +16,7 @@ function makeTempIcon(char) {
       font-family:'JetBrains Mono','monospace';
       display:flex;align-items:center;justify-content:center;
       pointer-events:auto;box-shadow:0 0 8px rgba(99,102,241,0.4);
-    ">${char}</div>`,
+    ">${sanitizeLabel(String(char))}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   });
