@@ -22,13 +22,17 @@ const THREAT_COLORS = {
   critical: 'bg-red-600 animate-pulse',
 };
 
-export default function EntityCard({ entity, selected, onClick }) {
+export default function EntityCard({ entity, selected, onClick, onContextMenu }) {
   const config = TYPE_CONFIG[entity.type] || TYPE_CONFIG.event;
   const Icon = config.icon;
 
   return (
     <motion.button
       onClick={onClick}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenu?.(e.clientX, e.clientY, entity);
+      }}
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       className={clsx(

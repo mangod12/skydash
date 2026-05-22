@@ -13,7 +13,9 @@ import ConnectionLost from '../common/ConnectionLost';
 import NotificationCenter from '../common/NotificationCenter';
 import ToastContainer, { toast } from '../common/Toast';
 import { useTelemetry } from '../../hooks/useTelemetry';
+import { useAlertEngine } from '../../hooks/useAlertEngine';
 import { useKeyboard } from '../../hooks/useKeyboard';
+import useAuditIntegration from '../../hooks/useAuditIntegration';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useUIStore } from '../../stores/uiStore';
 
@@ -24,6 +26,8 @@ export default function Shell({ children }) {
   const prevAlertCountRef = useRef(0);
 
   useTelemetry();
+  useAlertEngine();
+  useAuditIntegration();
   useKeyboard({ onHelp: () => setShowHelp(true) });
 
   // Responsive breakpoint listener

@@ -1,6 +1,8 @@
 import { clsx } from 'clsx';
 import GlassCard from '../common/GlassCard';
 import DataSources from '../common/DataSources';
+import AuditLog from '../common/AuditLog';
+import AlertRulesConfig from '../common/AlertRulesConfig';
 import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
@@ -66,6 +68,9 @@ export default function SettingsView() {
           </div>
         </GlassCard>
 
+        {/* Alert Rules */}
+        <AlertRulesConfig />
+
         {/* Keyboard shortcuts */}
         <GlassCard animate={false}>
           <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-3">KEYBOARD SHORTCUTS</h3>
@@ -92,6 +97,9 @@ export default function SettingsView() {
             ))}
           </div>
         </GlassCard>
+
+        {/* Audit Log */}
+        <AuditLog />
 
         {/* Data Sources */}
         <GlassCard animate={false}>

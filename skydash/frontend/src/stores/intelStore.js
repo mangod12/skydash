@@ -124,6 +124,13 @@ export const useIntelStore = create((set, get) => ({
     return events.filter((e) => e.entityId === entityId).sort((a, b) => b.time - a.time);
   },
 
+  deleteEntity: (id) => set((s) => ({
+    entities: s.entities.filter((e) => e.id !== id),
+    relationships: s.relationships.filter((r) => r.from !== id && r.to !== id),
+    events: s.events.filter((e) => e.entityId !== id),
+    selectedEntityId: s.selectedEntityId === id ? null : s.selectedEntityId,
+  })),
+
   addEntity: (entity) => set((s) => ({
     entities: [...s.entities, { ...entity, id: `ent-${Date.now()}` }],
   })),

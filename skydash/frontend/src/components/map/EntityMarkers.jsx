@@ -1,5 +1,6 @@
-import { CircleMarker, Tooltip, Circle } from 'react-leaflet';
+import { CircleMarker, Tooltip, Circle, Popup } from 'react-leaflet';
 import { useIntelStore } from '../../stores/intelStore';
+import { useEntityNavigation } from '../../hooks/useEntityNavigation';
 
 const THREAT_STYLES = {
   none: { color: '#71717a', radius: 6, pulse: false },
@@ -17,9 +18,11 @@ const TYPE_LABELS = {
   event: 'EVENT',
 };
 
-export default function EntityMarkers() {
+export default function EntityMarkers({ onEntityContextMenu }) {
   const entities = useIntelStore((s) => s.entities);
+  const selectedEntityId = useIntelStore((s) => s.selectedEntityId);
   const selectEntity = useIntelStore((s) => s.selectEntity);
+  const { showEntityDetail } = useEntityNavigation();
 
   return (
     <>
@@ -27,6 +30,7 @@ export default function EntityMarkers() {
         .filter((e) => e.coordinates)
         .map((entity) => {
           const style = THREAT_STYLES[entity.threatLevel] || THREAT_STYLES.none;
+          const isSelected = selectedEntityId === entity.id;
 
           return (
             <span key={entity.id}>
@@ -46,19 +50,46 @@ export default function EntityMarkers() {
                 />
               )}
 
+              {/* Selected entity pulse ring */}
+              {isSelected && (
+                <Circle
+                  center={entity.coordinates}
+                  radius={80}
+                  pathOptions={{
+                    color: '#22d3ee',
+                    fillColor: '#22d3ee',
+                    fillOpacity: 0.08,
+                    weight: 2,
+                    opacity: 0.6,
+                  }}
+                  className="entity-pulse-ring"
+                />
+              )}
+
               {/* Main marker */}
               <CircleMarker
                 center={entity.coordinates}
                 radius={style.radius}
                 pathOptions={{
-                  color: style.color,
-                  fillColor: style.color,
-                  fillOpacity: 0.5,
-                  weight: 2,
+                  color: isSelected ? '#22d3ee' : style.color,
+                  fillColor: isSelected ? '#22d3ee' : style.color,
+                  fillOpacity: isSelected ? 0.7 : 0.5,
+                  weight: isSelected ? 3 : 2,
                   opacity: 0.9,
                 }}
                 eventHandlers={{
                   click: () => selectEntity(entity.id),
+                  contextmenu: (e) => {
+                    e.originalEvent?.preventDefault?.();
+                    e.originalEvent?.stopPropagation?.();
+                    if (onEntityContextMenu) {
+                      onEntityContextMenu(
+                        e.originalEvent?.clientX ?? 0,
+                        e.originalEvent?.clientY ?? 0,
+                        entity,
+                      );
+                    }
+                  },
                 }}
               >
                 <Tooltip direction="top" offset={[0, -10]} permanent={false}>
@@ -70,6 +101,25 @@ export default function EntityMarkers() {
                     <div className="text-zinc-500">{entity.source}</div>
                   </div>
                 </Tooltip>
+
+                <Popup closeButton={false} className="entity-popup">
+                  <div className="text-[10px] font-mono space-y-1.5 min-w-[140px]">
+                    <div className="font-bold text-[11px]">{entity.name}</div>
+                    <div style={{ color: style.color }}>
+                      {TYPE_LABELS[entity.type] || entity.type.toUpperCase()} | {entity.threatLevel.toUpperCase()}
+                    </div>
+                    <div className="text-zinc-500">CONF: {entity.confidence}%</div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        showEntityDetail(entity.id);
+                      }}
+                      className="mt-1 w-full px-2 py-1 text-[10px] font-semibold tracking-wider rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-colors cursor-pointer"
+                    >
+                      VIEW DETAIL
+                    </button>
+                  </div>
+                </Popup>
               </CircleMarker>
             </span>
           );

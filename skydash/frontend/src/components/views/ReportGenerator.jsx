@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { useMissionStore } from '../../stores/missionStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
+import { audit } from '../../stores/auditStore';
 
 const THREAT_ORDER = ['critical', 'high', 'medium', 'low', 'unknown'];
 const VERSION = 'SkyDash v2.0';
@@ -73,8 +74,8 @@ export default function ReportGenerator({ open, onClose, missionId }) {
 
   const plainText = useMemo(() => buildPlainText(mission, entities, relationships, events, fleet, now), [mission, entities, relationships, events, fleet, now]);
 
-  const handlePrint = useCallback(() => window.print(), []);
-  const handleCopy = useCallback(() => { navigator.clipboard.writeText(plainText); }, [plainText]);
+  const handlePrint = useCallback(() => { window.print(); audit('export', 'export', 'Printed report'); }, []);
+  const handleCopy = useCallback(() => { navigator.clipboard.writeText(plainText); audit('export', 'export', 'Copied report to clipboard'); }, [plainText]);
   const handleDownload = useCallback(() => {
     const html = document.getElementById('skydash-report')?.outerHTML || '';
     const full = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>SkyDash Report</title><style>body{font-family:monospace;background:#fff;color:#000;padding:2rem;max-width:800px;margin:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid #333;padding:4px 8px;text-align:left;font-size:12px}th{background:#e5e7eb}h1,h2,h3{font-family:sans-serif}hr{border-color:#333}</style></head><body>${html}</body></html>`;
@@ -84,6 +85,7 @@ export default function ReportGenerator({ open, onClose, missionId }) {
     a.download = `skydash-report-${format(now, 'yyyyMMdd-HHmm')}.html`;
     a.click();
     URL.revokeObjectURL(a.href);
+    audit('export', 'export', 'Downloaded HTML report');
   }, [now]);
 
   if (!open) return null;
@@ -92,7 +94,6 @@ export default function ReportGenerator({ open, onClose, missionId }) {
     <div className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto bg-black/80 backdrop-blur-sm print:bg-white print:backdrop-blur-none">
       <style>{`@media print{.no-print{display:none!important}.print-report{background:#fff!important;color:#000!important;border:none!important;box-shadow:none!important;backdrop-filter:none!important}.print-report *{color:#000!important;border-color:#333!important}.print-report table th{background:#e5e7eb!important}}`}</style>
 
-      {/* Toolbar */}
       <div className="no-print fixed top-4 right-4 z-[210] flex gap-2">
         {[{ icon: Printer, label: 'PRINT', fn: handlePrint }, { icon: Copy, label: 'COPY', fn: handleCopy }, { icon: Download, label: 'HTML', fn: handleDownload }].map((b) => (
           <button key={b.label} onClick={b.fn} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-800/90 border border-white/10 text-zinc-300 text-[10px] font-semibold tracking-wider hover:bg-zinc-700/90 transition-colors">
@@ -104,7 +105,6 @@ export default function ReportGenerator({ open, onClose, missionId }) {
         </button>
       </div>
 
-      {/* Report */}
       <div id="skydash-report" className="print-report w-full max-w-[800px] my-12 mx-4 p-8 rounded-2xl border border-white/[0.08] backdrop-blur-[16px] bg-[rgba(9,9,11,0.85)] shadow-2xl font-mono text-[12px] leading-relaxed text-zinc-300">
         {/* Header */}
         <div className="text-center border-b border-white/10 pb-4 mb-6">

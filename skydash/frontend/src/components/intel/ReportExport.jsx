@@ -1,13 +1,15 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Download, Copy, Check } from 'lucide-react';
+import { Download, Copy, Check, ScrollText } from 'lucide-react';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
+import { audit } from '../../stores/auditStore';
 import {
   generateGeoJSON, generateKML, generateCSV,
   generateDossier, generateMissionBrief, downloadFile,
 } from '../../utils/exportGenerators';
+import ReportGenerator from '../views/ReportGenerator';
 
 const FORMATS = [
   { id: 'geojson', label: 'GeoJSON', ext: '.geojson', mime: 'application/json' },
@@ -80,6 +82,7 @@ export default function ReportExport() {
   const [activeFormat, setActiveFormat] = useState('geojson');
   const [scope, setScope] = useState('all');
   const [copied, setCopied] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const selectedEntity = useMemo(
     () => entities.find((e) => e.id === selectedEntityId) || null,
@@ -111,6 +114,7 @@ export default function ReportExport() {
     const fmtDef = FORMATS.find((f) => f.id === activeFormat);
     const filename = buildFilename(activeFormat, selectedEntity, mission);
     downloadFile(content, filename, fmtDef.mime);
+    audit('export', 'export', `Downloaded ${fmtDef.label} (${effectiveScope})`, { missionId: mission?.id });
   }, [activeFormat, effectiveScope, entities, relationships, events, mission, selectedEntity]);
 
   const handleCopy = useCallback(async () => {
@@ -120,6 +124,7 @@ export default function ReportExport() {
       await navigator.clipboard.writeText(content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      audit('export', 'export', `Copied ${FORMATS.find((f) => f.id === activeFormat)?.label || activeFormat} to clipboard`);
     } catch { /* clipboard unavailable */ }
   }, [activeFormat, effectiveScope, entities, relationships, events, mission, selectedEntity]);
 
@@ -192,6 +197,13 @@ export default function ReportExport() {
       {/* Actions */}
       <div className="flex gap-2 pt-1">
         <button
+          onClick={() => { setReportOpen(true); audit('view', 'export', 'Opened full report', { missionId: mission?.id }); }}
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-semibold tracking-wider transition-all bg-violet-500/15 text-violet-400 border border-violet-500/20 hover:bg-violet-500/25"
+        >
+          <ScrollText size={12} />
+          FULL REPORT
+        </button>
+        <button
           onClick={handleDownload}
           disabled={!canExport}
           className={clsx(
@@ -218,6 +230,7 @@ export default function ReportExport() {
           {copied ? 'COPIED' : 'COPY'}
         </button>
       </div>
+      <ReportGenerator open={reportOpen} onClose={() => setReportOpen(false)} missionId={activeMissionId} />
     </div>
   );
 }

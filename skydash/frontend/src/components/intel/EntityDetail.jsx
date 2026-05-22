@@ -3,6 +3,7 @@ import { X, MapPin, Link2, Clock } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import GlassCard from '../common/GlassCard';
 import { useIntelStore } from '../../stores/intelStore';
+import { useEntityNavigation } from '../../hooks/useEntityNavigation';
 
 const THREAT_LABELS = {
   none: { text: 'NONE', color: 'text-zinc-400 bg-zinc-800' },
@@ -22,6 +23,7 @@ export default function EntityDetail() {
     entity ? s.getEntityEvents(entity.id) : []
   );
   const entities = useIntelStore((s) => s.entities);
+  const { flyToEntity } = useEntityNavigation();
 
   if (!entity) return null;
 
@@ -85,8 +87,17 @@ export default function EntityDetail() {
             <h4 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-2 flex items-center gap-1.5">
               <MapPin size={10} /> LOCATION
             </h4>
-            <div className="text-[11px] font-mono tabular-nums text-zinc-300">
-              {entity.coordinates[0].toFixed(6)}, {entity.coordinates[1].toFixed(6)}
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[11px] font-mono tabular-nums text-zinc-300">
+                {entity.coordinates[0].toFixed(6)}, {entity.coordinates[1].toFixed(6)}
+              </div>
+              <button
+                onClick={() => flyToEntity(entity)}
+                className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold tracking-wider rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-colors shrink-0"
+              >
+                <MapPin size={10} />
+                FLY TO MAP
+              </button>
             </div>
           </GlassCard>
         )}

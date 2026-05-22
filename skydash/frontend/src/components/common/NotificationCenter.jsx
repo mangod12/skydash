@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { X, Bell, CheckCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import useNotificationStore from '../../stores/notificationStore';
+import VirtualList from './VirtualList';
 
 const TABS = ['all', 'alert', 'intel', 'system', 'mission'];
 
@@ -150,19 +151,29 @@ export default function NotificationCenter({ isOpen, onClose }) {
           </div>
 
           {/* Notification list */}
-          <div className="flex-1 overflow-y-auto">
-            {filtered.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-40 text-zinc-600">
-                <Bell size={20} className="mb-2 opacity-40" />
-                <span className="text-[11px]">No notifications</span>
-              </div>
-            )}
-            <AnimatePresence mode="popLayout">
-              {filtered.map((n) => (
+          {filtered.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center h-40 text-zinc-600">
+              <Bell size={20} className="mb-2 opacity-40" />
+              <span className="text-[11px]">No notifications</span>
+            </div>
+          ) : filtered.length > 20 ? (
+            <VirtualList
+              items={filtered}
+              itemHeight={72}
+              className="flex-1"
+              renderItem={(n) => (
                 <NotificationItem key={n.id} notification={n} onDismiss={dismiss} />
-              ))}
-            </AnimatePresence>
-          </div>
+              )}
+            />
+          ) : (
+            <div className="flex-1 overflow-y-auto">
+              <AnimatePresence mode="popLayout">
+                {filtered.map((n) => (
+                  <NotificationItem key={n.id} notification={n} onDismiss={dismiss} />
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

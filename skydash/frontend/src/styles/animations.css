@@ -138,3 +138,37 @@
 .animate-slide-in-right {
   animation: slide-in-from-right 0.3s var(--ease-out-expo) both;
 }
+
+/* Entity selected pulse ring on map */
+@keyframes entity-pulse {
+  0% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(1.3); }
+  100% { opacity: 0.6; transform: scale(1); }
+}
+
+.entity-pulse-ring path {
+  animation: entity-pulse 1.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Entity popup styling — override Leaflet defaults */
+.entity-popup .leaflet-popup-content-wrapper {
+  background: rgba(9, 9, 11, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  color: #d4d4d8;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  padding: 0;
+}
+
+.entity-popup .leaflet-popup-content {
+  margin: 10px 12px;
+}
+
+.entity-popup .leaflet-popup-tip {
+  background: rgba(9, 9, 11, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: none;
+  border-left: none;
+}

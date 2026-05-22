@@ -38,6 +38,11 @@ export const useMapStore = create((set) => ({
     annotationMode: s.annotationMode === mode ? null : mode,
   })),
 
+  // flyToTarget: { center, zoom, ts } — each call triggers a map.flyTo
+  flyToTarget: null,
+
+  flyTo: (center, zoom) => set({ flyToTarget: { center, zoom: zoom ?? 16, ts: Date.now() } }),
+
   setCenter: (center) => set({ center }),
   setZoom: (zoom) => set({ zoom }),
 

@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 12 COMPLETE
+## CURRENT PHASE: 13 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -842,6 +842,32 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
      entity), download + clipboard actions.
   Plus: KeyboardHelp + Settings updated with O/A/N shortcuts.
   85 JS/JSX + 5 CSS source files. 41 tests passing. Build: clean.
+
+[Phase 13] [2026-05-22] Operational awareness — 5 parallel work streams:
+  1. Alert rules engine: alertRulesStore (6 default rules: battery_low x2,
+     signal_weak, altitude_limit, speed_limit, geofence_breach), useAlertEngine
+     hook (evaluates rules on telemetry updates, respects cooldown, fires
+     notify()), AlertRulesConfig panel in Settings with toggle switches.
+  2. Cross-view entity navigation: useEntityNavigation hook (flyToEntity
+     switches to map + sets center, showEntityDetail switches to intel),
+     selectedEntityId in intelStore, entity popups on map markers with
+     "View Detail" button, "Fly to Map" in EntityDetail, timeline event
+     click→fly to location, selected entity pulse ring animation.
+  3. Audit log: auditStore (500-entry FIFO, category/action/detail logging,
+     global audit() helper), AuditLog.jsx viewer with category filter tabs
+     + action badges + CSV export, integrated in SettingsView, audit()
+     calls wired to entity/mission/annotation/export actions.
+  4. Context menus: ContextMenu.jsx (reusable glass morphism right-click
+     menu with icon items + separators + danger style), map context menu
+     (drop pin, text label, measure, search radius, copy coords, create
+     entity), entity context menu (view detail, fly to, add to mission,
+     create relationship, export dossier, delete).
+  5. Virtualized lists: VirtualList.jsx (zero-dependency virtual scroller
+     with ResizeObserver + overscan), integrated into IntelPanel entity
+     list and TimelineView event list for 1000+ item performance.
+  Plus: version bump to 3.0.0, command palette added audit log command,
+  entity-pulse-ring + entity-popup CSS animations.
+  ~98 JS/JSX + 6 CSS = 104 source files. 41 tests passing. Build: clean.
 ---
 ---
 ```

@@ -2,7 +2,7 @@ import { Command } from 'cmdk';
 import { useUIStore } from '../../stores/uiStore';
 import {
   Map, Radio, Brain, Users, Clock, Crosshair,
-  Layers, Camera, Target, RotateCcw, BarChart3, Bell, Settings,
+  Layers, Camera, Target, RotateCcw, BarChart3, Bell, Settings, ScrollText,
 } from 'lucide-react';
 
 const COMMANDS = [
@@ -15,6 +15,7 @@ const COMMANDS = [
   { id: 'timeline', label: 'View Timeline', icon: Clock, group: 'NAVIGATION', action: 'timeline' },
   { id: 'analytics', label: 'Go to Analytics', icon: BarChart3, group: 'NAVIGATION', action: 'analytics' },
   { id: 'settings', label: 'Go to Settings', icon: Settings, group: 'NAVIGATION', action: 'settings' },
+  { id: 'audit', label: 'View Audit Log', icon: ScrollText, group: 'NAVIGATION', action: 'settings' },
   { id: 'notifications', label: 'Toggle Notifications', icon: Bell, group: 'ACTIONS', handler: 'notifications' },
   { id: 'layers', label: 'Toggle Map Layers', icon: Layers, group: 'MAP' },
   { id: 'screenshot', label: 'Export Screenshot', icon: Camera, group: 'ACTIONS' },

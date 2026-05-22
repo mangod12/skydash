@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import EntityCard from './EntityCard';
 import ThreatMatrix from './ThreatMatrix';
 import EntityFilterBar, { useEntityFilters } from './EntityFilterBar';
+import VirtualList from '../common/VirtualList';
 import { useIntelStore } from '../../stores/intelStore';
 
 export default function IntelPanel() {
@@ -47,22 +48,27 @@ export default function IntelPanel() {
       </div>
 
       {/* Entity list */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-        {filtered.map((entity) => (
-          <EntityCard
-            key={entity.id}
-            entity={entity}
-            selected={selectedEntityId === entity.id}
-            onClick={() => selectEntity(entity.id)}
-          />
-        ))}
-
-        {filtered.length === 0 && (
+      {filtered.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-zinc-700 text-[10px] tracking-wider py-8">
             NO ENTITIES MATCH FILTERS
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <VirtualList
+          items={filtered}
+          itemHeight={72}
+          className="flex-1 p-2"
+          renderItem={(entity) => (
+            <EntityCard
+              key={entity.id}
+              entity={entity}
+              selected={selectedEntityId === entity.id}
+              onClick={() => selectEntity(entity.id)}
+            />
+          )}
+        />
+      )}
 
       {/* Threat Matrix */}
       <div className="p-3 border-t border-white/[0.06] shrink-0">

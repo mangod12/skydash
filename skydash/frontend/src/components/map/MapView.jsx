@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import DroneMarker from './DroneMarker';
@@ -17,7 +17,15 @@ import HeatmapLayer from './HeatmapLayer';
 import GeofenceDraw from './GeofenceDraw';
 import SpatialSearchPanel, { SpatialSearchMapHandler, SpatialSearchOverlay } from './SpatialSearch';
 import MapAnnotations from './MapAnnotations';
+import ContextMenu, { useContextMenu } from '../common/ContextMenu';
+import useMapContextMenu from '../../hooks/useMapContextMenu';
+import useEntityContextMenu from '../../hooks/useEntityContextMenu';
 import 'leaflet/dist/leaflet.css';
+
+function MapContextHandler({ onContextMenu }) {
+  useMapEvents({ contextmenu: onContextMenu });
+  return null;
+}
 
 const TILE_LAYERS = {
   dark: {
@@ -37,6 +45,19 @@ function MapRefBridge({ mapRef }) {
   useEffect(() => {
     mapRef.current = map;
   }, [map, mapRef]);
+  return null;
+}
+
+function FlyToHandler() {
+  const map = useMap();
+  const flyToTarget = useMapStore((s) => s.flyToTarget);
+
+  useEffect(() => {
+    if (flyToTarget) {
+      map.flyTo(flyToTarget.center, flyToTarget.zoom, { duration: 1.2 });
+    }
+  }, [flyToTarget, map]);
+
   return null;
 }
 
@@ -74,6 +95,26 @@ export default function MapView() {
   const { center, zoom, flightPath, layers, dronePosition, drawingGeofence, geofenceMode, stopDrawGeofence } = useMapStore();
   const data = useTelemetryStore((s) => s.data);
   const mapRef = useRef(null);
+
+  // Context menu
+  const { menu, show, hide } = useContextMenu();
+  const entityMenu = useEntityContextMenu(show);
+
+  const handleMeasureFrom = useCallback((point) => {
+    setMeasuring(true);
+    setMeasurePoints([point]);
+  }, []);
+
+  const handleSearchFromMenu = useCallback((point) => {
+    setSpatialSearch(true);
+    setSearchCenter(point);
+  }, []);
+
+  const openMapMenu = useMapContextMenu({
+    show,
+    onMeasureFrom: handleMeasureFrom,
+    onSearchRadius: handleSearchFromMenu,
+  });
 
   // Measure tool state
   const [measuring, setMeasuring] = useState(false);
@@ -130,7 +171,9 @@ export default function MapView() {
         style={{ background: '#09090b' }}
       >
         <MapRefBridge mapRef={mapRef} />
+        <FlyToHandler />
         <DroneTracker />
+        <MapContextHandler onContextMenu={openMapMenu} />
 
         <TileLayer
           url={tileConfig.url}
@@ -172,7 +215,7 @@ export default function MapView() {
         {layers.geofences && <GeofenceOverlay />}
 
         {/* Intel entity markers */}
-        {layers.entities && <EntityMarkers />}
+        {layers.entities && <EntityMarkers onEntityContextMenu={entityMenu} />}
 
         {/* Fleet secondary drones */}
         {layers.fleet && <FleetMarkers />}
@@ -251,6 +294,9 @@ export default function MapView() {
         lat={dronePosition?.lat}
         lng={dronePosition?.lng}
       />
+
+      {/* Context menu */}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={hide} />}
     </div>
   );
 }
