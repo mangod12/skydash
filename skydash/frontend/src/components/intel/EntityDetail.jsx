@@ -1,6 +1,7 @@
 import { MapPin, Link2, Activity, X } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import GlassCard from '../common/GlassCard';
+import SourceReliability from '../common/SourceReliability';
 import MiniRelGraph from './MiniRelGraph';
 import MiniTimeline from './MiniTimeline';
 import EntityMiniMap from './EntityMiniMap';
@@ -67,6 +68,9 @@ export default function EntityDetail() {
 
         {/* Threat Assessment Bars */}
         <ThreatAssessment threatLevel={entity.threatLevel} confidence={entity.confidence} />
+
+        {/* Source Reliability */}
+        <SourceReliability score={entity.confidence} label="SOURCE RELIABILITY" />
 
         {/* Risk Score */}
         <RiskScoreCard entityId={entity.id} />

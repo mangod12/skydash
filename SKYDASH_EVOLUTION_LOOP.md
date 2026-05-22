@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 17 COMPLETE
+## CURRENT PHASE: 18 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -966,6 +966,35 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
      RiskOverview.jsx (ranked bar chart, distribution histogram, summary stats),
      integrated in EntityDetail and AnalyticsView.
   ~140 source files. Build: clean (chunk warning only).
+
+[Phase 18] [2026-05-22] Operational fusion & visual density — 5 parallel work streams:
+  1. Connection Matrix: ConnectionMatrix.jsx (NxN entity relationship heatmap,
+     color by category cyan/violet/amber/red, intensity by link count, diagonal
+     type icons, sort by name/type/threat/connections, top 20 most-connected),
+     MatrixCells.jsx (column headers 45deg, row headers, cell rendering, tooltip),
+     matrixConstants.js (type maps, category styles, sort options). New IntelView
+     tab with Grid3x3 icon.
+  2. Data Freshness: FreshnessIndicator.jsx (LIVE/RECENT/STALE/OFFLINE badges,
+     auto-update interval, compact+expanded modes), SourceReliability.jsx (0-100
+     quality bar, 5 tiers), DataFreshnessBar.jsx (4-source status aggregation,
+     responsive dot-only collapse). Integrated in StatusBar, EntityDetail,
+     DashboardView.
+  3. Widget Dashboard: widgetStore (12-col grid, 8 widget types, localStorage
+     persist), WidgetGrid.jsx (CSS Grid layout, drag-swap reorder, edit mode
+     with resize handles), DashboardWidgets.jsx (stat-card/mini-map/sparkline
+     renderers), WidgetItems.jsx (threat gauge/entity list/feed/clock/weather),
+     WidgetControls.jsx (add picker, resize handle). Toggle in DashboardView.
+  4. Timeline Correlation: TimelineCorrelation.jsx (SVG multi-lane horizontal
+     timeline, up to 8 entities, zoom+pan, severity-colored dots, violet
+     correlation connectors within 5min window), CorrelationLane.jsx (lane
+     rendering), CorrelationControls.jsx (header, entity dropdown, tooltip),
+     temporalAnalysis.js (findCorrelations, buildTimeline, getTimeScale).
+     Toggle in TimelineView via CORRELATION button.
+  5. Quick Actions: QuickActions.jsx (floating FAB, 90-deg arc expansion,
+     8 actions: create entity/new mission/screenshot/fullscreen/export/
+     console/drop pin/search), QuickActionButton.jsx (arc-positioned button
+     with tooltip), notification pulse dot. Integrated in Shell.
+  ~155 source files. Build: clean (chunk warning only).
 ---
 ---
 ```

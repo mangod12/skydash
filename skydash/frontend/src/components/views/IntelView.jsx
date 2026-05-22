@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { clsx } from 'clsx';
-import { Clock, GitBranch, Columns, Radar } from 'lucide-react';
+import { Clock, GitBranch, Columns, Radar, Grid3x3 } from 'lucide-react';
 import { PanelBoundary } from '../common/ErrorBoundary';
 import IntelPanel from '../intel/IntelPanel';
 import EntityDetail from '../intel/EntityDetail';
@@ -13,6 +13,7 @@ import NaturalLanguageQuery from '../intel/NaturalLanguageQuery';
 import AnomalyDetector from '../intel/AnomalyDetector';
 import ReportExport from '../intel/ReportExport';
 import TagCloud from '../intel/TagCloud';
+import ConnectionMatrix from '../intel/ConnectionMatrix';
 import { useIntelStore } from '../../stores/intelStore';
 import { useUIStore } from '../../stores/uiStore';
 
@@ -21,6 +22,7 @@ const CENTER_TABS = [
   { id: 'graph', label: 'Link Analysis', icon: GitBranch },
   { id: 'compare', label: 'Compare', icon: Columns },
   { id: 'patterns', label: 'Patterns', icon: Radar },
+  { id: 'matrix', label: 'Matrix', icon: Grid3x3 },
 ];
 
 export default function IntelView() {
@@ -74,6 +76,7 @@ export default function IntelView() {
             {centerTab === 'graph' && <LinkGraph />}
             {centerTab === 'compare' && <EntityComparison />}
             {centerTab === 'patterns' && <PatternPanel />}
+            {centerTab === 'matrix' && <ConnectionMatrix />}
           </PanelBoundary>
         </div>
 

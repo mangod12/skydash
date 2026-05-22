@@ -14,6 +14,7 @@ import ThreatBar from './ThreatBar';
 import OnboardingTour from '../common/OnboardingTour';
 import NotificationCenter from '../common/NotificationCenter';
 import MiniConsole from '../common/MiniConsole';
+import QuickActions from '../common/QuickActions';
 import ToastContainer, { toast } from '../common/Toast';
 import { useTelemetry } from '../../hooks/useTelemetry';
 import { useAlertEngine } from '../../hooks/useAlertEngine';
@@ -105,6 +106,7 @@ export default function Shell({ children }) {
 
       {isMobile && <BottomNav />}
 
+      <QuickActions />
       <OnboardingTour />
 
       {/* Ambient effects */}

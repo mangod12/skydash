@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { clsx } from 'clsx';
 import { formatDistanceToNow } from 'date-fns';
-import { MapPin } from 'lucide-react';
+import { MapPin, GitCompareArrows } from 'lucide-react';
 import { useIntelStore } from '../../stores/intelStore';
 import { useEntityNavigation } from '../../hooks/useEntityNavigation';
 import VirtualList from '../common/VirtualList';
+import TimelineCorrelation from './TimelineCorrelation';
 
 const SEVERITY_CONFIG = {
   info: { dot: 'bg-blue-500', line: 'border-blue-500/20', text: 'text-blue-400' },
@@ -16,6 +18,7 @@ export default function TimelineView() {
   const entities = useIntelStore((s) => s.entities);
   const selectEntity = useIntelStore((s) => s.selectEntity);
   const { flyToEntity } = useEntityNavigation();
+  const [correlationMode, setCorrelationMode] = useState(false);
 
   const sorted = [...events].sort((a, b) => b.time - a.time);
 
@@ -32,13 +35,44 @@ export default function TimelineView() {
     }
   };
 
+  if (correlationMode) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="flex items-center justify-between p-3 border-b border-white/[0.06] shrink-0">
+          <div />
+          <button
+            onClick={() => setCorrelationMode(false)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold tracking-wider bg-violet-500/15 text-violet-400 hover:bg-violet-500/25 transition-colors"
+          >
+            <GitCompareArrows size={10} />
+            EXIT CORRELATION
+          </button>
+        </div>
+        <div className="flex-1 min-h-0">
+          <TimelineCorrelation />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col">
       <div className="p-3 border-b border-white/[0.06] shrink-0">
-        <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
-          EVENT TIMELINE
-        </h3>
-        <div className="text-[9px] text-zinc-600 mt-0.5">{events.length} events recorded</div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
+              EVENT TIMELINE
+            </h3>
+            <div className="text-[9px] text-zinc-600 mt-0.5">{events.length} events recorded</div>
+          </div>
+          <button
+            onClick={() => setCorrelationMode(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold tracking-wider text-zinc-600 hover:text-violet-400 hover:bg-violet-500/10 transition-colors"
+          >
+            <GitCompareArrows size={10} />
+            CORRELATION
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 relative">

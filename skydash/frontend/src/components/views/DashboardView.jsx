@@ -1,12 +1,14 @@
 import { useMemo, useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
-import { Wifi, WifiOff, Shield, Crosshair, Activity } from 'lucide-react';
+import { Wifi, WifiOff, Shield, Crosshair, Activity, LayoutGrid, LayoutList } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
+import DataFreshnessBar from '../common/DataFreshnessBar';
 import { StatCard, ActivityFeed } from './DashboardCards';
 import DashboardMiniMap from './DashboardMiniMap';
 import FleetSparklines from './FleetSparklines';
 import FleetOverview from '../telemetry/FleetOverview';
+import WidgetGrid from './WidgetGrid';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
@@ -14,47 +16,24 @@ import useNotificationStore from '../../stores/notificationStore';
 
 const EASE = [0.16, 1, 0.3, 1];
 
+function toFeedItem(id, desc, sev, time) {
+  return { id, description: desc, severity: sev, time, timeLabel: formatDistanceToNow(time, { addSuffix: true }) };
+}
+
 function buildFeedItems(notifications, events, alerts) {
-  const items = [];
-
-  notifications.forEach((n) => {
-    const ts = n.timestamp instanceof Date ? n.timestamp : new Date(n.timestamp);
-    items.push({
-      id: `notif-${n.id}`,
-      description: n.message || n.title,
-      severity: n.severity || 'info',
-      time: ts.getTime(),
-      timeLabel: formatDistanceToNow(ts, { addSuffix: true }),
-    });
-  });
-
-  events.forEach((e) => {
-    items.push({
-      id: `evt-${e.id}`,
-      description: e.description,
-      severity: e.severity || 'info',
-      time: e.time,
-      timeLabel: formatDistanceToNow(e.time, { addSuffix: true }),
-    });
-  });
-
-  alerts.forEach((a) => {
-    items.push({
-      id: `alert-${a.id}`,
-      description: a.message,
-      severity: a.severity || 'warning',
-      time: a.timestamp,
-      timeLabel: formatDistanceToNow(a.timestamp, { addSuffix: true }),
-    });
-  });
-
-  // Deduplicate by description, keep newest
+  const items = [
+    ...notifications.map((n) => {
+      const ts = n.timestamp instanceof Date ? n.timestamp : new Date(n.timestamp);
+      return toFeedItem(`notif-${n.id}`, n.message || n.title, n.severity || 'info', ts.getTime());
+    }),
+    ...events.map((e) => toFeedItem(`evt-${e.id}`, e.description, e.severity || 'info', e.time)),
+    ...alerts.map((a) => toFeedItem(`alert-${a.id}`, a.message, a.severity || 'warning', a.timestamp)),
+  ];
   const seen = new Map();
   items.forEach((item) => {
-    const existing = seen.get(item.description);
-    if (!existing || existing.time < item.time) seen.set(item.description, item);
+    const ex = seen.get(item.description);
+    if (!ex || ex.time < item.time) seen.set(item.description, item);
   });
-
   return [...seen.values()].sort((a, b) => b.time - a.time).slice(0, 15);
 }
 
@@ -68,6 +47,7 @@ export default function DashboardView() {
   const missions = useMissionStore((s) => s.missions);
   const fetchMissions = useMissionStore((s) => s.fetchMissions);
   const notifications = useNotificationStore((s) => s.notifications);
+  const [widgetMode, setWidgetMode] = useState(false);
 
   useEffect(() => { fetchMissions(); }, [fetchMissions]);
 
@@ -110,14 +90,36 @@ export default function DashboardView() {
   const linkedEntities = missions.reduce((s, m) => s + (m.entityIds?.length || 0), 0);
   const dataRate = fleet.length > 0 ? `${fleet.length * 2} msg/s` : '0 msg/s';
 
-  const feedItems = useMemo(
-    () => buildFeedItems(notifications, events, alerts),
-    [notifications, events, alerts],
-  );
+  const feedItems = useMemo(() => buildFeedItems(notifications, events, alerts), [notifications, events, alerts]);
+
+  if (widgetMode) {
+    return (
+      <div className="h-full relative">
+        <button onClick={() => setWidgetMode(false)}
+          className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-mono text-zinc-500 border border-white/[0.06] hover:border-white/[0.12] hover:text-zinc-300 bg-zinc-950/80 backdrop-blur transition-all">
+          <LayoutList size={12} /> CLASSIC VIEW
+        </button>
+        <WidgetGrid />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full overflow-y-auto p-4">
       <div className="max-w-7xl mx-auto space-y-3">
+        {/* ── Data Freshness Bar + Widget Toggle ── */}
+        <div className="flex items-center justify-between">
+          <DataFreshnessBar />
+          <button
+            onClick={() => setWidgetMode(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-mono
+                       text-zinc-500 border border-white/[0.06] hover:border-indigo-500/30
+                       hover:text-indigo-400 hover:bg-indigo-500/10 transition-all shrink-0"
+          >
+            <LayoutGrid size={12} /> WIDGETS
+          </button>
+        </div>
+
         {/* ── Top Row: 4 Stat Cards ── */}
         <div className="grid grid-cols-4 gap-3">
           <StatCard
