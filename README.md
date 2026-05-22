@@ -1,323 +1,147 @@
-# SkyDash - High-Performance Drone Dashboard
+# SkyDash
 
-A real-time drone telemetry dashboard built with FastAPI and React, featuring a "High-Voltage / Dark Mode" aesthetic with glass morphism design.
+A spatial intelligence and OSINT platform for real-time drone fleet operations. Built to handle multi-drone telemetry streaming, geospatial entity tracking, threat assessment, and intelligence analysis — all from a single dark-themed operations interface.
 
-[![CI](https://github.com/mangod12/skydash/actions/workflows/ci.yml/badge.svg)](https://github.com/mangod12/skydash/actions/workflows/ci.yml) ![SkyDash Dashboard](https://img.shields.io/badge/status-active-brightgreen) ![Python](https://img.shields.io/badge/python-3.12-blue) ![React](https://img.shields.io/badge/react-18.3-61dafb)
-## 📸 Dashboard Preview
+![Dashboard](docs/screenshots/dashboard.png)
 
-<p align="center">
-  <img src="./skydash-dashboard.png" alt="SkyDash Real-Time Dashboard" width="100%" />
-</p>
-## What Problem This Solves
+## Why I Built This
 
-Drone operators need real-time visibility into their aircraft's critical telemetry data to ensure safe and effective flight operations. Existing solutions are often:
-- **Expensive**: Commercial ground control stations can cost thousands of dollars
-- **Complex**: Overwhelming interfaces with steep learning curves
-- **Platform-locked**: Tied to specific drone manufacturers or protocols
-- **Heavy**: Resource-intensive applications that struggle with high-frequency updates
+I wanted to build the kind of software that defense contractors charge millions for — and make it open source. The goal was a system that could track multiple drones simultaneously, overlay intelligence data on a live map, and give an operator everything they need in one screen. Think Palantir Gotham meets a fighter jet HUD, but something you can actually run on your laptop.
 
-SkyDash provides a lightweight, open-source alternative that works with any MAVLink-compatible drone (ArduPilot, PX4) and offers a modern, intuitive interface for monitoring critical flight parameters in real-time.
+The whole thing started as a simple telemetry dashboard for a single drone and grew into a full spatial intelligence platform over several development cycles.
 
-## What the System Does
+## What It Does
 
-SkyDash is a web-based telemetry monitoring system that:
+**Real-time drone fleet monitoring** — Three simulated drones (orbit, grid search, waypoint patrol) stream telemetry over WebSocket at 10Hz. Each drone reports altitude, GPS position, battery voltage, signal strength, attitude (roll/pitch/yaw), and wind conditions. The frontend picks it up via WebSocket with automatic reconnection and HTTP polling fallback.
 
-1. **Connects to Drones**: Interfaces with MAVLink-compatible drones via USB, serial, TCP, or UDP connections
-2. **Streams Real-Time Data**: Polls telemetry at 50ms intervals (20Hz) for live updates on altitude, battery, attitude, GPS, and system status
-3. **Visualizes Flight Data**: Displays critical information through an intuitive glass morphism UI with:
-   - Live attitude indicators (roll, pitch, yaw)
-   - Real-time altitude history charts
-   - Battery monitoring with color-coded voltage alerts
-   - GPS position and satellite count
-   - Flight mode and connection status
-4. **Simulates for Testing**: Includes a realistic drone simulator for development and testing without physical hardware
-5. **Supports Multiple Protocols**: Works with MAVLink drones out-of-the-box and includes adapters for DJI SDK integration
+**OSINT entity tracking** — Track people, vehicles, buildings, devices, and events on the map. Each entity has a threat level, confidence score, source attribution, and tags. Entities are linked by relationships (located_at, associated_with, traveled_to) and visualized on the map with threat-colored markers.
 
-## Features
+**Intelligence analysis tools** — Natural language query parser lets you type things like "high threat vehicles near warehouse" and get filtered results. Anomaly detection flags telemetry values outside 2 standard deviations. Timeline view shows the full operational story with severity-coded events.
 
-- 🚁 **Real-time Telemetry**: 50ms polling for live drone data
-- 📊 **Interactive Charts**: Altitude history with Recharts
-- 🎨 **Glass Morphism UI**: Modern dark theme with blur effects
-- 🔋 **Battery Monitoring**: Color-coded voltage display (red < 14V)
-- 🌐 **MAVLink Support**: Compatible with ArduPilot, PX4 drones
-- 📡 **WebSocket Ready**: High-frequency data streaming
-- 🎯 **Bento Grid Layout**: Responsive dashboard design
+**Export and reporting** — One-click export to plaintext intelligence report, GeoJSON (for GIS tools), or CSV. The backend also exposes a REST API for programmatic access to everything.
 
-## Dashboard Components
+## Screenshots
 
-- **Attitude Indicator**: Live Roll, Pitch, Yaw values
-- **3D View/Map**: Central display with altitude and flight metrics
-- **System Status**: Battery, connection status, flight mode
-- **Altitude History**: Real-time graph with 50-point history
+### Operations Dashboard
+Live map with 3 drone markers, flight path trails, entity markers, compass rose, HUD overlay, and telemetry panel.
 
-## Quick Start
+![Dashboard](docs/screenshots/dashboard.png)
 
-### Backend (FastAPI)
+### Intelligence View
+Entity list with threat badges, event timeline, natural language query, anomaly detection, threat matrix, and export tools.
 
-```bash
-cd backend
-pip install -r requirements.txt
-python main.py
-```
+![Intel](docs/screenshots/intel.png)
 
-Server runs on `http://localhost:8000`
+### Analytics
+Fleet status, entity distribution, threat breakdown, altitude trends, and top entities by activity.
 
-### Frontend (React + Vite)
+![Analytics](docs/screenshots/analytics.png)
 
-```bash
-cd skydash/frontend
-npm install
-npm run dev
-```
+### Telemetry
+Artificial horizon (attitude indicator), speed/altitude tapes, battery gauge, signal meter, GPS constellation sky view, and multi-chart with switchable data streams.
 
-Dashboard runs on `http://localhost:5173`
+![Telemetry](docs/screenshots/telemetry.png)
 
-## Project Structure
+### Full Map
+Dark CartoDB tiles with satellite toggle, zoom controls, layer management, measure tool, coordinate display (DD/DMS/UTM/MGRS), and timeline playback slider.
 
-```
-skydash/
-├── backend/
-│   ├── main.py                    # FastAPI server with drone simulator
-│   ├── mavlink_adapter.py         # MAVLink integration
-│   ├── dji_adapter.py             # DJI drone adapter
-│   ├── requirements.txt           # Python dependencies
-│   └── requirements_real_drone.txt
-├── skydash/frontend/
-│   ├── src/
-│   │   ├── App.jsx               # Main dashboard component
-│   │   ├── index.css             # Global styles
-│   │   └── main.jsx              # Entry point
-│   ├── tailwind.config.js        # Tailwind + glass utilities
-│   └── package.json
-└── INTEGRATION_GUIDE.md          # Real drone integration guide
-```
-
-## Real Drone Integration
-
-### MAVLink Drones (ArduPilot, PX4)
-
-```python
-from mavlink_adapter import MAVLinkDrone
-
-# USB/Serial connection
-drone = MAVLinkDrone("COM3")  # Windows
-drone = MAVLinkDrone("/dev/ttyUSB0")  # Linux
-
-# WiFi/Network
-drone = MAVLinkDrone("tcp:192.168.1.100:5760")
-
-drone.connect()
-```
-
-### DJI Drones
-
-Requires DJI SDK bridge - see `dji_adapter.py` and `INTEGRATION_GUIDE.md`
-
-### Testing with SITL
-
-```python
-drone = MAVLinkDrone("udp:127.0.0.1:14550")
-drone.connect()
-```
-
-## API Endpoints
-
-- `GET /` - API information
-- `GET /telemetry` - Current drone telemetry (JSON)
-- `POST /reset` - Reset simulation
-- `GET /docs` - Interactive API documentation (Swagger)
+![Map](docs/screenshots/map.png)
 
 ## Tech Stack
 
-**Backend:**
-- FastAPI 0.115.6
-- Uvicorn (ASGI server)
-- Pydantic (data validation)
-- PyMAVLink (drone communication)
+**Frontend** — React 18, Vite, Tailwind CSS, Zustand (state), Framer Motion (animations), Leaflet (maps), Recharts (charts), cmdk (command palette), Lucide (icons)
 
-**Frontend:**
-- React 18.3
-- Vite 7.2
-- Tailwind CSS 3.4
-- Recharts 2.15
-- Framer Motion 11.15
+**Backend** — Python, FastAPI, Uvicorn, Pydantic, WebSocket streaming
 
-## Telemetry Data Format
+**Testing** — Playwright (46 E2E tests covering telemetry data flow, navigation, entity CRUD, API validation, UI interactions)
 
-```json
-{
-  "timestamp": 162.75,
-  "altitude": 48.7,
-  "battery_voltage": 14.86,
-  "status": "ARMED",
-  "attitude": {
-    "roll": 0.39,
-    "pitch": -0.67,
-    "yaw": 93.76
-  },
-  "gps": {
-    "satellites": 11,
-    "latitude": 37.7749,
-    "longitude": -122.4194,
-    "altitude": 48.7
-  },
-  "signal_strength": 93,
-  "ground_speed": 1.45,
-  "armed": true,
-  "flight_mode": "STABILIZE"
-}
+**Design** — Glass morphism, JetBrains Mono for metrics, military-precision typography (ALL CAPS labels, tracking-wider headers), JARVIS-inspired boot sequence and ambient effects
+
+## Architecture
+
+```
+Frontend (57 source files)
+  components/
+    common/     12 — GlassCard, Toast, BootSequence, CommandPalette, etc.
+    layout/      4 — Shell, Sidebar, TopBar, StatusBar
+    map/        11 — MapView, DroneMarker, CompassRose, MeasureTool, etc.
+    telemetry/   7 — AttitudeIndicator, BatteryGauge, SignalMeter, MultiChart, etc.
+    intel/       8 — EntityCard, TimelineView, ThreatMatrix, NaturalLanguageQuery, etc.
+    views/       6 — Dashboard, Map, Telemetry, Intel, Analytics, Settings
+  stores/        4 — Zustand (telemetry, map, ui, intel)
+  hooks/         2 — useTelemetry (WebSocket + HTTP fallback), useKeyboard
+
+Backend (3 modules)
+  main.py          — FastAPI server, WebSocket endpoint, REST API
+  simulation.py    — Multi-drone fleet simulator (orbit/grid/waypoint)
+  entities.py      — In-memory entity store with CRUD + relationships
 ```
 
-## Configuration
+The frontend connects via WebSocket for real-time telemetry (with exponential backoff reconnection and HTTP polling fallback). State management uses Zustand — four stores for telemetry, map, UI, and intelligence data. Code-split via Vite manual chunks so the app bundle is only 25KB gzipped.
 
-### CORS Settings
-
-Backend allows connections from:
-- `http://localhost:5173`
-- `http://localhost:5174`
-- `http://localhost:5175`
-
-### Polling Rate
-
-Frontend polls at **50ms** intervals (20Hz) - configurable in `App.jsx`:
-
-```javascript
-const POLL_INTERVAL = 50; // milliseconds
-```
-
-## Development
-
-### Backend Development
+## Getting Started
 
 ```bash
-# Install dependencies
+# Backend
+cd backend
 pip install -r requirements.txt
+python main.py          # Starts on port 8001
 
-# Run with auto-reload
-uvicorn main:app --reload
-
-# Or use the main script
-python main.py
-```
-
-### Frontend Development
-
-```bash
-# Install dependencies
+# Frontend (separate terminal)
+cd skydash/frontend
 npm install
-
-# Start dev server
-npm run dev
-
-# Build for production
-npm run build
+npm run dev             # Opens on localhost:5173
 ```
 
-## Design System
+Open http://localhost:5173 and you'll see the boot sequence, then the full dashboard with live telemetry from 3 simulated drones.
 
-### Colors
+## Keyboard Shortcuts
 
-- **Background**: Zinc-950 (#09090b)
-- **Text**: Zinc-100
-- **Brand**: Indigo-500 (#6366f1)
-- **Accent**: Emerald (battery good), Red (battery low)
+| Key | Action |
+|-----|--------|
+| `D` | Dashboard |
+| `M` | Full map |
+| `T` | Telemetry view |
+| `I` | Intel view |
+| `B` | Toggle sidebar |
+| `Ctrl+K` | Command palette |
+| `?` | Keyboard shortcuts |
 
-### Glass Utility
+## API
 
-```css
-.glass {
-  backdrop-filter: blur(12px);
-  background-color: rgba(9, 9, 11, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-```
+The backend exposes a full REST API at `http://localhost:8001/docs` (Swagger UI).
 
-## Performance
+Key endpoints:
+- `GET /telemetry` — All drones telemetry
+- `GET /telemetry/{drone_id}` — Single drone
+- `WS /ws/telemetry` — WebSocket stream
+- `GET /api/entities` — List entities (filterable by type, threat)
+- `POST /api/entities` — Create entity
+- `GET /api/entities/{id}/graph` — Relationship graph
+- `GET /api/timeline` — Event timeline (paginated)
+- `POST /api/export/geojson` — GeoJSON export
+- `POST /reset` — Reset simulation
 
-- **Memory Leak Prevention**: Proper cleanup of intervals on unmount
-- **50 Data Point Limit**: Altitude history capped for performance
-- **Animation Disabled**: Charts use `isAnimationActive={false}` for smoothness
+## Testing
 
-## Security Notes
-
-⚠️ **For Production Use:**
-
-1. Add authentication (JWT, API keys)
-2. Enable HTTPS/WSS
-3. Implement rate limiting
-4. Validate all inputs
-5. Never expose control commands without auth
-
-## Troubleshooting
-
-### Backend won't start
 ```bash
-# Check if port 8000 is in use
-netstat -ano | findstr :8000
+# Run all 46 E2E tests
+npx playwright test
 
-# Use different port
-uvicorn main:app --port 8001
+# Run specific suite
+npx playwright test e2e/api.spec.js          # 17 backend API tests
+npx playwright test e2e/interactions.spec.js  # 11 UI interaction tests
+npx playwright test e2e/skydash.spec.js       # 18 core feature tests
 ```
 
-### Frontend shows "DISCONNECTED"
-- Verify backend is running on port 8000
-- Check CORS configuration
-- Test API: `curl http://localhost:8000/telemetry`
+Tests cover telemetry data flow, real-time value changes, entity CRUD lifecycle, NLQ query accuracy, coordinate format cycling, fleet status validation, timeline pagination, and more.
 
-### MAVLink connection fails
-- Verify connection string
-- Check USB permissions (Linux: add user to dialout group)
-- Test with MAVProxy first
+## What I Learned
 
-## Future Improvements
+Building this taught me a lot about real-time data streaming at scale (WebSocket vs polling tradeoffs), geospatial coordinate systems (implementing DD/DMS/UTM/MGRS conversions from scratch), and how to design information-dense interfaces that don't overwhelm the operator. The anomaly detection and NLQ parser are simple implementations, but they demonstrate the pattern — in production you'd swap those for proper ML models and an NLP pipeline.
 
-Here are planned enhancements and features that would make SkyDash even better:
-
-### High Priority
-- **WebSocket Implementation**: Replace HTTP polling with WebSocket connections for true real-time streaming and reduced latency
-- **Authentication & Authorization**: Add JWT-based authentication and role-based access control for multi-user deployments
-- **3D Visualization**: Integrate Three.js or Cesium for true 3D drone position and orientation display
-- **Mission Planning**: Add waypoint creation and mission upload capabilities
-
-### Medium Priority
-- **Recording & Playback**: Record flight sessions and replay telemetry data for analysis and training
-- **Multi-Drone Support**: Monitor and manage multiple drones simultaneously with separate dashboard panels
-- **Alerts & Notifications**: Configurable alerts for battery warnings, GPS loss, and geofence violations
-- **Mobile App**: Native mobile application using React Native for on-the-go monitoring
-
-### Low Priority
-- **Customizable Dashboard**: Drag-and-drop widget system for personalized layouts
-- **Advanced Charting**: Additional graphs for velocity, acceleration, and battery discharge curves
-- **Flight Log Export**: Export telemetry data to CSV, KML, or industry-standard formats
-- **Dark/Light Theme Toggle**: User preference for color schemes beyond the current dark mode
-- **Internationalization**: Multi-language support for global drone community
-
-### Technical Debt
-- **Unit Tests**: Comprehensive test coverage for backend API and frontend components
-- **TypeScript Migration**: Convert frontend codebase to TypeScript for better type safety
-- **Docker Deployment**: Containerized deployment with Docker Compose for easy setup
-- **CI/CD Pipeline**: Automated testing and deployment workflows
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open Pull Request
+The hardest part was making it look good. Dark interfaces are unforgiving — every pixel of spacing, every shade of gray matters. I spent as much time on the design system (glass morphism, glow effects, boot sequence choreography) as on the actual features.
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## Acknowledgments
-
-- MAVLink protocol for drone communication
-- ArduPilot/PX4 communities
-- Tailwind CSS team
-- Recharts library
-
-
----
-
-Built with ❤️ for the drone community
+MIT
