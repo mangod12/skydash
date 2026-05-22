@@ -13,6 +13,7 @@ import ConnectionLost from '../common/ConnectionLost';
 import ThreatBar from './ThreatBar';
 import OnboardingTour from '../common/OnboardingTour';
 import NotificationCenter from '../common/NotificationCenter';
+import MiniConsole from '../common/MiniConsole';
 import ToastContainer, { toast } from '../common/Toast';
 import { useTelemetry } from '../../hooks/useTelemetry';
 import { useAlertEngine } from '../../hooks/useAlertEngine';
@@ -24,7 +25,7 @@ import { useUIStore } from '../../stores/uiStore';
 export default function Shell({ children }) {
   const [showHelp, setShowHelp] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const { notificationOpen, setNotificationOpen, toggleNotifications, isMobile, setResponsive, theme, workspace } = useUIStore();
+  const { notificationOpen, setNotificationOpen, toggleNotifications, isMobile, setResponsive, theme, workspace, consoleOpen, setConsoleOpen } = useUIStore();
   const prevAlertCountRef = useRef(0);
 
   useTelemetry();
@@ -109,6 +110,7 @@ export default function Shell({ children }) {
       {/* Ambient effects */}
       <ScanLine />
       <NoiseOverlay />
+      <MiniConsole open={consoleOpen} onClose={() => setConsoleOpen(false)} />
       <ToastContainer />
     </>
   );

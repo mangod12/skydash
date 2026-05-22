@@ -8,6 +8,7 @@ import EntityComparison from '../intel/EntityComparison';
 import TimelineView from '../intel/TimelineView';
 import LinkGraph from '../intel/LinkGraph';
 import PatternPanel from '../intel/PatternPanel';
+import IntelFeed from '../intel/IntelFeed';
 import NaturalLanguageQuery from '../intel/NaturalLanguageQuery';
 import AnomalyDetector from '../intel/AnomalyDetector';
 import ReportExport from '../intel/ReportExport';
@@ -77,7 +78,8 @@ export default function IntelView() {
         </div>
 
         {/* Bottom tools */}
-        <div className="border-t border-white/[0.06] p-3 space-y-3 shrink-0 max-h-[280px] overflow-y-auto">
+        <div className="border-t border-white/[0.06] p-3 space-y-3 shrink-0 max-h-[380px] overflow-y-auto">
+          <IntelFeed />
           <TagCloud onTagClick={handleTagClick} />
           <NaturalLanguageQuery />
           <AnomalyDetector />

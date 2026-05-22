@@ -5,6 +5,7 @@ import MiniRelGraph from './MiniRelGraph';
 import MiniTimeline from './MiniTimeline';
 import EntityMiniMap from './EntityMiniMap';
 import EvidenceChain from './EvidenceChain';
+import RiskScoreCard from './RiskScoreCard';
 import { QuickStatsPills, ThreatBadges, ThreatAssessment } from './QuickStats';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
@@ -66,6 +67,9 @@ export default function EntityDetail() {
 
         {/* Threat Assessment Bars */}
         <ThreatAssessment threatLevel={entity.threatLevel} confidence={entity.confidence} />
+
+        {/* Risk Score */}
+        <RiskScoreCard entityId={entity.id} />
 
         {/* Evidence Chain / Provenance */}
         <EvidenceChain entityId={entity.id} confidence={entity.confidence} />

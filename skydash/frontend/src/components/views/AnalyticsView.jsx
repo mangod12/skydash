@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts';
 import GlassCard from '../common/GlassCard';
+import RiskOverview from '../intel/RiskOverview';
 import { useIntelStore } from '../../stores/intelStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
@@ -213,6 +214,9 @@ export default function AnalyticsView() {
             </div>
           </GlassCard>
         </div>
+
+        {/* Risk Assessment */}
+        <RiskOverview />
 
         {/* Top entities + Fleet status */}
         <div className="grid grid-cols-2 gap-3">

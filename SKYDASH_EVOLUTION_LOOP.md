@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 16 COMPLETE
+## CURRENT PHASE: 17 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -938,6 +938,34 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
      (bottom-right, auto-hide during input) + full overlay with 2-column
      grid layout, key badges, category grouping.
   126 source files. 41 tests passing. Build: clean (chunk warning only).
+
+[Phase 17] [2026-05-22] Temporal intelligence & power tools — 5 parallel work streams:
+  1. Playback Controller: playbackStore (play/pause/stop/seek/speed/history),
+     PlaybackController.jsx (glass panel with transport buttons, time scrubber,
+     speed selector 1x/2x/4x/8x, timestamp display), PlaybackMarkers.jsx
+     (ghost drone markers during replay with dashed-border pulse), integrated
+     in MapView with demo history generator (5min, 3 drones, 1s intervals).
+  2. Intel Feed: feedStore (100-item FIFO, severity filter, simulation timer),
+     IntelFeed.jsx (streaming OSINT events with LIVE indicator, pause/resume,
+     filter tabs ALL/CRITICAL/WARNING/INFO, AnimatePresence slide-in),
+     FeedItem.jsx (severity dot, timestamp, category badge SIGINT/HUMINT/
+     GEOINT/OSINT/CYBER, title+summary), 23 military-style intel templates,
+     3-8s random interval generation. Integrated in IntelView bottom tools.
+  3. Mini Console: MiniConsole.jsx (terminal panel, emerald monospace, slide-up
+     animation, tab completion, command history up/down arrows, Escape close),
+     useConsoleCommands.js + consoleHandlers.js (help/status/entity/fly/alert/
+     export/theme/clear/drone/entities/missions/goto commands), backtick toggle
+     key in useKeyboard, consoleOpen state in uiStore, rendered in Shell.
+  4. Entity Clustering: clustering.js (grid-based spatial algorithm, zoom-adaptive
+     grid sizing, no deps), ClusterMarkers.jsx (cluster badges sized by count,
+     colored by max threat, click-to-expand zoom, individual entity markers at
+     high zoom, tooltip with count/type/threat), replaced EntityMarkers in MapView.
+  5. Risk Score Engine: riskScoring.js (6-factor scoring: base threat, relationship
+     density, recent activity, confidence multiplier, proximity to critical, escalation
+     trend), RiskScoreCard.jsx (SVG arc gauge, factor breakdown tooltip, sparkline),
+     RiskOverview.jsx (ranked bar chart, distribution histogram, summary stats),
+     integrated in EntityDetail and AnalyticsView.
+  ~140 source files. Build: clean (chunk warning only).
 ---
 ---
 ```

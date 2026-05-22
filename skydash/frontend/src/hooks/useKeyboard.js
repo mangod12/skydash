@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useUIStore } from '../stores/uiStore';
 
 export function useKeyboard({ onHelp } = {}) {
-  const { toggleCommandPalette, setActiveView, toggleSidebar } = useUIStore();
+  const { toggleCommandPalette, setActiveView, toggleSidebar, toggleConsole } = useUIStore();
 
   useEffect(() => {
     const handler = (e) => {
@@ -25,10 +25,12 @@ export function useKeyboard({ onHelp } = {}) {
         case 'a': setActiveView('analytics'); break;
         case 'n': useUIStore.getState().toggleNotifications(); break;
         case 'b': toggleSidebar(); break;
+        case '`': toggleConsole(); break;
         case '?': onHelp?.(); break;
         case 'Escape': {
           const state = useUIStore.getState();
-          if (state.commandPaletteOpen) toggleCommandPalette();
+          if (state.consoleOpen) state.setConsoleOpen(false);
+          else if (state.commandPaletteOpen) toggleCommandPalette();
           else if (state.notificationOpen) state.setNotificationOpen(false);
           break;
         }
@@ -38,5 +40,5 @@ export function useKeyboard({ onHelp } = {}) {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [toggleCommandPalette, setActiveView, toggleSidebar, onHelp]);
+  }, [toggleCommandPalette, setActiveView, toggleSidebar, toggleConsole, onHelp]);
 }

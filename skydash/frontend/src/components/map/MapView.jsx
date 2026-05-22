@@ -9,7 +9,7 @@ import CompassRose from './CompassRose';
 import CoordinateDisplay from './CoordinateDisplay';
 import MeasureTool, { MeasureOverlay } from './MeasureTool';
 import GeofenceOverlay from './GeofenceOverlay';
-import EntityMarkers from './EntityMarkers';
+import ClusterMarkers from './ClusterMarkers';
 import FleetMarkers from './FleetMarkers';
 import TimelineSlider from './TimelineSlider';
 import AdsbLayer from './AdsbLayer';
@@ -18,6 +18,8 @@ import GeofenceDraw from './GeofenceDraw';
 import GeofenceManager from './GeofenceManager';
 import SpatialSearchPanel, { SpatialSearchMapHandler, SpatialSearchOverlay } from './SpatialSearch';
 import MapAnnotations from './MapAnnotations';
+import PlaybackController from './PlaybackController';
+import PlaybackMarkers from './PlaybackMarkers';
 import ContextMenu, { useContextMenu } from '../common/ContextMenu';
 import useMapContextMenu from '../../hooks/useMapContextMenu';
 import useEntityContextMenu from '../../hooks/useEntityContextMenu';
@@ -235,8 +237,8 @@ export default function MapView() {
         {/* Geofences */}
         {layers.geofences && <GeofenceOverlay />}
 
-        {/* Intel entity markers */}
-        {layers.entities && <EntityMarkers onEntityContextMenu={entityMenu} />}
+        {/* Intel entity markers — clustered at low zoom */}
+        {layers.entities && <ClusterMarkers onEntityContextMenu={entityMenu} />}
 
         {/* Fleet secondary drones */}
         {layers.fleet && <FleetMarkers />}
@@ -263,6 +265,9 @@ export default function MapView() {
 
         {/* Map annotations (text, pins, arrows, circles) */}
         <MapAnnotations />
+
+        {/* Playback ghost markers */}
+        <PlaybackMarkers />
 
         {/* Spatial search map handler + circle overlay */}
         <SpatialSearchMapHandler
@@ -302,6 +307,9 @@ export default function MapView() {
 
       {/* Timeline playback slider */}
       <TimelineSlider />
+
+      {/* Temporal playback controller */}
+      <PlaybackController />
 
       {/* Spatial search results panel */}
       <SpatialSearchPanel
