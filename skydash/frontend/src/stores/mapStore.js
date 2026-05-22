@@ -19,6 +19,25 @@ export const useMapStore = create((set) => ({
   geofenceMode: 'circle',
   geofences: [],
 
+  // Annotations
+  annotations: [],
+  annotationMode: null,
+
+  addAnnotation: (annotation) => set((s) => ({
+    annotations: [...s.annotations, { ...annotation, id: `ann-${Date.now()}`, createdAt: Date.now() }],
+    annotationMode: annotation.type === 'pin' ? s.annotationMode : null,
+  })),
+
+  removeAnnotation: (id) => set((s) => ({
+    annotations: s.annotations.filter((a) => a.id !== id),
+  })),
+
+  clearAnnotations: () => set({ annotations: [] }),
+
+  setAnnotationMode: (mode) => set((s) => ({
+    annotationMode: s.annotationMode === mode ? null : mode,
+  })),
+
   setCenter: (center) => set({ center }),
   setZoom: (zoom) => set({ zoom }),
 

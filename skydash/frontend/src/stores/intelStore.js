@@ -128,6 +128,10 @@ export const useIntelStore = create((set, get) => ({
     entities: [...s.entities, { ...entity, id: `ent-${Date.now()}` }],
   })),
 
+  addRelationship: (rel) => set((s) => ({
+    relationships: [...s.relationships, rel],
+  })),
+
   addEvent: (event) => set((s) => ({
     events: [...s.events, { ...event, id: `evt-${Date.now()}`, time: Date.now() }],
   })),

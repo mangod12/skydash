@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 11 COMPLETE
+## CURRENT PHASE: 12 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -817,6 +817,31 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
   Plus: useKeyboard expanded (O=missions, A=analytics, N=notifications),
   CommandPalette commands expanded (missions/analytics/settings/notifications).
   80 source files. 41 tests passing. Build: clean. 0 errors.
+
+[Phase 12] [2026-05-22] Field operations — 5 parallel work streams:
+  1. Report generator: ReportGenerator.jsx full-page printable intel
+     report (exec summary, entity inventory table, threat assessment,
+     relationship map, timeline, analyst notes, fleet status), print/
+     copy/download HTML, @media print white-on-white mode, military
+     classification header.
+  2. Map annotations: MapAnnotations.jsx (text labels, numbered pins,
+     arrows with polyline, circles), annotation state in mapStore
+     (annotations[], annotationMode), MapControls annotation toolbar
+     buttons, click-to-place interaction, right-click-to-delete.
+  3. Entity auto-linking: LinkSuggestions.jsx with useLinkSuggestions
+     hook (proximity <500m via haversine, temporal overlap <1hr, tag
+     overlap 2+, type affinity rules), accept creates relationship
+     in intelStore, dismiss hides suggestion, confidence scoring.
+  4. Tactical theme: tactical.css with full green-on-black military
+     monochrome (CSS variable overrides, Tailwind class overrides for
+     indigo→emerald, zinc→green tints, map hue-rotate filter), imported
+     in index.css, applied via data-theme attribute on documentElement.
+  5. Enhanced export: ReportExport.jsx rewrite with 5 formats (GeoJSON,
+     KML with styled placemarks + folders by type, CSV with relationships,
+     entity dossier text, mission brief), scope selector (all/mission/
+     entity), download + clipboard actions.
+  Plus: KeyboardHelp + Settings updated with O/A/N shortcuts.
+  85 JS/JSX + 5 CSS source files. 41 tests passing. Build: clean.
 ---
 ---
 ```

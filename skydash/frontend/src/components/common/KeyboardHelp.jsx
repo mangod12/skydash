@@ -7,7 +7,11 @@ const SHORTCUTS = [
   { keys: ['M'], desc: 'Map View' },
   { keys: ['T'], desc: 'Telemetry View' },
   { keys: ['I'], desc: 'Intel View' },
+  { keys: ['O'], desc: 'Missions' },
+  { keys: ['A'], desc: 'Analytics' },
+  { keys: ['N'], desc: 'Notifications' },
   { keys: ['B'], desc: 'Toggle Sidebar' },
+  { keys: ['?'], desc: 'This Help' },
   { keys: ['Esc'], desc: 'Close Panel' },
 ];
 

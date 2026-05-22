@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Minus, Layers, Locate, Ruler,
   Camera, Maximize2, Circle, Pentagon, Search,
+  Type, MapPin, MoveRight,
 } from 'lucide-react';
 import { useMapStore } from '../../stores/mapStore';
 import { toast } from '../common/Toast';
@@ -105,7 +106,7 @@ function LayerPanel({ layers, toggleLayer, onClose }) {
 
 export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpatialSearchToggle, spatialSearch }) {
   const [showLayers, setShowLayers] = useState(false);
-  const { layers, toggleLayer, dronePosition, drawingGeofence, startDrawGeofence, stopDrawGeofence } = useMapStore();
+  const { layers, toggleLayer, dronePosition, drawingGeofence, startDrawGeofence, stopDrawGeofence, annotationMode, setAnnotationMode } = useMapStore();
 
   const handleClosePanel = useCallback(() => setShowLayers(false), []);
 
@@ -160,6 +161,27 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpat
           label="Spatial Search"
           active={spatialSearch}
           onClick={onSpatialSearchToggle}
+        />
+
+        <div className="h-px bg-white/[0.06] my-1" />
+
+        <ControlButton
+          icon={Type}
+          label="Text Label"
+          active={annotationMode === 'text'}
+          onClick={() => setAnnotationMode('text')}
+        />
+        <ControlButton
+          icon={MapPin}
+          label="Marker Pin"
+          active={annotationMode === 'pin'}
+          onClick={() => setAnnotationMode('pin')}
+        />
+        <ControlButton
+          icon={MoveRight}
+          label="Arrow"
+          active={annotationMode === 'arrow'}
+          onClick={() => setAnnotationMode('arrow')}
         />
 
         <div className="h-px bg-white/[0.06] my-1" />

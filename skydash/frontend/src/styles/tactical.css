@@ -1,0 +1,209 @@
+/* SkyDash Tactical Theme — Green-on-Black Military Monochrome */
+
+[data-theme="tactical"] {
+  /* Surface hierarchy — pure black base */
+  --surface-0: #000000;
+  --surface-1: rgba(0, 10, 0, 0.8);
+  --surface-2: rgba(0, 20, 0, 0.6);
+  --surface-3: rgba(0, 30, 0, 0.4);
+
+  /* Glass morphism — green tint */
+  --glass-bg: rgba(0, 10, 0, 0.55);
+  --glass-border: rgba(16, 185, 129, 0.1);
+  --glass-highlight: rgba(16, 185, 129, 0.04);
+  --glass-highlight-top: rgba(16, 185, 129, 0.12);
+  --glass-inner-shadow: inset 0 1px 0 rgba(16, 185, 129, 0.06);
+
+  /* Accent spectrum — green monochrome */
+  --accent-primary: #10b981;
+  --accent-cyan: #34d399;
+  --accent-emerald: #10b981;
+  --accent-amber: #a3e635;
+  --accent-red: #f87171;
+  --accent-violet: #6ee7b7;
+  --accent-blue: #34d399;
+
+  /* Glow effects — green */
+  --glow-primary: 0 0 20px rgba(16, 185, 129, 0.3);
+  --glow-cyan: 0 0 20px rgba(52, 211, 153, 0.3);
+  --glow-danger: 0 0 20px rgba(248, 113, 113, 0.3);
+  --glow-emerald: 0 0 20px rgba(16, 185, 129, 0.3);
+  --glow-amber: 0 0 20px rgba(163, 230, 53, 0.3);
+  --glow-violet: 0 0 20px rgba(110, 231, 183, 0.3);
+}
+
+/* ── Tailwind color overrides ── */
+
+/* Indigo → Emerald green */
+[data-theme="tactical"] .text-indigo-400 { color: #34d399; }
+[data-theme="tactical"] .text-indigo-500 { color: #10b981; }
+[data-theme="tactical"] .bg-indigo-500\/10 { background-color: rgba(16, 185, 129, 0.1); }
+[data-theme="tactical"] .bg-indigo-500\/15 { background-color: rgba(16, 185, 129, 0.15); }
+[data-theme="tactical"] .bg-indigo-500\/20 { background-color: rgba(16, 185, 129, 0.2); }
+[data-theme="tactical"] .border-indigo-500\/20 { border-color: rgba(16, 185, 129, 0.2); }
+[data-theme="tactical"] .border-indigo-500\/30 { border-color: rgba(16, 185, 129, 0.3); }
+[data-theme="tactical"] .ring-indigo-500\/20 { --tw-ring-color: rgba(16, 185, 129, 0.2); }
+[data-theme="tactical"] .from-indigo-500\/10 { --tw-gradient-from: rgba(16, 185, 129, 0.1); }
+[data-theme="tactical"] .to-indigo-500\/0 { --tw-gradient-to: rgba(16, 185, 129, 0); }
+[data-theme="tactical"] .shadow-indigo-500\/20 { --tw-shadow-color: rgba(16, 185, 129, 0.2); }
+
+/* Cyan → Light emerald */
+[data-theme="tactical"] .text-cyan-400 { color: #6ee7b7; }
+[data-theme="tactical"] .text-cyan-300 { color: #6ee7b7; }
+[data-theme="tactical"] .bg-cyan-500\/10 { background-color: rgba(16, 185, 129, 0.1); }
+[data-theme="tactical"] .bg-cyan-500\/20 { background-color: rgba(16, 185, 129, 0.2); }
+[data-theme="tactical"] .border-cyan-500\/20 { border-color: rgba(16, 185, 129, 0.2); }
+[data-theme="tactical"] .border-cyan-500\/30 { border-color: rgba(16, 185, 129, 0.3); }
+
+/* Violet → Emerald tint */
+[data-theme="tactical"] .text-violet-400 { color: #6ee7b7; }
+[data-theme="tactical"] .text-violet-300 { color: #6ee7b7; }
+[data-theme="tactical"] .bg-violet-500\/10 { background-color: rgba(16, 185, 129, 0.1); }
+[data-theme="tactical"] .border-violet-500\/20 { border-color: rgba(16, 185, 129, 0.2); }
+
+/* Blue → Emerald */
+[data-theme="tactical"] .text-blue-400 { color: #34d399; }
+[data-theme="tactical"] .bg-blue-500\/10 { background-color: rgba(16, 185, 129, 0.1); }
+
+/* Amber → Yellow-green for warnings */
+[data-theme="tactical"] .text-amber-400 { color: #a3e635; }
+[data-theme="tactical"] .text-amber-500 { color: #84cc16; }
+[data-theme="tactical"] .bg-amber-500\/10 { background-color: rgba(163, 230, 53, 0.1); }
+[data-theme="tactical"] .border-amber-500\/20 { border-color: rgba(163, 230, 53, 0.2); }
+
+/* Emerald stays emerald (already correct) */
+
+/* Red — keep for critical safety alerts */
+
+/* ── Zinc text → green tints ── */
+[data-theme="tactical"] .text-zinc-100 { color: #d1fae5; }
+[data-theme="tactical"] .text-zinc-200 { color: #a7f3d0; }
+[data-theme="tactical"] .text-zinc-300 { color: #6ee7b7; }
+[data-theme="tactical"] .text-zinc-400 { color: #34d399; }
+[data-theme="tactical"] .text-zinc-500 { color: #10b981; }
+[data-theme="tactical"] .text-zinc-600 { color: #059669; }
+
+/* ── Zinc backgrounds → black/dark green ── */
+[data-theme="tactical"] .bg-zinc-950 { background-color: #000000; }
+[data-theme="tactical"] .bg-zinc-900 { background-color: #001a00; }
+[data-theme="tactical"] .bg-zinc-900\/50 { background-color: rgba(0, 15, 0, 0.5); }
+[data-theme="tactical"] .bg-zinc-900\/80 { background-color: rgba(0, 15, 0, 0.8); }
+[data-theme="tactical"] .bg-zinc-800 { background-color: #002200; }
+[data-theme="tactical"] .bg-zinc-800\/50 { background-color: rgba(0, 25, 0, 0.5); }
+
+/* ── Zinc borders → dark green ── */
+[data-theme="tactical"] .border-zinc-800 { border-color: #003300; }
+[data-theme="tactical"] .border-zinc-700 { border-color: #004400; }
+[data-theme="tactical"] .border-zinc-700\/50 { border-color: rgba(0, 50, 0, 0.5); }
+
+/* ── White opacity borders → green opacity ── */
+[data-theme="tactical"] .border-white\/\[0\.04\] { border-color: rgba(16, 185, 129, 0.06); }
+[data-theme="tactical"] .border-white\/\[0\.06\] { border-color: rgba(16, 185, 129, 0.08); }
+[data-theme="tactical"] .border-white\/\[0\.08\] { border-color: rgba(16, 185, 129, 0.1); }
+[data-theme="tactical"] .border-white\/5 { border-color: rgba(16, 185, 129, 0.07); }
+[data-theme="tactical"] .border-white\/10 { border-color: rgba(16, 185, 129, 0.1); }
+
+/* ── White opacity backgrounds → green opacity ── */
+[data-theme="tactical"] .bg-white\/\[0\.02\] { background-color: rgba(16, 185, 129, 0.02); }
+[data-theme="tactical"] .bg-white\/\[0\.03\] { background-color: rgba(16, 185, 129, 0.03); }
+[data-theme="tactical"] .bg-white\/\[0\.04\] { background-color: rgba(16, 185, 129, 0.04); }
+[data-theme="tactical"] .bg-white\/\[0\.06\] { background-color: rgba(16, 185, 129, 0.06); }
+[data-theme="tactical"] .bg-white\/5 { background-color: rgba(16, 185, 129, 0.05); }
+[data-theme="tactical"] .bg-white\/10 { background-color: rgba(16, 185, 129, 0.1); }
+
+/* ── Scrollbar ── */
+[data-theme="tactical"] ::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.12);
+}
+[data-theme="tactical"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+/* ── Glass utility overrides ── */
+[data-theme="tactical"] .glass {
+  background-color: rgba(0, 10, 0, 0.55);
+  border-color: rgba(16, 185, 129, 0.1);
+}
+[data-theme="tactical"] .glass-elevated {
+  background-color: rgba(0, 10, 0, 0.7);
+  border-color: rgba(16, 185, 129, 0.12);
+  border-top-color: rgba(16, 185, 129, 0.18);
+  box-shadow: inset 0 1px 0 rgba(16, 185, 129, 0.06), 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Text glow utilities ── */
+[data-theme="tactical"] .text-glow-cyan {
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.5), 0 0 30px rgba(16, 185, 129, 0.2);
+}
+[data-theme="tactical"] .text-glow-indigo {
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.5), 0 0 30px rgba(16, 185, 129, 0.2);
+}
+[data-theme="tactical"] .text-glow-amber {
+  text-shadow: 0 0 10px rgba(163, 230, 53, 0.5), 0 0 30px rgba(163, 230, 53, 0.2);
+}
+
+/* ── Scan line → green ── */
+[data-theme="tactical"] .scan-line {
+  background: linear-gradient(transparent, rgba(16, 185, 129, 0.03), transparent);
+}
+
+/* ── Cyber grid → green ── */
+[data-theme="tactical"] .cyber-grid {
+  background-image:
+    linear-gradient(rgba(16, 185, 129, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.04) 1px, transparent 1px);
+}
+
+/* ── Focus ring → green ── */
+[data-theme="tactical"] *:focus-visible {
+  outline-color: #10b981;
+}
+
+/* ── Map tiles: green tint via CSS filter ── */
+[data-theme="tactical"] .leaflet-container {
+  background: #000000 !important;
+  filter: hue-rotate(90deg) saturate(0.5);
+}
+
+/* ── Leaflet tooltip → green theme ── */
+[data-theme="tactical"] .leaflet-tooltip {
+  background: rgba(0, 10, 0, 0.9) !important;
+  border: 1px solid rgba(16, 185, 129, 0.15) !important;
+  color: #a7f3d0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
+}
+[data-theme="tactical"] .leaflet-tooltip-top::before {
+  border-top-color: rgba(0, 10, 0, 0.9) !important;
+}
+[data-theme="tactical"] .leaflet-tooltip-bottom::before {
+  border-bottom-color: rgba(0, 10, 0, 0.9) !important;
+}
+
+/* ── Shimmer animation → green ── */
+[data-theme="tactical"] .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(16, 185, 129, 0.04) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* ── Body base color ── */
+[data-theme="tactical"] body {
+  background-color: #000000;
+  color: #d1fae5;
+}
+
+/* ── Recharts overrides for green palette ── */
+[data-theme="tactical"] .recharts-cartesian-grid line {
+  stroke: rgba(16, 185, 129, 0.08);
+}
+[data-theme="tactical"] .recharts-text {
+  fill: #10b981;
+}
+[data-theme="tactical"] .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: rgba(0, 10, 0, 0.9) !important;
+  border: 1px solid rgba(16, 185, 129, 0.15) !important;
+}

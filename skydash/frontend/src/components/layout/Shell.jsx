@@ -20,7 +20,7 @@ import { useUIStore } from '../../stores/uiStore';
 export default function Shell({ children }) {
   const [showHelp, setShowHelp] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const { notificationOpen, setNotificationOpen, toggleNotifications, isMobile, setResponsive } = useUIStore();
+  const { notificationOpen, setNotificationOpen, toggleNotifications, isMobile, setResponsive, theme } = useUIStore();
   const prevAlertCountRef = useRef(0);
 
   useTelemetry();
@@ -40,6 +40,11 @@ export default function Shell({ children }) {
       clearTimeout(timeoutId);
     };
   }, [setResponsive]);
+
+  // Apply theme attribute to document root
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const handleBootComplete = useCallback(() => {
     toast('System online — telemetry streaming', 'success');

@@ -16,6 +16,7 @@ import AdsbLayer from './AdsbLayer';
 import HeatmapLayer from './HeatmapLayer';
 import GeofenceDraw from './GeofenceDraw';
 import SpatialSearchPanel, { SpatialSearchMapHandler, SpatialSearchOverlay } from './SpatialSearch';
+import MapAnnotations from './MapAnnotations';
 import 'leaflet/dist/leaflet.css';
 
 const TILE_LAYERS = {
@@ -195,6 +196,9 @@ export default function MapView() {
           points={measurePoints}
           onAddPoint={handleAddMeasurePoint}
         />
+
+        {/* Map annotations (text, pins, arrows, circles) */}
+        <MapAnnotations />
 
         {/* Spatial search map handler + circle overlay */}
         <SpatialSearchMapHandler
