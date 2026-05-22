@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
-import { Clock, GitBranch } from 'lucide-react';
+import { Clock, GitBranch, Columns } from 'lucide-react';
 import IntelPanel from '../intel/IntelPanel';
 import EntityDetail from '../intel/EntityDetail';
+import EntityComparison from '../intel/EntityComparison';
 import TimelineView from '../intel/TimelineView';
 import LinkGraph from '../intel/LinkGraph';
 import NaturalLanguageQuery from '../intel/NaturalLanguageQuery';
@@ -13,11 +14,17 @@ import { useIntelStore } from '../../stores/intelStore';
 const CENTER_TABS = [
   { id: 'timeline', label: 'Timeline', icon: Clock },
   { id: 'graph', label: 'Link Analysis', icon: GitBranch },
+  { id: 'compare', label: 'Compare', icon: Columns },
 ];
 
 export default function IntelView() {
   const selectedEntityId = useIntelStore((s) => s.selectedEntityId);
+  const comparedEntities = useIntelStore((s) => s.comparedEntities);
   const [centerTab, setCenterTab] = useState('timeline');
+
+  useEffect(() => {
+    if (comparedEntities[0] || comparedEntities[1]) setCenterTab('compare');
+  }, [comparedEntities]);
 
   return (
     <div className="h-full flex">
@@ -49,7 +56,9 @@ export default function IntelView() {
 
         {/* Tab content */}
         <div className="flex-1 min-h-0 overflow-hidden">
-          {centerTab === 'timeline' ? <TimelineView /> : <LinkGraph />}
+          {centerTab === 'timeline' && <TimelineView />}
+          {centerTab === 'graph' && <LinkGraph />}
+          {centerTab === 'compare' && <EntityComparison />}
         </div>
 
         {/* Bottom tools */}

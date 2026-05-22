@@ -3,6 +3,7 @@ import GlassCard from '../common/GlassCard';
 import DataSources from '../common/DataSources';
 import AuditLog from '../common/AuditLog';
 import AlertRulesConfig from '../common/AlertRulesConfig';
+import SystemHealth from '../common/SystemHealth';
 import { startTour } from '../common/OnboardingTour';
 import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
@@ -82,6 +83,9 @@ export default function SettingsView() {
             </div>
           </div>
         </GlassCard>
+
+        {/* System Health */}
+        <SystemHealth />
 
         {/* Alert Rules */}
         <AlertRulesConfig />

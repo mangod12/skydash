@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import {
-  Eye, Map, Crosshair, Link2, ClipboardCopy, FileText, Trash2,
+  Eye, Map, Crosshair, Link2, ClipboardCopy, FileText, Trash2, Columns,
 } from 'lucide-react';
 import { useIntelStore } from '../stores/intelStore';
 import { useMapStore } from '../stores/mapStore';
@@ -11,6 +11,7 @@ import { formatDecimal } from '../utils/coordinates';
 export default function useEntityContextMenu(show) {
   const selectEntity = useIntelStore((s) => s.selectEntity);
   const deleteEntity = useIntelStore((s) => s.deleteEntity);
+  const setComparedEntity = useIntelStore((s) => s.setComparedEntity);
   const flyTo = useMapStore((s) => s.flyTo);
   const setActiveView = useUIStore((s) => s.setActiveView);
   const addEntityToMission = useMissionStore((s) => s.addEntityToMission);
@@ -50,6 +51,11 @@ export default function useEntityContextMenu(show) {
         label: 'Create Relationship',
         icon: Link2,
         action: () => { selectEntity(entity.id); setActiveView('intel'); },
+      },
+      {
+        label: 'Compare with...',
+        icon: Columns,
+        action: () => { setComparedEntity(0, entity.id); setActiveView('intel'); },
       },
       { separator: true },
       {
@@ -96,7 +102,7 @@ export default function useEntityContextMenu(show) {
     ];
 
     show(x, y, items);
-  }, [show, selectEntity, deleteEntity, flyTo, setActiveView, addEntityToMission, getActiveMission]);
+  }, [show, selectEntity, deleteEntity, setComparedEntity, flyTo, setActiveView, addEntityToMission, getActiveMission]);
 
   return openEntityMenu;
 }

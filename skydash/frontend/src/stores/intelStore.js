@@ -91,11 +91,19 @@ export const useIntelStore = create((set, get) => ({
   relationships: SEED_RELATIONSHIPS,
   events: SEED_EVENTS,
   selectedEntityId: null,
+  comparedEntities: [null, null],
   filterThreat: null,
   filterType: null,
 
   selectEntity: (id) => set({ selectedEntityId: id }),
   clearSelection: () => set({ selectedEntityId: null }),
+
+  setComparedEntity: (slot, id) => set((s) => {
+    const next = [...s.comparedEntities];
+    next[slot] = id;
+    return { comparedEntities: next };
+  }),
+  clearComparison: () => set({ comparedEntities: [null, null] }),
 
   setFilterThreat: (level) => set({ filterThreat: level }),
   setFilterType: (type) => set({ filterType: type }),
@@ -123,6 +131,10 @@ export const useIntelStore = create((set, get) => ({
     const { events } = get();
     return events.filter((e) => e.entityId === entityId).sort((a, b) => b.time - a.time);
   },
+
+  updateEntity: (id, updates) => set((s) => ({
+    entities: s.entities.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+  })),
 
   deleteEntity: (id) => set((s) => ({
     entities: s.entities.filter((e) => e.id !== id),

@@ -1,4 +1,5 @@
 import TelemetryPanel from '../telemetry/TelemetryPanel';
+import DroneCommandPanel from '../telemetry/DroneCommandPanel';
 import MapView from '../map/MapView';
 import AlertBar from '../telemetry/AlertBar';
 
@@ -12,9 +13,14 @@ export default function TelemetryView() {
           <MapView />
         </div>
 
-        {/* Telemetry (wider) */}
-        <div className="w-[380px] shrink-0">
-          <TelemetryPanel />
+        {/* Telemetry + Command panel */}
+        <div className="w-[380px] shrink-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <TelemetryPanel />
+          </div>
+          <div className="p-3 pt-0">
+            <DroneCommandPanel />
+          </div>
         </div>
       </div>
     </div>

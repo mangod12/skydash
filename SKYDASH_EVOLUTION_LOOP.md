@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 14 COMPLETE
+## CURRENT PHASE: 15 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -891,6 +891,29 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
      progress dots, first-run localStorage detection, restart from
      Settings, "Start Tour" command in palette).
   110 source files. 41 tests passing. Build: clean.
+
+[Phase 15] [2026-05-22] Command and control — 5 parallel work streams:
+  1. Drone command panel: DroneCommandPanel with flight mode selector
+     (orbit/grid/waypoint/hold/RTL/land), quick commands (altitude+/-,
+     yaw, emergency stop), mission control sliders (speed/altitude/
+     orbit radius), command status log with simulated ack, backend
+     POST /api/drone/{id}/command stub.
+  2. Entity comparison: EntityComparison side-by-side dual-column view
+     with entity selector dropdowns, property diff highlighting (emerald
+     =match, amber=differ, zinc=missing), shared relationships detection,
+     tag overlap, proximity calculation, temporal overlap analysis.
+  3. Saved searches: bookmarkStore (localStorage persistence, hydrate on
+     start), BookmarkBar with filter/mapview/search bookmark types,
+     save current state, apply bookmark to restore filters or map view,
+     3 seed bookmarks.
+  4. Bulk operations: multi-select mode in IntelPanel with checkboxes,
+     BulkActionsBar floating toolbar (tag/threat/mission/delete batch
+     actions), select all/deselect, confirmation for destructive ops.
+  5. System health monitor: useSystemHealth hook (1s sampling, 30-point
+     sparkline history, message rate counter, overall status derivation),
+     SystemHealth panel with WS/pipeline/database/memory/uptime sections,
+     inline Recharts sparklines, integrated in SettingsView.
+  119 source files. 41 tests passing. Build: clean.
 ---
 ---
 ```

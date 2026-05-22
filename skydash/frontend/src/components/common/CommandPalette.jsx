@@ -6,10 +6,11 @@ import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
 import { useMapStore } from '../../stores/mapStore';
 import { useAuditStore } from '../../stores/auditStore';
+import { useBookmarkStore } from '../../stores/bookmarkStore';
 import {
   Map, Radio, Brain, Users, Clock, Crosshair, Layers, Camera, Target,
   RotateCcw, BarChart3, Bell, Settings, ScrollText, Car, User, Building2,
-  Wifi, Calendar, MapPin, Compass,
+  Wifi, Calendar, MapPin, Compass, Star, Columns,
 } from 'lucide-react';
 import { startTour } from './OnboardingTour';
 
@@ -30,6 +31,7 @@ const COMMANDS = [
   { id: 'fly-drone', label: 'Fly to Drone', icon: Target, group: 'MAP' },
   { id: 'reset', label: 'Reset Simulation', icon: RotateCcw, group: 'ACTIONS' },
   { id: 'tour', label: 'Start Tour', icon: Compass, group: 'ACTIONS', handler: 'tour' },
+  { id: 'compare', label: 'Compare Entities', icon: Columns, group: 'ACTIONS', action: 'intel', handler: 'compare' },
 ];
 
 const ENTITY_ICONS = { vehicle: Car, person: User, building: Building2, device: Wifi, event: Calendar };
@@ -57,6 +59,7 @@ export default function CommandPalette() {
   const missions = useMissionStore.getState().missions;
   const annotations = useMapStore.getState().annotations;
   const auditEntries = useAuditStore.getState().entries;
+  const allBookmarks = useBookmarkStore.getState().bookmarks;
 
   const slice = (arr) => arr.slice(0, 5);
   const filteredEntities = slice(q ? entities.filter((e) => match(e.name, q) || match(e.type, q) || e.tags?.some((t) => match(t, q))) : entities);
@@ -64,13 +67,24 @@ export default function CommandPalette() {
   const filteredEvents = slice(q ? events.filter((e) => match(e.description, q)) : events);
   const filteredAnnotations = slice(q ? annotations.filter((a) => match(a.label, q) || match(a.type, q)) : annotations);
   const filteredAudit = slice(q ? auditEntries.filter((a) => match(a.detail, q)) : auditEntries);
+  const filteredBookmarks = slice(q ? allBookmarks.filter((b) => match(b.name, q) || match(b.type, q)) : allBookmarks);
 
   const close = () => { setQuery(''); toggleCommandPalette(); };
   const nav = (view, before) => { before?.(); setActiveView(view); close(); };
+  const applyBookmark = (bk) => {
+    useBookmarkStore.getState().setActive(bk.id);
+    if (bk.type === 'filter') setActiveView('intel');
+    else if (bk.type === 'mapview') {
+      setActiveView('map');
+      useMapStore.getState().flyTo(bk.config.center, bk.config.zoom);
+    }
+    close();
+  };
   const runCommand = (cmd) => {
     if (cmd.action) setActiveView(cmd.action);
     if (cmd.handler === 'notifications') useUIStore.getState().toggleNotifications();
     if (cmd.handler === 'tour') startTour();
+    if (cmd.handler === 'compare') useIntelStore.getState().clearComparison();
     if (cmd.id === 'reset') fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8001'}/reset`, { method: 'POST' });
     close();
   };
@@ -107,6 +121,18 @@ export default function CommandPalette() {
                 </Command.Item>
               ))}
           </Command.Group>
+
+          {filteredBookmarks.length > 0 && (
+            <Command.Group heading="BOOKMARKS" className={GROUP_HEADING}>
+              {filteredBookmarks.map((bk) => (
+                <Command.Item key={bk.id} value={`bk-${bk.id}`} onSelect={() => applyBookmark(bk)} className={ITEM_BASE}>
+                  <Star size={16} strokeWidth={1.5} />
+                  <span className="flex-1 truncate">Apply: {bk.name}</span>
+                  <span className="text-[10px] font-semibold tracking-wider uppercase text-zinc-500">{bk.type}</span>
+                </Command.Item>
+              ))}
+            </Command.Group>
+          )}
 
           {filteredEntities.length > 0 && (
             <Command.Group heading="ENTITIES" className={GROUP_HEADING}>

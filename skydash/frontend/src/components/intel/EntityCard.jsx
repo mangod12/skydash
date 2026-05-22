@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 import {
-  Car, User, Building2, Wifi, AlertTriangle, ChevronRight,
+  Car, User, Building2, Wifi, AlertTriangle, ChevronRight, Check,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -22,7 +22,7 @@ const THREAT_COLORS = {
   critical: 'bg-red-600 animate-pulse',
 };
 
-export default function EntityCard({ entity, selected, onClick, onContextMenu }) {
+export default function EntityCard({ entity, selected, onClick, onContextMenu, selectable, checked }) {
   const config = TYPE_CONFIG[entity.type] || TYPE_CONFIG.event;
   const Icon = config.icon;
 
@@ -43,6 +43,19 @@ export default function EntityCard({ entity, selected, onClick, onContextMenu })
       )}
     >
       <div className="flex items-start gap-3">
+        {/* Selection checkbox */}
+        {selectable && (
+          <div
+            className={clsx(
+              'w-4 h-4 rounded shrink-0 mt-0.5 flex items-center justify-center border transition-colors',
+              checked
+                ? 'bg-indigo-500 border-indigo-500'
+                : 'bg-transparent border-zinc-700 hover:border-zinc-500',
+            )}
+          >
+            {checked && <Check size={10} className="text-white" strokeWidth={3} />}
+          </div>
+        )}
         {/* Icon */}
         <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', config.bg)}>
           <Icon size={16} className={config.color} strokeWidth={1.5} />

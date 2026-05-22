@@ -123,6 +123,12 @@ async def get_drone_telemetry(drone_id: str):
     return {"success": True, "data": data}
 
 
+@app.post("/api/drone/{drone_id}/command")
+async def send_drone_command(drone_id: str, body: Dict):
+    log.info(f"Command received for {drone_id}: {body}")
+    return {"success": True, "data": {"drone_id": drone_id, "command": body, "ack": "confirmed"}}
+
+
 @app.post("/reset")
 async def reset_simulation():
     fleet.reset()
