@@ -14,9 +14,17 @@ import FleetMarkers from './FleetMarkers';
 import TimelineSlider from './TimelineSlider';
 import 'leaflet/dist/leaflet.css';
 
-const TILE_URLS = {
-  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+const TILE_LAYERS = {
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    maxZoom: 20,
+    maxNativeZoom: 20,
+  },
+  satellite: {
+    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    maxZoom: 20,
+    maxNativeZoom: 20,
+  },
 };
 
 function MapRefBridge({ mapRef }) {
@@ -82,7 +90,7 @@ export default function MapView() {
     ? flightPath.map((p) => [p.lat, p.lng])
     : [];
 
-  const tileUrl = layers.satellite ? TILE_URLS.satellite : TILE_URLS.dark;
+  const tileConfig = layers.satellite ? TILE_LAYERS.satellite : TILE_LAYERS.dark;
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl map-container">
@@ -97,7 +105,11 @@ export default function MapView() {
         <MapRefBridge mapRef={mapRef} />
         <DroneTracker />
 
-        <TileLayer url={tileUrl} maxZoom={19} />
+        <TileLayer
+          url={tileConfig.url}
+          maxZoom={tileConfig.maxZoom}
+          maxNativeZoom={tileConfig.maxNativeZoom}
+        />
 
         {/* Flight path trail — glowing dual-line */}
         {pathPoints.length > 1 && (
