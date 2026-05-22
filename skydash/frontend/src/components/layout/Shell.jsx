@@ -10,6 +10,7 @@ import NoiseOverlay from '../common/NoiseOverlay';
 import KeyboardHelp from '../common/KeyboardHelp';
 import InfoPanel from '../common/InfoPanel';
 import ConnectionLost from '../common/ConnectionLost';
+import OnboardingTour from '../common/OnboardingTour';
 import NotificationCenter from '../common/NotificationCenter';
 import ToastContainer, { toast } from '../common/Toast';
 import { useTelemetry } from '../../hooks/useTelemetry';
@@ -22,7 +23,7 @@ import { useUIStore } from '../../stores/uiStore';
 export default function Shell({ children }) {
   const [showHelp, setShowHelp] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const { notificationOpen, setNotificationOpen, toggleNotifications, isMobile, setResponsive, theme } = useUIStore();
+  const { notificationOpen, setNotificationOpen, toggleNotifications, isMobile, setResponsive, theme, workspace } = useUIStore();
   const prevAlertCountRef = useRef(0);
 
   useTelemetry();
@@ -49,6 +50,15 @@ export default function Shell({ children }) {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // Workspace change toast
+  const prevWorkspaceRef = useRef(workspace);
+  useEffect(() => {
+    if (prevWorkspaceRef.current !== workspace) {
+      toast(`Workspace: ${workspace.toUpperCase()} mode active`, 'success');
+      prevWorkspaceRef.current = workspace;
+    }
+  }, [workspace]);
 
   const handleBootComplete = useCallback(() => {
     toast('System online — telemetry streaming', 'success');
@@ -89,6 +99,8 @@ export default function Shell({ children }) {
       </div>
 
       {isMobile && <BottomNav />}
+
+      <OnboardingTour />
 
       {/* Ambient effects */}
       <ScanLine />

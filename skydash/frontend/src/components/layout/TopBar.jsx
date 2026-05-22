@@ -3,6 +3,7 @@ import { Search, Bell, Command, Info } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import useNotificationStore from '../../stores/notificationStore';
+import WorkspaceSwitcher from './WorkspaceSwitcher';
 
 function UtcClock() {
   const [time, setTime] = useState('');
@@ -31,18 +32,22 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
 
   return (
     <header className="h-12 flex items-center justify-between px-4 border-b border-white/[0.06] bg-[var(--surface-0)] shrink-0 z-20">
-      {/* Left: Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-zinc-500 font-medium">SKYDASH</span>
-        <span className="text-zinc-700">/</span>
-        <span className="text-zinc-300 font-semibold uppercase tracking-wider text-xs">
-          {activeView}
-        </span>
+      {/* Left: Breadcrumb + Workspace */}
+      <div className="flex items-center gap-3 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-zinc-500 font-medium">SKYDASH</span>
+          <span className="text-zinc-700">/</span>
+          <span className="text-zinc-300 font-semibold uppercase tracking-wider text-xs">
+            {activeView}
+          </span>
+        </div>
+        {!isMobile && <WorkspaceSwitcher />}
       </div>
 
       {/* Center: Command palette trigger (hidden on mobile) */}
       {!isMobile && (
         <button
+          data-tour="command-palette"
           onClick={toggleCommandPalette}
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
         >
@@ -64,6 +69,7 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
           <Info size={17} strokeWidth={1.5} />
         </button>
         <button
+          data-tour="notifications"
           onClick={onNotificationToggle}
           className="relative text-zinc-500 hover:text-zinc-300 transition-colors"
           aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}

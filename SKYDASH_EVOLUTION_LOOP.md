@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 13 COMPLETE
+## CURRENT PHASE: 14 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -868,6 +868,29 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
   Plus: version bump to 3.0.0, command palette added audit log command,
   entity-pulse-ring + entity-popup CSS animations.
   ~98 JS/JSX + 6 CSS = 104 source files. 41 tests passing. Build: clean.
+
+[Phase 14] [2026-05-22] Intelligence fusion — 5 parallel work streams:
+  1. Omnisearch: CommandPalette rewrite searching across entities, missions,
+     events, annotations, audit log, and commands. Results grouped by
+     category with type icons, threat badges, timestamps. 5 per category,
+     20 max total. Entity→Intel, Mission→Missions, Event→Timeline nav.
+  2. Workspace presets: WorkspaceSwitcher (Operator/Analyst/Commander)
+     in TopBar, uiStore workspace state, auto-configures sidebar/view/
+     notifications per role. Operator=map+telemetry, Analyst=intel+graph,
+     Commander=dashboard+fleet.
+  3. Entity detail enrichment: Quick stats bar (relationships/events/
+     missions/confidence), MiniRelGraph (radial SVG 120px, center node
+     + 8 max connections), EntityMiniMap (static Leaflet with entity pin),
+     mini timeline (last 5 events with severity dots), threat+confidence
+     visual bars.
+  4. Arctic theme: arctic.css (light mode, blue accents, frosted white
+     glass, slate text scale, light map tiles, Recharts light overrides),
+     imported in index.css. All 3 themes now functional.
+  5. Onboarding tour: OnboardingTour.jsx (8-step guided walkthrough,
+     spotlight overlay with clip-path cutout, positioned tooltip with
+     progress dots, first-run localStorage detection, restart from
+     Settings, "Start Tour" command in palette).
+  110 source files. 41 tests passing. Build: clean.
 ---
 ---
 ```

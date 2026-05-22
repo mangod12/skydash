@@ -12,7 +12,7 @@ export default function useMapContextMenu({ show, onMeasureFrom, onSearchRadius 
   const addEntity = useIntelStore((s) => s.addEntity);
 
   const openMapMenu = useCallback((e) => {
-    e.preventDefault();
+    e.originalEvent?.preventDefault?.();
     const lat = e.latlng?.lat ?? 0;
     const lng = e.latlng?.lng ?? 0;
     const pinCount = annotations.filter((a) => a.type === 'pin').length;

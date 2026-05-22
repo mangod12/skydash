@@ -4,11 +4,15 @@ import EntityCard from './EntityCard';
 import ThreatMatrix from './ThreatMatrix';
 import EntityFilterBar, { useEntityFilters } from './EntityFilterBar';
 import VirtualList from '../common/VirtualList';
+import ContextMenu, { useContextMenu } from '../common/ContextMenu';
+import useEntityContextMenu from '../../hooks/useEntityContextMenu';
 import { useIntelStore } from '../../stores/intelStore';
 
 export default function IntelPanel() {
   const { entities, selectedEntityId, selectEntity } = useIntelStore();
   const [search, setSearch] = useState('');
+  const { menu, show, hide } = useContextMenu();
+  const openEntityMenu = useEntityContextMenu(show);
 
   const searchFiltered = entities.filter((e) => {
     if (search && !e.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -65,6 +69,7 @@ export default function IntelPanel() {
               entity={entity}
               selected={selectedEntityId === entity.id}
               onClick={() => selectEntity(entity.id)}
+              onContextMenu={openEntityMenu}
             />
           )}
         />
@@ -74,6 +79,9 @@ export default function IntelPanel() {
       <div className="p-3 border-t border-white/[0.06] shrink-0">
         <ThreatMatrix />
       </div>
+
+      {/* Context menu */}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={hide} />}
     </div>
   );
 }

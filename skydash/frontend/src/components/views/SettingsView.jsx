@@ -3,6 +3,7 @@ import GlassCard from '../common/GlassCard';
 import DataSources from '../common/DataSources';
 import AuditLog from '../common/AuditLog';
 import AlertRulesConfig from '../common/AlertRulesConfig';
+import { startTour } from '../common/OnboardingTour';
 import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
@@ -46,6 +47,20 @@ export default function SettingsView() {
                 <span className="text-[9px] text-zinc-500">{t.desc}</span>
               </button>
             ))}
+          </div>
+        </GlassCard>
+
+        {/* Onboarding */}
+        <GlassCard animate={false}>
+          <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-3">ONBOARDING</h3>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-zinc-400">Replay the guided tour of SkyDash features</span>
+            <button
+              onClick={startTour}
+              className="px-3 py-1.5 text-[10px] font-semibold tracking-wider bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 rounded-lg transition-colors"
+            >
+              RESTART TOUR
+            </button>
           </div>
         </GlassCard>
 
@@ -112,7 +127,7 @@ export default function SettingsView() {
           <div className="space-y-1 text-[11px]">
             <div className="flex justify-between">
               <span className="text-zinc-500">Version</span>
-              <span className="font-mono text-zinc-300">2.0.0</span>
+              <span className="font-mono text-zinc-300">3.0.0</span>
             </div>
             <div className="flex justify-between">
               <span className="text-zinc-500">Build</span>

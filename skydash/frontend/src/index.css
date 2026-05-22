@@ -3,6 +3,7 @@
 @import './styles/tokens.css';
 @import './styles/animations.css';
 @import './styles/tactical.css';
+@import './styles/arctic.css';
 
 @tailwind base;
 @tailwind components;

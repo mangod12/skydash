@@ -38,10 +38,7 @@ export default function AuditLog() {
 
   const visible = filter === 'all' ? entries : entries.filter((e) => e.category === filter);
 
-  // Auto-scroll to top on new entry
-  useEffect(() => {
-    if (listRef.current) listRef.current.scrollTop = 0;
-  }, [entries.length]);
+  useEffect(() => { if (listRef.current) listRef.current.scrollTop = 0; }, [entries.length]);
 
   const handleExportCSV = useCallback(() => {
     const csv = entriesToCSV(visible);
@@ -59,7 +56,6 @@ export default function AuditLog() {
     setConfirming(false);
   }, [confirming, clearAll]);
 
-  // Reset confirm after 3s
   useEffect(() => {
     if (!confirming) return;
     const t = setTimeout(() => setConfirming(false), 3000);
@@ -68,7 +64,6 @@ export default function AuditLog() {
 
   return (
     <div className="rounded-2xl border border-white/[0.08] border-t-white/[0.12] backdrop-blur-[16px] bg-[rgba(9,9,11,0.55)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] p-4 flex flex-col max-h-[480px]">
-      {/* Header */}
       <div className="flex items-center justify-between mb-3 shrink-0">
         <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">AUDIT LOG</h3>
         <div className="flex gap-1.5">
@@ -81,7 +76,6 @@ export default function AuditLog() {
         </div>
       </div>
 
-      {/* Filter tabs */}
       <div className="flex gap-1 mb-3 shrink-0 flex-wrap">
         {CATEGORIES.map((cat) => (
           <button
@@ -99,7 +93,6 @@ export default function AuditLog() {
         ))}
       </div>
 
-      {/* Entries */}
       <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-white/10">
         {visible.length === 0 && (
           <div className="text-center text-zinc-700 text-[10px] tracking-wider py-8">NO AUDIT ENTRIES</div>
@@ -118,7 +111,6 @@ export default function AuditLog() {
         ))}
       </div>
 
-      {/* Footer count */}
       <div className="mt-2 pt-2 border-t border-white/[0.04] text-[9px] text-zinc-600 font-mono tabular-nums shrink-0">
         {visible.length} / {entries.length} entries
       </div>

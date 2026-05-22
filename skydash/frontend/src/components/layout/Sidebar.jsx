@@ -22,6 +22,7 @@ function NavButton({ item, active, expanded }) {
 
   return (
     <button
+      data-tour={item.id}
       onClick={() => setActiveView(item.id)}
       className={clsx(
         'group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl',

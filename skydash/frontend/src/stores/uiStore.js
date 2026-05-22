@@ -8,6 +8,14 @@ export const useUIStore = create((set, get) => ({
   theme: 'midnight',
   isMobile: false,
   isTablet: false,
+  workspace: 'operator',
+
+  setWorkspace: (ws) => set({
+    workspace: ws,
+    sidebarOpen: ws !== 'operator',
+    activeView: ws === 'analyst' ? 'intel' : 'dashboard',
+    notificationOpen: ws === 'commander',
+  }),
 
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setActiveView: (view) => set({ activeView: view }),
