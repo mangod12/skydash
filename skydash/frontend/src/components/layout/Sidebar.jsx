@@ -48,12 +48,14 @@ function NavButton({ item, active, expanded }) {
 }
 
 export default function Sidebar() {
-  const { sidebarOpen, toggleSidebar, activeView } = useUIStore();
+  const { sidebarOpen, toggleSidebar, activeView, isTablet } = useUIStore();
+  const expanded = isTablet ? false : sidebarOpen;
+  const width = isTablet ? 60 : (sidebarOpen ? 200 : 60);
 
   return (
     <motion.aside
       initial={{ x: -20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1, width: sidebarOpen ? 200 : 60 }}
+      animate={{ x: 0, opacity: 1, width }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className="h-full flex flex-col border-r border-white/[0.06] bg-[var(--surface-0)] relative z-30"
     >
@@ -61,9 +63,9 @@ export default function Sidebar() {
       <div className="h-12 flex items-center justify-center border-b border-white/[0.06] shrink-0">
         <span className={clsx(
           'font-bold tracking-wider text-indigo-400',
-          sidebarOpen ? 'text-sm' : 'text-xs',
+          expanded ? 'text-sm' : 'text-xs',
         )}>
-          {sidebarOpen ? 'SKYDASH' : 'SD'}
+          {expanded ? 'SKYDASH' : 'SD'}
         </span>
       </div>
 
@@ -74,7 +76,7 @@ export default function Sidebar() {
             key={item.id}
             item={item}
             active={activeView === item.id}
-            expanded={sidebarOpen}
+            expanded={expanded}
           />
         ))}
       </nav>
@@ -84,14 +86,16 @@ export default function Sidebar() {
         <NavButton
           item={{ id: 'settings', icon: Settings, label: 'Settings' }}
           active={activeView === 'settings'}
-          expanded={sidebarOpen}
+          expanded={expanded}
         />
-        <button
-          onClick={toggleSidebar}
-          className="flex items-center justify-center w-full py-2 text-zinc-600 hover:text-zinc-400 transition-colors"
-        >
-          {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-        </button>
+        {!isTablet && (
+          <button
+            onClick={toggleSidebar}
+            className="flex items-center justify-center w-full py-2 text-zinc-600 hover:text-zinc-400 transition-colors"
+          >
+            {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+          </button>
+        )}
       </div>
     </motion.aside>
   );

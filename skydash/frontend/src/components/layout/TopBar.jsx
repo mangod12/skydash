@@ -26,6 +26,7 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
   const alerts = useTelemetryStore((s) => s.alerts);
   const activeView = useUIStore((s) => s.activeView);
+  const isMobile = useUIStore((s) => s.isMobile);
   const unreadCount = useNotificationStore((s) => s.unreadCount);
 
   return (
@@ -39,17 +40,19 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
         </span>
       </div>
 
-      {/* Center: Command palette trigger */}
-      <button
-        onClick={toggleCommandPalette}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
-      >
-        <Search size={14} className="text-zinc-500" />
-        <span className="text-zinc-500 text-xs">Search...</span>
-        <kbd className="hidden sm:flex items-center gap-0.5 text-[10px] text-zinc-600 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.08]">
-          <Command size={10} />K
-        </kbd>
-      </button>
+      {/* Center: Command palette trigger (hidden on mobile) */}
+      {!isMobile && (
+        <button
+          onClick={toggleCommandPalette}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
+        >
+          <Search size={14} className="text-zinc-500" />
+          <span className="text-zinc-500 text-xs">Search...</span>
+          <kbd className="hidden sm:flex items-center gap-0.5 text-[10px] text-zinc-600 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.08]">
+            <Command size={10} />K
+          </kbd>
+        </button>
+      )}
 
       {/* Right: Info + Notifications + Clock */}
       <div className="flex items-center gap-3">

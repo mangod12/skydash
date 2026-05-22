@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 
-export const useUIStore = create((set) => ({
+export const useUIStore = create((set, get) => ({
   sidebarOpen: false,
   activeView: 'dashboard',
   commandPaletteOpen: false,
   notificationOpen: false,
   theme: 'midnight',
+  isMobile: false,
+  isTablet: false,
 
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setActiveView: (view) => set({ activeView: view }),
@@ -13,4 +15,9 @@ export const useUIStore = create((set) => ({
   toggleNotifications: () => set((s) => ({ notificationOpen: !s.notificationOpen })),
   setNotificationOpen: (open) => set({ notificationOpen: open }),
   setTheme: (theme) => set({ theme }),
+  setResponsive: (width) => set({
+    isMobile: width < 768,
+    isTablet: width >= 768 && width < 1024,
+    sidebarOpen: width >= 1024 ? get().sidebarOpen : false,
+  }),
 }));

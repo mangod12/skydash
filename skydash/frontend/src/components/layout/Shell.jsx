@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import StatusBar from './StatusBar';
+import BottomNav from './BottomNav';
 import CommandPalette from '../common/CommandPalette';
 import BootSequence from '../common/BootSequence';
 import ScanLine from '../common/ScanLine';
@@ -19,11 +20,26 @@ import { useUIStore } from '../../stores/uiStore';
 export default function Shell({ children }) {
   const [showHelp, setShowHelp] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const { notificationOpen, setNotificationOpen, toggleNotifications } = useUIStore();
+  const { notificationOpen, setNotificationOpen, toggleNotifications, isMobile, setResponsive } = useUIStore();
   const prevAlertCountRef = useRef(0);
 
   useTelemetry();
   useKeyboard({ onHelp: () => setShowHelp(true) });
+
+  // Responsive breakpoint listener
+  useEffect(() => {
+    let timeoutId = null;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => setResponsive(window.innerWidth), 150);
+    };
+    setResponsive(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
+    };
+  }, [setResponsive]);
 
   const handleBootComplete = useCallback(() => {
     toast('System online — telemetry streaming', 'success');
@@ -44,12 +60,12 @@ export default function Shell({ children }) {
       <BootSequence onComplete={handleBootComplete} />
 
       <div className="h-screen w-screen flex bg-[var(--surface-0)] text-zinc-100 overflow-hidden">
-        <Sidebar />
+        {!isMobile && <Sidebar />}
 
         <div className="flex-1 flex flex-col min-w-0">
           <TopBar onInfoOpen={() => setShowInfo(true)} onNotificationToggle={toggleNotifications} />
 
-          <main className="flex-1 min-h-0 overflow-hidden">
+          <main className={`flex-1 min-h-0 overflow-hidden ${isMobile ? 'pb-14' : ''}`}>
             {children}
           </main>
 
@@ -62,6 +78,8 @@ export default function Shell({ children }) {
         <NotificationCenter isOpen={notificationOpen} onClose={() => setNotificationOpen(false)} />
         <ConnectionLost />
       </div>
+
+      {isMobile && <BottomNav />}
 
       {/* Ambient effects */}
       <ScanLine />

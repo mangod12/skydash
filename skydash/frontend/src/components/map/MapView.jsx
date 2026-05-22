@@ -15,6 +15,7 @@ import TimelineSlider from './TimelineSlider';
 import AdsbLayer from './AdsbLayer';
 import HeatmapLayer from './HeatmapLayer';
 import GeofenceDraw from './GeofenceDraw';
+import SpatialSearchPanel, { SpatialSearchMapHandler, SpatialSearchOverlay } from './SpatialSearch';
 import 'leaflet/dist/leaflet.css';
 
 const TILE_LAYERS = {
@@ -88,6 +89,28 @@ export default function MapView() {
     setMeasurePoints((prev) => [...prev, point]);
   }, []);
 
+  // Spatial search state
+  const [spatialSearch, setSpatialSearch] = useState(false);
+  const [searchCenter, setSearchCenter] = useState(null);
+  const [searchRadius, setSearchRadius] = useState(500);
+  const [highlightedEntityId, setHighlightedEntityId] = useState(null);
+
+  const handleSpatialSearchToggle = useCallback(() => {
+    setSpatialSearch((prev) => {
+      if (prev) {
+        setSearchCenter(null);
+        setHighlightedEntityId(null);
+      }
+      return !prev;
+    });
+  }, []);
+
+  const handleSpatialSearchClose = useCallback(() => {
+    setSpatialSearch(false);
+    setSearchCenter(null);
+    setHighlightedEntityId(null);
+  }, []);
+
   // Flight path polyline positions
   const pathPoints = layers.flightPath
     ? flightPath.map((p) => [p.lat, p.lng])
@@ -145,13 +168,13 @@ export default function MapView() {
         <DroneMarker />
 
         {/* Geofences */}
-        <GeofenceOverlay />
+        {layers.geofences && <GeofenceOverlay />}
 
         {/* Intel entity markers */}
-        <EntityMarkers />
+        {layers.entities && <EntityMarkers />}
 
         {/* Fleet secondary drones */}
-        <FleetMarkers />
+        {layers.fleet && <FleetMarkers />}
 
         {/* Activity heatmap layer */}
         <HeatmapLayer visible={layers.heatmap} />
@@ -172,6 +195,17 @@ export default function MapView() {
           points={measurePoints}
           onAddPoint={handleAddMeasurePoint}
         />
+
+        {/* Spatial search map handler + circle overlay */}
+        <SpatialSearchMapHandler
+          active={spatialSearch}
+          onSetCenter={setSearchCenter}
+        />
+        <SpatialSearchOverlay
+          center={searchCenter}
+          radius={searchRadius}
+          highlightedId={highlightedEntityId}
+        />
       </MapContainer>
 
       {/* Grid overlay */}
@@ -188,6 +222,8 @@ export default function MapView() {
         mapRef={mapRef}
         onMeasureToggle={handleMeasureToggle}
         measuring={measuring}
+        onSpatialSearchToggle={handleSpatialSearchToggle}
+        spatialSearch={spatialSearch}
       />
 
       {/* Measure distance display */}
@@ -195,6 +231,16 @@ export default function MapView() {
 
       {/* Timeline playback slider */}
       <TimelineSlider />
+
+      {/* Spatial search results panel */}
+      <SpatialSearchPanel
+        active={spatialSearch}
+        center={searchCenter}
+        radius={searchRadius}
+        onRadiusChange={setSearchRadius}
+        onClose={handleSpatialSearchClose}
+        onHighlight={setHighlightedEntityId}
+      />
 
       {/* Coordinate display */}
       <CoordinateDisplay

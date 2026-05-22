@@ -21,11 +21,17 @@ export function useKeyboard({ onHelp } = {}) {
         case 't': setActiveView('telemetry'); break;
         case 'i': setActiveView('intel'); break;
         case 'd': setActiveView('dashboard'); break;
+        case 'o': setActiveView('missions'); break;
+        case 'a': setActiveView('analytics'); break;
+        case 'n': useUIStore.getState().toggleNotifications(); break;
         case 'b': toggleSidebar(); break;
         case '?': onHelp?.(); break;
-        case 'Escape':
-          useUIStore.getState().commandPaletteOpen && toggleCommandPalette();
+        case 'Escape': {
+          const state = useUIStore.getState();
+          if (state.commandPaletteOpen) toggleCommandPalette();
+          else if (state.notificationOpen) state.setNotificationOpen(false);
           break;
+        }
         default: break;
       }
     };

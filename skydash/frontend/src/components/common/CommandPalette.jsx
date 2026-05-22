@@ -2,7 +2,7 @@ import { Command } from 'cmdk';
 import { useUIStore } from '../../stores/uiStore';
 import {
   Map, Radio, Brain, Users, Clock, Crosshair,
-  Layers, Camera, Target, RotateCcw,
+  Layers, Camera, Target, RotateCcw, BarChart3, Bell, Settings,
 } from 'lucide-react';
 
 const COMMANDS = [
@@ -10,8 +10,12 @@ const COMMANDS = [
   { id: 'map', label: 'Go to Map', icon: Map, group: 'NAVIGATION', action: 'map' },
   { id: 'telemetry', label: 'Go to Telemetry', icon: Radio, group: 'NAVIGATION', action: 'telemetry' },
   { id: 'intel', label: 'Go to Intel', icon: Brain, group: 'NAVIGATION', action: 'intel' },
+  { id: 'missions', label: 'Go to Missions', icon: Target, group: 'NAVIGATION', action: 'missions' },
   { id: 'entities', label: 'View Entities', icon: Users, group: 'NAVIGATION', action: 'entities' },
   { id: 'timeline', label: 'View Timeline', icon: Clock, group: 'NAVIGATION', action: 'timeline' },
+  { id: 'analytics', label: 'Go to Analytics', icon: BarChart3, group: 'NAVIGATION', action: 'analytics' },
+  { id: 'settings', label: 'Go to Settings', icon: Settings, group: 'NAVIGATION', action: 'settings' },
+  { id: 'notifications', label: 'Toggle Notifications', icon: Bell, group: 'ACTIONS', handler: 'notifications' },
   { id: 'layers', label: 'Toggle Map Layers', icon: Layers, group: 'MAP' },
   { id: 'screenshot', label: 'Export Screenshot', icon: Camera, group: 'ACTIONS' },
   { id: 'fly-drone', label: 'Fly to Drone', icon: Target, group: 'MAP' },
@@ -26,6 +30,9 @@ export default function CommandPalette() {
   const runCommand = (cmd) => {
     if (cmd.action) {
       setActiveView(cmd.action);
+    }
+    if (cmd.handler === 'notifications') {
+      useUIStore.getState().toggleNotifications();
     }
     if (cmd.id === 'reset') {
       fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8001'}/reset`, { method: 'POST' });

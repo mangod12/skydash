@@ -1,36 +1,21 @@
 import { useState } from 'react';
-import { clsx } from 'clsx';
 import { Search } from 'lucide-react';
 import EntityCard from './EntityCard';
 import ThreatMatrix from './ThreatMatrix';
+import EntityFilterBar, { useEntityFilters } from './EntityFilterBar';
 import { useIntelStore } from '../../stores/intelStore';
 
-const TYPE_FILTERS = [
-  { id: null, label: 'ALL' },
-  { id: 'person', label: 'PERSON' },
-  { id: 'vehicle', label: 'VEHICLE' },
-  { id: 'building', label: 'BUILDING' },
-  { id: 'device', label: 'DEVICE' },
-  { id: 'event', label: 'EVENT' },
-];
-
 export default function IntelPanel() {
-  const { entities, selectedEntityId, selectEntity, filterType, setFilterType } = useIntelStore();
+  const { entities, selectedEntityId, selectEntity } = useIntelStore();
   const [search, setSearch] = useState('');
 
-  const filtered = entities.filter((e) => {
-    if (filterType && e.type !== filterType) return false;
+  const searchFiltered = entities.filter((e) => {
     if (search && !e.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  // Sort: critical/high first, then by lastSeen
-  const sorted = [...filtered].sort((a, b) => {
-    const threatOrder = { critical: 0, high: 1, medium: 2, low: 3, none: 4 };
-    const diff = (threatOrder[a.threatLevel] ?? 5) - (threatOrder[b.threatLevel] ?? 5);
-    if (diff !== 0) return diff;
-    return b.lastSeen - a.lastSeen;
-  });
+  const { filters, toggleType, updateFilter, filtered, resultCount, totalCount } =
+    useEntityFilters(searchFiltered);
 
   return (
     <div className="h-full flex flex-col">
@@ -41,7 +26,7 @@ export default function IntelPanel() {
             INTELLIGENCE
           </h3>
           <span className="text-[9px] font-mono tabular-nums text-zinc-600">
-            {filtered.length}/{entities.length}
+            {resultCount} of {totalCount} entities
           </span>
         </div>
 
@@ -57,28 +42,13 @@ export default function IntelPanel() {
           />
         </div>
 
-        {/* Type filter chips */}
-        <div className="flex gap-1 flex-wrap">
-          {TYPE_FILTERS.map((f) => (
-            <button
-              key={f.id ?? 'all'}
-              onClick={() => setFilterType(f.id)}
-              className={clsx(
-                'px-2 py-0.5 rounded text-[8px] font-semibold tracking-wider transition-colors',
-                filterType === f.id
-                  ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
-                  : 'text-zinc-600 hover:text-zinc-400 border border-transparent',
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {/* Filter bar */}
+        <EntityFilterBar filters={filters} toggleType={toggleType} updateFilter={updateFilter} />
       </div>
 
       {/* Entity list */}
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-        {sorted.map((entity) => (
+        {filtered.map((entity) => (
           <EntityCard
             key={entity.id}
             entity={entity}
@@ -87,7 +57,7 @@ export default function IntelPanel() {
           />
         ))}
 
-        {sorted.length === 0 && (
+        {filtered.length === 0 && (
           <div className="text-center text-zinc-700 text-[10px] tracking-wider py-8">
             NO ENTITIES MATCH FILTERS
           </div>

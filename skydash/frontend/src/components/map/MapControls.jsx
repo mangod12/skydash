@@ -1,18 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { clsx } from 'clsx';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Minus, Layers, Locate, Ruler,
-  Camera, Maximize2, Circle, Pentagon,
+  Camera, Maximize2, Circle, Pentagon, Search,
 } from 'lucide-react';
 import { useMapStore } from '../../stores/mapStore';
 import { toast } from '../common/Toast';
 
-const LAYER_OPTIONS = [
-  { id: 'satellite', label: 'Satellite' },
-  { id: 'flightPath', label: 'Flight Path' },
-  { id: 'grid', label: 'Grid Overlay' },
-  { id: 'adsb', label: 'ADS-B Aircraft' },
+const LAYER_LIST = [
+  { key: 'flightPath', label: 'Flight Path' },
+  { key: 'entities', label: 'Entity Markers' },
+  { key: 'fleet', label: 'Fleet Markers' },
+  { key: 'heatmap', label: 'Activity Heatmap' },
+  { key: 'adsb', label: 'ADS-B Aircraft' },
+  { key: 'geofences', label: 'Geofences' },
+  { key: 'grid', label: 'Grid Overlay' },
+  { key: 'satellite', label: 'Satellite Tiles' },
 ];
+
+function ToggleSwitch({ on, onChange, label }) {
+  return (
+    <button onClick={onChange} className="flex items-center justify-between w-full py-1.5 group">
+      <span className="text-[11px] text-zinc-300 group-hover:text-zinc-100 transition-colors">
+        {label}
+      </span>
+      <div className={clsx(
+        'w-8 h-4 rounded-full relative transition-colors',
+        on ? 'bg-indigo-500' : 'bg-zinc-700',
+      )}>
+        <div className={clsx(
+          'absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all',
+          on ? 'left-[18px]' : 'left-0.5',
+        )} />
+      </div>
+    </button>
+  );
+}
 
 function ControlButton({ icon: Icon, label, active, onClick }) {
   return (
@@ -33,9 +57,57 @@ function ControlButton({ icon: Icon, label, active, onClick }) {
   );
 }
 
-export default function MapControls({ mapRef, onMeasureToggle, measuring }) {
+function LayerPanel({ layers, toggleLayer, onClose }) {
+  const panelRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
+
+  return (
+    <motion.div
+      ref={panelRef}
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+      className="absolute right-14 top-[108px] z-20 bg-zinc-950/90 backdrop-blur-xl border border-white/10 rounded-xl p-3 min-w-[200px]"
+    >
+      <div className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-2">
+        MAP LAYERS
+      </div>
+      <div className="space-y-0.5">
+        {LAYER_LIST.map((layer) => (
+          <ToggleSwitch
+            key={layer.key}
+            on={!!layers[layer.key]}
+            onChange={() => toggleLayer(layer.key)}
+            label={layer.label}
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpatialSearchToggle, spatialSearch }) {
   const [showLayers, setShowLayers] = useState(false);
   const { layers, toggleLayer, dronePosition, drawingGeofence, startDrawGeofence, stopDrawGeofence } = useMapStore();
+
+  const handleClosePanel = useCallback(() => setShowLayers(false), []);
 
   const handleZoomIn = () => mapRef?.current?.zoomIn();
   const handleZoomOut = () => mapRef?.current?.zoomOut();
@@ -49,7 +121,6 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring }) {
   const handleScreenshot = () => {
     const mapEl = document.querySelector('.map-container');
     if (!mapEl) return;
-    // Use the leaflet canvas if available, otherwise grab the container
     const canvas = mapEl.querySelector('canvas');
     if (canvas) {
       const link = document.createElement('a');
@@ -76,13 +147,19 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring }) {
           icon={Layers}
           label="Layers"
           active={showLayers}
-          onClick={() => setShowLayers(!showLayers)}
+          onClick={() => setShowLayers((v) => !v)}
         />
         <ControlButton
           icon={Ruler}
           label="Measure"
           active={measuring}
           onClick={onMeasureToggle}
+        />
+        <ControlButton
+          icon={Search}
+          label="Spatial Search"
+          active={spatialSearch}
+          onClick={onSpatialSearchToggle}
         />
 
         <div className="h-px bg-white/[0.06] my-1" />
@@ -109,41 +186,15 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring }) {
       </div>
 
       {/* Layer panel */}
-      {showLayers && (
-        <div className="absolute right-14 top-1/2 -translate-y-1/2 z-20 bg-zinc-900/90 backdrop-blur-md border border-white/[0.08] rounded-xl p-3 min-w-[160px]">
-          <div className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-2">
-            MAP LAYERS
-          </div>
-          <div className="space-y-1">
-            {LAYER_OPTIONS.map((layer) => (
-              <button
-                key={layer.id}
-                onClick={() => toggleLayer(layer.id)}
-                className={clsx(
-                  'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs transition-colors',
-                  layers[layer.id]
-                    ? 'text-indigo-400 bg-indigo-500/10'
-                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]',
-                )}
-              >
-                <div className={clsx(
-                  'w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors',
-                  layers[layer.id]
-                    ? 'border-indigo-500 bg-indigo-500'
-                    : 'border-zinc-600',
-                )}>
-                  {layers[layer.id] && (
-                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                      <path d="M1 4L3 6L7 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-                {layer.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showLayers && (
+          <LayerPanel
+            layers={layers}
+            toggleLayer={toggleLayer}
+            onClose={handleClosePanel}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

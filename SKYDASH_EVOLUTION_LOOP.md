@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 10 COMPLETE
+## CURRENT PHASE: 11 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -793,6 +793,30 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
   TopBar: Bell wired to notification store unread count.
   Shell: NotificationCenter integrated.
   74 source files. 41 tests passing. Build: clean. 0 errors.
+
+[Phase 11] [2026-05-22] Analyst workbench — 5 parallel work streams:
+  1. Dashboard overhaul: DashboardView rewrite with 4 stat cards (fleet
+     status/threat overview/active missions/system health), DashboardMiniMap
+     (static Leaflet with drone + entity dots), FleetSparklines (Recharts
+     mini altitude+battery charts per drone), ActivityFeed (merged events
+     from notifications/intel/telemetry sorted by time).
+  2. Map layer control panel: MapControls enhanced with sliding layers
+     panel, 8 toggleable layers (flight path/entities/fleet/heatmap/
+     ADS-B/geofences/grid/satellite) with custom toggle switches,
+     click-outside close.
+  3. Entity filter bar: EntityFilterBar.jsx with multi-select type chips,
+     single-select threat/confidence/sort, useEntityFilters hook with
+     memoized filtering + sorting, integrated into IntelPanel.
+  4. Responsive design: BottomNav (mobile tab bar with 5 nav icons),
+     Shell responsive resize listener + debounce, Sidebar tablet mode
+     (forced collapse, no expand button), TopBar mobile mode (hidden
+     command palette), uiStore isMobile/isTablet/setResponsive.
+  5. Spatial search: SpatialSearch.jsx (click-to-place radius circle,
+     adjustable radius slider, haversine distance filter, results panel
+     with matching entities, integrated into MapControls).
+  Plus: useKeyboard expanded (O=missions, A=analytics, N=notifications),
+  CommandPalette commands expanded (missions/analytics/settings/notifications).
+  80 source files. 41 tests passing. Build: clean. 0 errors.
 ---
 ---
 ```
