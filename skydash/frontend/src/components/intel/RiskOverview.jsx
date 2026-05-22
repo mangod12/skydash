@@ -4,7 +4,7 @@ import { ShieldAlert } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 import { useIntelStore } from '../../stores/intelStore';
 import {
-  scoreAllEntities, getRiskLevel, getRiskBarColor, getRiskColor,
+  scoreAllEntities, getRiskBarColor, getRiskColor,
 } from '../../utils/riskScoring';
 
 const RISK_LEVELS = ['critical', 'high', 'moderate', 'low', 'minimal'];

@@ -26,7 +26,7 @@ function CtxMenu({ x, y, onRename, onDelete, onClose }) {
 }
 
 export default function BookmarkBar({ type, onApply }) {
-  const { bookmarks, activeBookmarkId, addBookmark, removeBookmark, renameBookmark, setActive } = useBookmarkStore();
+  const { bookmarks, activeBookmarkId, addBookmark: _addBookmark, removeBookmark, renameBookmark, setActive } = useBookmarkStore();
   const [saving, setSaving] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [ctx, setCtx] = useState(null);

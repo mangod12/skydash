@@ -1,4 +1,3 @@
-import { clsx } from 'clsx';
 
 const SEVERITY_COLORS = {
   info: { fill: '#3b82f6', glow: 'rgba(59,130,246,0.3)' },

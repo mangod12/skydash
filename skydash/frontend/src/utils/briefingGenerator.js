@@ -138,7 +138,7 @@ function buildSustainment(telemetry) {
   return { fleetStatus, overallBattery, overallSignal };
 }
 
-function buildCommand(mission) {
+function buildCommand(_mission) {
   return {
     channels: [
       { name: 'PRIMARY', freq: 'WebSocket Ch.1 — Real-time Telemetry' },

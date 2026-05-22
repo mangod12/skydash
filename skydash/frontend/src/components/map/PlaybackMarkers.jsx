@@ -38,7 +38,7 @@ function formatBat(bat) {
 
 export default function PlaybackMarkers() {
   const active = usePlaybackStore((s) => s.active);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
+  const _isPlaying = usePlaybackStore((s) => s.isPlaying);
   const currentTime = usePlaybackStore((s) => s.currentTime);
   const getCurrentSnapshot = usePlaybackStore((s) => s.getCurrentSnapshot);
 

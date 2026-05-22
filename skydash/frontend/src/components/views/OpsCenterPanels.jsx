@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Plane, Battery, Signal, Gauge, AlertTriangle, Shield, Activity, Wifi, WifiOff, Target } from 'lucide-react';
+import { Plane, Battery, Signal, Gauge, AlertTriangle, Shield, Wifi, WifiOff, Target } from 'lucide-react';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';

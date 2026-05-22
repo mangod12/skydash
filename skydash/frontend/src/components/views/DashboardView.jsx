@@ -14,41 +14,16 @@ import WidgetGrid from './WidgetGrid';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
-import useNotificationStore from '../../stores/notificationStore';
 
 const EASE = [0.16, 1, 0.3, 1];
-
-function toFeedItem(id, desc, sev, time) {
-  return { id, description: desc, severity: sev, time, timeLabel: formatDistanceToNow(time, { addSuffix: true }) };
-}
-
-function buildFeedItems(notifications, events, alerts) {
-  const items = [
-    ...notifications.map((n) => {
-      const ts = n.timestamp instanceof Date ? n.timestamp : new Date(n.timestamp);
-      return toFeedItem(`notif-${n.id}`, n.message || n.title, n.severity || 'info', ts.getTime());
-    }),
-    ...events.map((e) => toFeedItem(`evt-${e.id}`, e.description, e.severity || 'info', e.time)),
-    ...alerts.map((a) => toFeedItem(`alert-${a.id}`, a.message, a.severity || 'warning', a.timestamp)),
-  ];
-  const seen = new Map();
-  items.forEach((item) => {
-    const ex = seen.get(item.description);
-    if (!ex || ex.time < item.time) seen.set(item.description, item);
-  });
-  return [...seen.values()].sort((a, b) => b.time - a.time).slice(0, 15);
-}
 
 export default function DashboardView() {
   const fleet = useTelemetryStore((s) => s.fleet);
   const isConnected = useTelemetryStore((s) => s.isConnected);
   const latency = useTelemetryStore((s) => s.latency);
-  const alerts = useTelemetryStore((s) => s.alerts);
   const entities = useIntelStore((s) => s.entities);
-  const events = useIntelStore((s) => s.events);
   const missions = useMissionStore((s) => s.missions);
   const fetchMissions = useMissionStore((s) => s.fetchMissions);
-  const notifications = useNotificationStore((s) => s.notifications);
   const [widgetMode, setWidgetMode] = useState(false);
 
   useEffect(() => { fetchMissions(); }, [fetchMissions]);
@@ -92,7 +67,6 @@ export default function DashboardView() {
   const linkedEntities = missions.reduce((s, m) => s + (m.entityIds?.length || 0), 0);
   const dataRate = fleet.length > 0 ? `${fleet.length * 2} msg/s` : '0 msg/s';
 
-  const feedItems = useMemo(() => buildFeedItems(notifications, events, alerts), [notifications, events, alerts]);
   const activityFilter = useActivityStore((s) => s.filter);
   const setActivityFilter = useActivityStore((s) => s.setFilter);
   const filteredActivities = useActivityStore((s) => s.getFiltered());

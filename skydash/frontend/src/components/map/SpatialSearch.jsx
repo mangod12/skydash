@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useMapEvents, Circle, CircleMarker } from 'react-leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';

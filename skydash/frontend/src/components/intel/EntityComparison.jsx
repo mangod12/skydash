@@ -5,7 +5,7 @@ import GlassCard from '../common/GlassCard';
 import { useIntelStore } from '../../stores/intelStore';
 import { distanceBetween } from '../../utils/coordinates';
 
-const THREAT_ORDER = { none: 0, low: 1, medium: 2, high: 3, critical: 4 };
+const _THREAT_ORDER = { none: 0, low: 1, medium: 2, high: 3, critical: 4 };
 const THREAT_BAR = { none: 'w-1/5', low: 'w-2/5', medium: 'w-3/5', high: 'w-4/5', critical: 'w-full' };
 const THREAT_COLOR = { none: 'bg-zinc-600', low: 'bg-emerald-500', medium: 'bg-amber-500', high: 'bg-red-500', critical: 'bg-red-600' };
 
@@ -148,7 +148,7 @@ export default function EntityComparison() {
             {rels.length === 0 && <div className="text-[10px] text-zinc-700">None</div>}
             {rels.map((rel, i) => {
               const otherId = rel.from === ent.id ? rel.to : rel.from;
-              const otherRels = other ? (rel.from === ent.id ? relsA : relsB) : [];
+              const _otherRels = other ? (rel.from === ent.id ? relsA : relsB) : [];
               const otherTargets = new Set((other ? (ent === a ? relsB : relsA) : []).map((r) => (r.from === other?.id ? r.to : r.from)));
               const shared = otherTargets.has(otherId);
               return (

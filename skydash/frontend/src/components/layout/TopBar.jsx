@@ -25,7 +25,7 @@ function UtcClock() {
 
 export default function TopBar({ onInfoOpen, onNotificationToggle }) {
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
-  const alerts = useTelemetryStore((s) => s.alerts);
+  const _alerts = useTelemetryStore((s) => s.alerts);
   const activeView = useUIStore((s) => s.activeView);
   const isMobile = useUIStore((s) => s.isMobile);
   const unreadCount = useNotificationStore((s) => s.unreadCount);

@@ -137,7 +137,7 @@ export default function RiskScoreCard({ entityId, trendHistory = [] }) {
 
   const { score, breakdown } = result;
   const level = getRiskLevel(score);
-  const textColor = getRiskColor(score);
+  const _textColor = getRiskColor(score);
   const strokeHex = getRiskStrokeColor(score);
 
   const trend = trendHistory.length > 0 ? trendHistory : [score];

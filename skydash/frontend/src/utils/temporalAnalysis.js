@@ -67,7 +67,7 @@ export function buildTimeline(entities, events, rangeKey = 'all') {
   const cutoff = rangeDuration === Infinity ? 0 : now - rangeDuration;
 
   const filteredEvents = events.filter((e) => e.time >= cutoff);
-  const entityIds = new Set(entities.map((e) => e.id));
+  const _entityIds = new Set(entities.map((e) => e.id));
 
   const lanes = entities.map((entity) => ({
     entity,

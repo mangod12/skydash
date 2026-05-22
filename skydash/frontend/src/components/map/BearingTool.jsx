@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useMapEvents, Polyline, CircleMarker, Tooltip } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
-import { calculateBearing, calculateDistance, magneticDeclination, midpoint, formatBearing, formatDistance } from '../../utils/bearing';
+import { calculateBearing, calculateDistance, midpoint, formatBearing, formatDistance } from '../../utils/bearing';
 
 /**
  * BearingTool — map event handler for drawing bearing lines

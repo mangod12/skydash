@@ -6,7 +6,6 @@
 import { distanceBetween } from './coordinates';
 
 const BASE_THREAT = { low: 10, medium: 30, high: 60, critical: 90 };
-const THREAT_ORDER = ['low', 'medium', 'high', 'critical'];
 
 const RELATIONSHIP_BONUS_PER = 5;
 const RELATIONSHIP_BONUS_MAX = 20;

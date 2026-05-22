@@ -15,7 +15,6 @@ import ReportExport from '../intel/ReportExport';
 import TagCloud from '../intel/TagCloud';
 import ConnectionMatrix from '../intel/ConnectionMatrix';
 import { useIntelStore } from '../../stores/intelStore';
-import { useUIStore } from '../../stores/uiStore';
 
 const CENTER_TABS = [
   { id: 'timeline', label: 'Timeline', icon: Clock },

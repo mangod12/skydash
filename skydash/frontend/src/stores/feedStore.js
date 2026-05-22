@@ -2,9 +2,6 @@ import { create } from 'zustand';
 
 const MAX_ITEMS = 100;
 
-const CATEGORIES = ['SIGINT', 'HUMINT', 'GEOINT', 'OSINT', 'CYBER'];
-const SEVERITIES = ['critical', 'warning', 'info'];
-
 const ENTITY_IDS = ['ent-001', 'ent-002', 'ent-003', 'ent-004', 'ent-005', 'ent-006', 'ent-007', 'ent-008'];
 
 const LOCATIONS = [

@@ -125,7 +125,7 @@ function groupByCommunity(entities, labels) {
   return groups;
 }
 
-function computeThreatConcentration(communityGroups, entities) {
+function computeThreatConcentration(communityGroups, _entities) {
   const THREAT_SCORES = { low: 1, medium: 2, high: 3, critical: 4 };
   const result = [];
 

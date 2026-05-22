@@ -5,7 +5,6 @@ import {
   detectHubs,
   detectIsolated,
   detectThreatEscalation,
-  detectCorridors,
 } from './patternDetector';
 
 // --- Spatial clusters ---
