@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
-import { Clock, GitBranch, Columns } from 'lucide-react';
+import { Clock, GitBranch, Columns, Radar } from 'lucide-react';
 import IntelPanel from '../intel/IntelPanel';
 import EntityDetail from '../intel/EntityDetail';
 import EntityComparison from '../intel/EntityComparison';
 import TimelineView from '../intel/TimelineView';
 import LinkGraph from '../intel/LinkGraph';
+import PatternPanel from '../intel/PatternPanel';
 import NaturalLanguageQuery from '../intel/NaturalLanguageQuery';
 import AnomalyDetector from '../intel/AnomalyDetector';
 import ReportExport from '../intel/ReportExport';
@@ -15,6 +16,7 @@ const CENTER_TABS = [
   { id: 'timeline', label: 'Timeline', icon: Clock },
   { id: 'graph', label: 'Link Analysis', icon: GitBranch },
   { id: 'compare', label: 'Compare', icon: Columns },
+  { id: 'patterns', label: 'Patterns', icon: Radar },
 ];
 
 export default function IntelView() {
@@ -59,6 +61,7 @@ export default function IntelView() {
           {centerTab === 'timeline' && <TimelineView />}
           {centerTab === 'graph' && <LinkGraph />}
           {centerTab === 'compare' && <EntityComparison />}
+          {centerTab === 'patterns' && <PatternPanel />}
         </div>
 
         {/* Bottom tools */}

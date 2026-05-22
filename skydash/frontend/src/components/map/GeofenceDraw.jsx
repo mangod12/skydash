@@ -26,10 +26,15 @@ export default function GeofenceDraw({ active, mode, onComplete }) {
 
           addGeofence({
             id: `gf-${Date.now()}`,
+            name: `Zone ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}${Math.floor(Math.random() * 99)}`,
             type: 'circle',
             center,
             radius: Math.round(radius),
-            alert: false,
+            color: '#6366f1',
+            active: true,
+            alertOnEntry: true,
+            alertOnExit: false,
+            createdAt: new Date().toISOString(),
           });
           toast(`Geofence created: ${Math.round(radius)}m radius`, 'success');
           setCenter(null);
@@ -46,9 +51,14 @@ export default function GeofenceDraw({ active, mode, onComplete }) {
 
       addGeofence({
         id: `gf-${Date.now()}`,
+        name: `Zone ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}${Math.floor(Math.random() * 99)}`,
         type: 'polygon',
         points: [...points],
-        alert: false,
+        color: '#6366f1',
+        active: true,
+        alertOnEntry: true,
+        alertOnExit: false,
+        createdAt: new Date().toISOString(),
       });
       toast(`Geofence created: ${points.length}-point polygon`, 'success');
       setPoints([]);

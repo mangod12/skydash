@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Minus, Layers, Locate, Ruler,
   Camera, Maximize2, Circle, Pentagon, Search,
-  Type, MapPin, MoveRight,
+  Type, MapPin, MoveRight, Shield,
 } from 'lucide-react';
 import { useMapStore } from '../../stores/mapStore';
 import { toast } from '../common/Toast';
@@ -106,7 +106,7 @@ function LayerPanel({ layers, toggleLayer, onClose }) {
 
 export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpatialSearchToggle, spatialSearch }) {
   const [showLayers, setShowLayers] = useState(false);
-  const { layers, toggleLayer, dronePosition, drawingGeofence, startDrawGeofence, stopDrawGeofence, annotationMode, setAnnotationMode } = useMapStore();
+  const { layers, toggleLayer, dronePosition, drawingGeofence, startDrawGeofence, stopDrawGeofence, annotationMode, setAnnotationMode, geofenceManagerOpen, setGeofenceManagerOpen } = useMapStore();
 
   const handleClosePanel = useCallback(() => setShowLayers(false), []);
 
@@ -187,15 +187,21 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpat
         <div className="h-px bg-white/[0.06] my-1" />
 
         <ControlButton
+          icon={Shield}
+          label="Geofence Manager"
+          active={geofenceManagerOpen}
+          onClick={() => setGeofenceManagerOpen(!geofenceManagerOpen)}
+        />
+        <ControlButton
           icon={Circle}
           label="Geofence Circle"
-          active={drawingGeofence}
+          active={drawingGeofence && !geofenceManagerOpen}
           onClick={() => drawingGeofence ? stopDrawGeofence() : startDrawGeofence('circle')}
         />
         <ControlButton
           icon={Pentagon}
           label="Geofence Polygon"
-          active={drawingGeofence}
+          active={drawingGeofence && !geofenceManagerOpen}
           onClick={() => drawingGeofence ? stopDrawGeofence() : startDrawGeofence('polygon')}
         />
 

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { logProvenance } from './provenanceStore';
 
 // Demo entities — spread across San Francisco for visual impact
 const SEED_ENTITIES = [
@@ -132,9 +133,13 @@ export const useIntelStore = create((set, get) => ({
     return events.filter((e) => e.entityId === entityId).sort((a, b) => b.time - a.time);
   },
 
-  updateEntity: (id, updates) => set((s) => ({
-    entities: s.entities.map((e) => (e.id === id ? { ...e, ...updates } : e)),
-  })),
+  updateEntity: (id, updates) => {
+    const detail = Object.keys(updates).map((k) => `${k} changed`).join(', ');
+    logProvenance(id, 'updated', detail, 'analyst');
+    set((s) => ({
+      entities: s.entities.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+    }));
+  },
 
   deleteEntity: (id) => set((s) => ({
     entities: s.entities.filter((e) => e.id !== id),
@@ -143,9 +148,13 @@ export const useIntelStore = create((set, get) => ({
     selectedEntityId: s.selectedEntityId === id ? null : s.selectedEntityId,
   })),
 
-  addEntity: (entity) => set((s) => ({
-    entities: [...s.entities, { ...entity, id: `ent-${Date.now()}` }],
-  })),
+  addEntity: (entity) => {
+    const newId = `ent-${Date.now()}`;
+    logProvenance(newId, 'created', `Entity ${entity.name || newId} created`, 'analyst');
+    set((s) => ({
+      entities: [...s.entities, { ...entity, id: newId }],
+    }));
+  },
 
   addRelationship: (rel) => set((s) => ({
     relationships: [...s.relationships, rel],

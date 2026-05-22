@@ -15,6 +15,7 @@ import TimelineSlider from './TimelineSlider';
 import AdsbLayer from './AdsbLayer';
 import HeatmapLayer from './HeatmapLayer';
 import GeofenceDraw from './GeofenceDraw';
+import GeofenceManager from './GeofenceManager';
 import SpatialSearchPanel, { SpatialSearchMapHandler, SpatialSearchOverlay } from './SpatialSearch';
 import MapAnnotations from './MapAnnotations';
 import ContextMenu, { useContextMenu } from '../common/ContextMenu';
@@ -27,7 +28,7 @@ function MapContextHandler({ onContextMenu }) {
   return null;
 }
 
-const TILE_LAYERS = {
+export const TILE_LAYERS = {
   dark: {
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     maxZoom: 20,
@@ -272,6 +273,9 @@ export default function MapView() {
         onSpatialSearchToggle={handleSpatialSearchToggle}
         spatialSearch={spatialSearch}
       />
+
+      {/* Geofence zone manager panel */}
+      <GeofenceManager />
 
       {/* Measure distance display */}
       <MeasureOverlay active={measuring} points={measurePoints} />

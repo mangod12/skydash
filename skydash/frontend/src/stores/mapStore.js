@@ -17,7 +17,11 @@ export const useMapStore = create((set) => ({
   },
   drawingGeofence: false,
   geofenceMode: 'circle',
-  geofences: [],
+  geofences: [
+    { id: 'gf-alpha', name: 'Zone Alpha', type: 'circle', center: { lat: 37.7755, lng: -122.4180 }, radius: 500, color: '#6366f1', active: true, alertOnEntry: true, alertOnExit: false, createdAt: '2026-05-20T08:00:00Z' },
+    { id: 'gf-bravo', name: 'Zone Bravo', type: 'circle', center: { lat: 37.7780, lng: -122.4150 }, radius: 300, color: '#f59e0b', active: true, alertOnEntry: true, alertOnExit: true, createdAt: '2026-05-20T09:30:00Z' },
+  ],
+  geofenceManagerOpen: false,
 
   // Annotations
   annotations: [],
@@ -68,4 +72,14 @@ export const useMapStore = create((set) => ({
   removeGeofence: (id) => set((s) => ({
     geofences: s.geofences.filter((g) => g.id !== id),
   })),
+
+  updateGeofence: (id, updates) => set((s) => ({
+    geofences: s.geofences.map((g) => g.id === id ? { ...g, ...updates } : g),
+  })),
+
+  toggleGeofence: (id) => set((s) => ({
+    geofences: s.geofences.map((g) => g.id === id ? { ...g, active: !g.active } : g),
+  })),
+
+  setGeofenceManagerOpen: (open) => set({ geofenceManagerOpen: open }),
 }));

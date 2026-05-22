@@ -29,7 +29,7 @@ export default function Shell({ children }) {
   useTelemetry();
   useAlertEngine();
   useAuditIntegration();
-  useKeyboard({ onHelp: () => setShowHelp(true) });
+  useKeyboard({ onHelp: () => setShowHelp((v) => !v) });
 
   // Responsive breakpoint listener
   useEffect(() => {
@@ -92,7 +92,7 @@ export default function Shell({ children }) {
         </div>
 
         <CommandPalette />
-        <KeyboardHelp open={showHelp} onClose={() => setShowHelp(false)} />
+        <KeyboardHelp open={showHelp} onOpen={() => setShowHelp(true)} onClose={() => setShowHelp(false)} />
         <InfoPanel open={showInfo} onClose={() => setShowInfo(false)} />
         <NotificationCenter isOpen={notificationOpen} onClose={() => setNotificationOpen(false)} />
         <ConnectionLost />

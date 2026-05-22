@@ -4,6 +4,7 @@ import GlassCard from '../common/GlassCard';
 import MiniRelGraph from './MiniRelGraph';
 import MiniTimeline from './MiniTimeline';
 import EntityMiniMap from './EntityMiniMap';
+import EvidenceChain from './EvidenceChain';
 import { QuickStatsPills, ThreatBadges, ThreatAssessment } from './QuickStats';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
@@ -65,6 +66,9 @@ export default function EntityDetail() {
 
         {/* Threat Assessment Bars */}
         <ThreatAssessment threatLevel={entity.threatLevel} confidence={entity.confidence} />
+
+        {/* Evidence Chain / Provenance */}
+        <EvidenceChain entityId={entity.id} confidence={entity.confidence} />
 
         {/* Properties */}
         <div className="border-t border-white/[0.06] pt-3">

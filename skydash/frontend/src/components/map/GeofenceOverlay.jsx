@@ -1,4 +1,4 @@
-import { Circle, Polygon } from 'react-leaflet';
+import { Circle, Polygon, Tooltip } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
 
 export default function GeofenceOverlay() {
@@ -6,7 +6,9 @@ export default function GeofenceOverlay() {
 
   return (
     <>
-      {geofences.map((fence) => {
+      {geofences.filter((f) => f.active !== false).map((fence) => {
+        const color = fence.color || '#6366f1';
+
         if (fence.type === 'circle') {
           return (
             <Circle
@@ -14,13 +16,19 @@ export default function GeofenceOverlay() {
               center={[fence.center.lat, fence.center.lng]}
               radius={fence.radius}
               pathOptions={{
-                color: fence.alert ? '#ef4444' : '#6366f1',
-                fillColor: fence.alert ? '#ef4444' : '#6366f1',
+                color,
+                fillColor: color,
                 fillOpacity: 0.06,
                 weight: 1.5,
                 dashArray: '6 4',
               }}
-            />
+            >
+              {fence.name && (
+                <Tooltip direction="top" offset={[0, -10]} permanent={false}>
+                  <span className="text-[10px] font-mono">{fence.name}</span>
+                </Tooltip>
+              )}
+            </Circle>
           );
         }
 
@@ -30,13 +38,19 @@ export default function GeofenceOverlay() {
               key={fence.id}
               positions={fence.points.map((p) => [p.lat, p.lng])}
               pathOptions={{
-                color: fence.alert ? '#ef4444' : '#6366f1',
-                fillColor: fence.alert ? '#ef4444' : '#6366f1',
+                color,
+                fillColor: color,
                 fillOpacity: 0.06,
                 weight: 1.5,
                 dashArray: '6 4',
               }}
-            />
+            >
+              {fence.name && (
+                <Tooltip direction="top" offset={[0, -10]} permanent={false}>
+                  <span className="text-[10px] font-mono">{fence.name}</span>
+                </Tooltip>
+              )}
+            </Polygon>
           );
         }
 

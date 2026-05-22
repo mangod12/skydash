@@ -5,89 +5,76 @@ import { useAuditStore } from '../stores/auditStore';
 import useNotificationStore from '../stores/notificationStore';
 import { useMapStore } from '../stores/mapStore';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
-const HISTORY_SIZE = 30;
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const N = 30;
 
-function deriveStatus(isConnected, latency, activeDrones) {
-  if (!isConnected) return 'error';
-  if (latency > 200 || activeDrones === 0) return 'degraded';
-  return 'healthy';
-}
+const deriveStatus = (conn, lat, drones) =>
+  !conn ? 'error' : (lat > 200 || drones === 0) ? 'degraded' : 'healthy';
 
 export function useSystemHealth() {
-  const [latencyHistory, setLatencyHistory] = useState([]);
-  const [rateHistory, setRateHistory] = useState([]);
-  const [backendUptime, setBackendUptime] = useState(null);
-  const [sessionStart] = useState(() => Date.now());
-  const msgCountRef = useRef(0);
-  const prevHistoryLenRef = useRef(0);
+  const [latHist, setLatHist] = useState([]);
+  const [rateHist, setRateHist] = useState([]);
+  const [backendUp, setBackendUp] = useState(null);
+  const [start] = useState(() => Date.now());
+  const msgRef = useRef(0);
+  const prevLenRef = useRef(0);
 
   const isConnected = useTelemetryStore((s) => s.isConnected);
   const latency = useTelemetryStore((s) => s.latency);
   const fleet = useTelemetryStore((s) => s.fleet);
-  const history = useTelemetryStore((s) => s.history);
+  const histLen = useTelemetryStore((s) => s.history).length;
   const entities = useIntelStore((s) => s.entities);
-  const relationships = useIntelStore((s) => s.relationships);
+  const rels = useIntelStore((s) => s.relationships);
   const events = useIntelStore((s) => s.events);
-  const notifications = useNotificationStore((s) => s.notifications);
-  const auditEntries = useAuditStore((s) => s.entries);
-  const annotations = useMapStore((s) => s.annotations);
+  const notifs = useNotificationStore((s) => s.notifications);
+  const audit = useAuditStore((s) => s.entries);
+  const anns = useMapStore((s) => s.annotations);
 
-  // Track message rate by detecting history length changes
-  const currentLen = history.length;
   useEffect(() => {
-    const delta = currentLen - prevHistoryLenRef.current;
-    if (delta > 0) msgCountRef.current += delta;
-    prevHistoryLenRef.current = currentLen;
-  }, [currentLen]);
+    const d = histLen - prevLenRef.current;
+    if (d > 0) msgRef.current += d;
+    prevLenRef.current = histLen;
+  }, [histLen]);
 
-  // Sample metrics every second
   useEffect(() => {
     const id = setInterval(() => {
-      setLatencyHistory((prev) =>
-        [...prev, { v: useTelemetryStore.getState().latency }].slice(-HISTORY_SIZE),
-      );
-      setRateHistory((prev) => {
-        const rate = msgCountRef.current;
-        msgCountRef.current = 0;
-        return [...prev, { v: rate }].slice(-HISTORY_SIZE);
+      setLatHist((p) => [...p, { v: useTelemetryStore.getState().latency }].slice(-N));
+      setRateHist((p) => {
+        const r = msgRef.current; msgRef.current = 0;
+        return [...p, { v: r }].slice(-N);
       });
     }, 1000);
     return () => clearInterval(id);
   }, []);
 
-  // Fetch backend uptime every 15 seconds
-  const fetchUptime = useCallback(async () => {
+  const fetchUp = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/health`);
-      if (res.ok) {
-        const json = await res.json();
-        setBackendUptime(json.uptime ?? null);
-      }
+      const r = await fetch(`${API}/health`);
+      if (r.ok) setBackendUp((await r.json()).uptime ?? null);
     } catch { /* silent */ }
   }, []);
 
   useEffect(() => {
-    fetchUptime();
-    const id = setInterval(fetchUptime, 15000);
+    fetchUp();
+    const id = setInterval(fetchUp, 15000);
     return () => clearInterval(id);
-  }, [fetchUptime]);
+  }, [fetchUp]);
 
-  const activeDrones = fleet.filter((d) => d.is_armed !== false).length || (isConnected ? 1 : 0);
+  const active = fleet.filter((d) => d.is_armed !== false).length || (isConnected ? 1 : 0);
 
   return {
-    status: deriveStatus(isConnected, latency, activeDrones),
+    status: deriveStatus(isConnected, latency, active),
     ws: { isConnected, latency },
-    pipeline: { activeDrones, total: fleet.length || (isConnected ? 1 : 0), dataPoints: currentLen },
-    database: { entities: entities.length, relationships: relationships.length, events: events.length },
+    pipeline: { activeDrones: active, total: fleet.length || (isConnected ? 1 : 0), dataPoints: histLen },
+    database: { entities: entities.length, relationships: rels.length, events: events.length },
     memory: {
-      historyUsed: currentLen, historyMax: 200,
-      notifications: notifications.length, notificationsMax: 50,
-      audit: auditEntries.length, auditMax: 500,
-      annotations: annotations.length,
+      historyUsed: histLen, historyMax: 200,
+      notifications: notifs.length, notificationsMax: 50,
+      audit: audit.length, auditMax: 500,
+      annotations: anns.length,
     },
-    uptime: { session: Date.now() - sessionStart, backend: backendUptime },
-    latencyHistory,
-    rateHistory,
+    uptime: { session: Date.now() - start, backend: backendUp },
+    latencyHistory: latHist,
+    rateHistory: rateHist,
   };
 }

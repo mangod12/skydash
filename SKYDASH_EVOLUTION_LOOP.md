@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 15 COMPLETE
+## CURRENT PHASE: 16 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -914,6 +914,30 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
      SystemHealth panel with WS/pipeline/database/memory/uptime sections,
      inline Recharts sparklines, integrated in SettingsView.
   119 source files. 41 tests passing. Build: clean.
+
+[Phase 16] [2026-05-22] Deep intelligence — 5 parallel work streams:
+  1. Pattern detection: patternDetector.js (spatial clustering via
+     haversine, temporal burst detection, movement corridors, hub
+     entities via degree, isolated entities, threat escalation),
+     PatternPanel.jsx with collapsible sections per pattern type,
+     "View on Map" / "Investigate" actions, integrated as IntelView tab.
+  2. Evidence chain: provenanceStore (entity provenance entries with
+     action/actor/detail/timestamp, seeded with 4 demo entries),
+     EvidenceChain.jsx vertical provenance timeline with action-colored
+     dots + actor badges + confidence derivation, integrated in
+     EntityDetail as collapsible section.
+  3. Geofence zone manager: GeofenceManager.jsx slide-out panel with
+     named zones, color coding, active toggle, entry/exit alert config,
+     inline rename/edit, mapStore enhanced with updateGeofence/toggle,
+     GeofenceOverlay shows only active zones with name tooltips, 2 seed
+     geofences (Zone Alpha, Zone Bravo).
+  4. Split-view dual map: SplitMapView.jsx (50/50 layout, sync toggle),
+     ComparisonMap.jsx (minimal map with independent layer controls),
+     synchronized pan/zoom, toggle from FullMapView header.
+  5. Keyboard overlay: KeyboardHelp.jsx rewrite with compact HUD pill
+     (bottom-right, auto-hide during input) + full overlay with 2-column
+     grid layout, key badges, category grouping.
+  126 source files. 41 tests passing. Build: clean (chunk warning only).
 ---
 ---
 ```

@@ -44,31 +44,14 @@ export default function BookmarkBar({ type, onApply }) {
     const name = saveName.trim();
     if (!name) return;
     onApply?.('save', name);
-    setSaving(false);
-    setSaveName('');
+    setSaving(false); setSaveName('');
   };
-
-  const handleApply = (bk) => {
-    setActive(bk.id);
-    onApply?.('apply', bk);
-  };
-
-  const handleCtx = (e, bk) => {
-    e.preventDefault();
-    setCtx({ id: bk.id, x: e.clientX, y: e.clientY });
-  };
-
+  const handleApply = (bk) => { setActive(bk.id); onApply?.('apply', bk); };
+  const handleCtx = (e, bk) => { e.preventDefault(); setCtx({ id: bk.id, x: e.clientX, y: e.clientY }); };
   const startRename = () => {
-    const bk = bookmarks.find((b) => b.id === ctx.id);
-    setRenaming(ctx.id);
-    setRenameVal(bk?.name || '');
-    setCtx(null);
+    setRenaming(ctx.id); setRenameVal(bookmarks.find((b) => b.id === ctx.id)?.name || ''); setCtx(null);
   };
-
-  const commitRename = () => {
-    if (renameVal.trim()) renameBookmark(renaming, renameVal.trim());
-    setRenaming(null);
-  };
+  const commitRename = () => { if (renameVal.trim()) renameBookmark(renaming, renameVal.trim()); setRenaming(null); };
 
   return (
     <div className="flex items-center gap-1.5 px-3 py-1.5 overflow-x-auto scrollbar-none">
