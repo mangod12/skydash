@@ -12,6 +12,8 @@ import GeofenceOverlay from './GeofenceOverlay';
 import EntityMarkers from './EntityMarkers';
 import FleetMarkers from './FleetMarkers';
 import TimelineSlider from './TimelineSlider';
+import AdsbLayer from './AdsbLayer';
+import GeofenceDraw from './GeofenceDraw';
 import 'leaflet/dist/leaflet.css';
 
 const TILE_LAYERS = {
@@ -66,7 +68,7 @@ function GridOverlay() {
 }
 
 export default function MapView() {
-  const { center, zoom, flightPath, layers, dronePosition } = useMapStore();
+  const { center, zoom, flightPath, layers, dronePosition, drawingGeofence, geofenceMode, stopDrawGeofence } = useMapStore();
   const data = useTelemetryStore((s) => s.data);
   const mapRef = useRef(null);
 
@@ -149,6 +151,16 @@ export default function MapView() {
 
         {/* Fleet secondary drones */}
         <FleetMarkers />
+
+        {/* ADS-B aircraft layer */}
+        <AdsbLayer />
+
+        {/* Geofence drawing tool */}
+        <GeofenceDraw
+          active={drawingGeofence}
+          mode={geofenceMode}
+          onComplete={stopDrawGeofence}
+        />
 
         {/* Measure tool (inside map for click events) */}
         <MeasureTool

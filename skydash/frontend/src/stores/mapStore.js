@@ -9,7 +9,10 @@ export const useMapStore = create((set) => ({
     satellite: false,
     grid: true,
     flightPath: true,
+    adsb: true,
   },
+  drawingGeofence: false,
+  geofenceMode: 'circle',
   geofences: [],
 
   setCenter: (center) => set({ center }),
@@ -28,5 +31,13 @@ export const useMapStore = create((set) => ({
 
   addGeofence: (geofence) => set((s) => ({
     geofences: [...s.geofences, geofence],
+    drawingGeofence: false,
+  })),
+
+  startDrawGeofence: (mode) => set({ drawingGeofence: true, geofenceMode: mode || 'circle' }),
+  stopDrawGeofence: () => set({ drawingGeofence: false }),
+
+  removeGeofence: (id) => set((s) => ({
+    geofences: s.geofences.filter((g) => g.id !== id),
   })),
 }));

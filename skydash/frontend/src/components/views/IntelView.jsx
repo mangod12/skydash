@@ -1,13 +1,23 @@
+import { useState } from 'react';
+import { clsx } from 'clsx';
+import { Clock, GitBranch } from 'lucide-react';
 import IntelPanel from '../intel/IntelPanel';
 import EntityDetail from '../intel/EntityDetail';
 import TimelineView from '../intel/TimelineView';
+import LinkGraph from '../intel/LinkGraph';
 import NaturalLanguageQuery from '../intel/NaturalLanguageQuery';
 import AnomalyDetector from '../intel/AnomalyDetector';
 import ReportExport from '../intel/ReportExport';
 import { useIntelStore } from '../../stores/intelStore';
 
+const CENTER_TABS = [
+  { id: 'timeline', label: 'Timeline', icon: Clock },
+  { id: 'graph', label: 'Link Analysis', icon: GitBranch },
+];
+
 export default function IntelView() {
   const selectedEntityId = useIntelStore((s) => s.selectedEntityId);
+  const [centerTab, setCenterTab] = useState('timeline');
 
   return (
     <div className="h-full flex">
@@ -16,10 +26,30 @@ export default function IntelView() {
         <IntelPanel />
       </div>
 
-      {/* Center: Timeline + NLQ + Anomaly */}
+      {/* Center: Timeline/Graph + NLQ + Anomaly */}
       <div className="flex-1 min-w-0 border-r border-white/[0.06] flex flex-col">
+        {/* Tab switcher */}
+        <div className="flex border-b border-white/[0.06] shrink-0">
+          {CENTER_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setCenterTab(tab.id)}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-2.5 text-[10px] font-semibold tracking-[0.1em] transition-colors',
+                centerTab === tab.id
+                  ? 'text-indigo-400 border-b-2 border-indigo-400'
+                  : 'text-zinc-600 hover:text-zinc-400',
+              )}
+            >
+              <tab.icon size={12} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
         <div className="flex-1 min-h-0 overflow-hidden">
-          <TimelineView />
+          {centerTab === 'timeline' ? <TimelineView /> : <LinkGraph />}
         </div>
 
         {/* Bottom tools */}

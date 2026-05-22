@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import {
   Plus, Minus, Layers, Locate, Ruler,
-  Camera, Maximize2,
+  Camera, Maximize2, Circle, Pentagon,
 } from 'lucide-react';
 import { useMapStore } from '../../stores/mapStore';
 import { toast } from '../common/Toast';
@@ -11,6 +11,7 @@ const LAYER_OPTIONS = [
   { id: 'satellite', label: 'Satellite' },
   { id: 'flightPath', label: 'Flight Path' },
   { id: 'grid', label: 'Grid Overlay' },
+  { id: 'adsb', label: 'ADS-B Aircraft' },
 ];
 
 function ControlButton({ icon: Icon, label, active, onClick }) {
@@ -34,7 +35,7 @@ function ControlButton({ icon: Icon, label, active, onClick }) {
 
 export default function MapControls({ mapRef, onMeasureToggle, measuring }) {
   const [showLayers, setShowLayers] = useState(false);
-  const { layers, toggleLayer, dronePosition } = useMapStore();
+  const { layers, toggleLayer, dronePosition, drawingGeofence, startDrawGeofence, stopDrawGeofence } = useMapStore();
 
   const handleZoomIn = () => mapRef?.current?.zoomIn();
   const handleZoomOut = () => mapRef?.current?.zoomOut();
@@ -82,6 +83,21 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring }) {
           label="Measure"
           active={measuring}
           onClick={onMeasureToggle}
+        />
+
+        <div className="h-px bg-white/[0.06] my-1" />
+
+        <ControlButton
+          icon={Circle}
+          label="Geofence Circle"
+          active={drawingGeofence}
+          onClick={() => drawingGeofence ? stopDrawGeofence() : startDrawGeofence('circle')}
+        />
+        <ControlButton
+          icon={Pentagon}
+          label="Geofence Polygon"
+          active={drawingGeofence}
+          onClick={() => drawingGeofence ? stopDrawGeofence() : startDrawGeofence('polygon')}
         />
 
         <div className="h-px bg-white/[0.06] my-1" />
