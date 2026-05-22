@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { clsx } from 'clsx';
 import { Clock, GitBranch, Columns, Radar } from 'lucide-react';
 import { PanelBoundary } from '../common/ErrorBoundary';
@@ -25,7 +25,12 @@ const CENTER_TABS = [
 export default function IntelView() {
   const selectedEntityId = useIntelStore((s) => s.selectedEntityId);
   const comparedEntities = useIntelStore((s) => s.comparedEntities);
+  const setFilterTag = useIntelStore((s) => s.setFilterTag);
   const [centerTab, setCenterTab] = useState('timeline');
+
+  const handleTagClick = useCallback((tag) => {
+    setFilterTag(tag);
+  }, [setFilterTag]);
 
   useEffect(() => {
     if (comparedEntities[0] || comparedEntities[1]) setCenterTab('compare');
@@ -73,6 +78,7 @@ export default function IntelView() {
 
         {/* Bottom tools */}
         <div className="border-t border-white/[0.06] p-3 space-y-3 shrink-0 max-h-[280px] overflow-y-auto">
+          <TagCloud onTagClick={handleTagClick} />
           <NaturalLanguageQuery />
           <AnomalyDetector />
           <ReportExport />

@@ -117,6 +117,15 @@ export default function IntelPanel() {
           />
         </div>
 
+        {/* Active tag filter */}
+        {filterTag && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] text-cyan-400 font-mono">TAG: {filterTag}</span>
+            <button onClick={() => setFilterTag(null)}
+              className="text-[9px] text-zinc-600 hover:text-zinc-300 transition-colors">CLEAR</button>
+          </div>
+        )}
+
         {/* Bookmarks */}
         <BookmarkBar type="filter" onApply={handleBookmark} />
 
