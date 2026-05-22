@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Minus, Layers, Locate, Ruler,
   Camera, Maximize2, Circle, Pentagon, Search,
-  Type, MapPin, MoveRight, Shield,
+  Type, MapPin, MoveRight, Shield, Compass,
 } from 'lucide-react';
 import { useMapStore } from '../../stores/mapStore';
 import { toast } from '../common/Toast';
@@ -104,7 +104,7 @@ function LayerPanel({ layers, toggleLayer, onClose }) {
   );
 }
 
-export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpatialSearchToggle, spatialSearch }) {
+export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpatialSearchToggle, spatialSearch, onBearingToggle, bearingActive }) {
   const [showLayers, setShowLayers] = useState(false);
   const { layers, toggleLayer, dronePosition, drawingGeofence, startDrawGeofence, stopDrawGeofence, annotationMode, setAnnotationMode, geofenceManagerOpen, setGeofenceManagerOpen } = useMapStore();
 
@@ -155,6 +155,12 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpat
           label="Measure"
           active={measuring}
           onClick={onMeasureToggle}
+        />
+        <ControlButton
+          icon={Compass}
+          label="Bearing Tool"
+          active={bearingActive}
+          onClick={onBearingToggle}
         />
         <ControlButton
           icon={Search}

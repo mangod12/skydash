@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area,
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -6,6 +7,7 @@ import GlassCard from '../common/GlassCard';
 import RiskOverview from '../intel/RiskOverview';
 import { useIntelStore } from '../../stores/intelStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
+import { generateNetworkSummary } from '../../utils/networkAnalysis';
 
 const TYPE_COLORS = {
   person: '#8b5cf6',
@@ -43,9 +45,15 @@ function StatCard({ label, value, sub, color = 'text-indigo-400' }) {
 
 export default function AnalyticsView() {
   const entities = useIntelStore((s) => s.entities);
+  const relationships = useIntelStore((s) => s.relationships);
   const events = useIntelStore((s) => s.events);
   const history = useTelemetryStore((s) => s.history);
   const fleet = useTelemetryStore((s) => s.fleet);
+
+  const networkSummary = useMemo(
+    () => generateNetworkSummary(entities, relationships || [], events),
+    [entities, relationships, events],
+  );
 
   // Entity type distribution
   const typeData = Object.entries(
@@ -217,6 +225,57 @@ export default function AnalyticsView() {
 
         {/* Risk Assessment */}
         <RiskOverview />
+
+        {/* Network Intelligence */}
+        <GlassCard>
+          <SectionLabel>NETWORK INTELLIGENCE</SectionLabel>
+          <div className="grid grid-cols-4 gap-3 mb-4">
+            <div className="text-center">
+              <div className="text-[9px] text-zinc-600 tracking-wider mb-1">NODES</div>
+              <div className="text-xl font-mono font-bold text-indigo-400 tabular-nums">{networkSummary.nodeCount}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[9px] text-zinc-600 tracking-wider mb-1">EDGES</div>
+              <div className="text-xl font-mono font-bold text-cyan-400 tabular-nums">{networkSummary.edgeCount}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[9px] text-zinc-600 tracking-wider mb-1">DENSITY</div>
+              <div className="text-xl font-mono font-bold text-amber-400 tabular-nums">{(networkSummary.networkDensity * 100).toFixed(0)}%</div>
+            </div>
+            <div className="text-center">
+              <div className="text-[9px] text-zinc-600 tracking-wider mb-1">CLUSTERS</div>
+              <div className="text-xl font-mono font-bold text-violet-400 tabular-nums">{networkSummary.communityCount}</div>
+            </div>
+          </div>
+
+          {networkSummary.hubEntities.length > 0 && (
+            <div className="mb-3">
+              <div className="text-[9px] text-zinc-500 tracking-wider mb-1.5">HUB ENTITIES</div>
+              <div className="space-y-1">
+                {networkSummary.hubEntities.map((hub) => (
+                  <div key={hub.id} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                    <span className="text-[11px] text-zinc-300">{hub.name}</span>
+                    <span className="text-[10px] font-mono text-indigo-400 tabular-nums">{hub.connections} links</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {networkSummary.keyFindings.length > 0 && (
+            <div>
+              <div className="text-[9px] text-zinc-500 tracking-wider mb-1.5">KEY FINDINGS</div>
+              <div className="space-y-1">
+                {networkSummary.keyFindings.map((finding, i) => (
+                  <div key={i} className="flex items-start gap-2 text-[10px] text-zinc-400">
+                    <span className="text-cyan-500 mt-0.5 shrink-0">&#9656;</span>
+                    <span>{finding}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </GlassCard>
 
         {/* Top entities + Fleet status */}
         <div className="grid grid-cols-2 gap-3">

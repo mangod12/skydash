@@ -18,6 +18,8 @@ import GeofenceDraw from './GeofenceDraw';
 import GeofenceManager from './GeofenceManager';
 import SpatialSearchPanel, { SpatialSearchMapHandler, SpatialSearchOverlay } from './SpatialSearch';
 import MapAnnotations from './MapAnnotations';
+import BearingTool from './BearingTool';
+import BearingPanel from './BearingPanel';
 import PlaybackController from './PlaybackController';
 import PlaybackMarkers from './PlaybackMarkers';
 import ContextMenu, { useContextMenu } from '../common/ContextMenu';
@@ -118,6 +120,16 @@ export default function MapView() {
     onMeasureFrom: handleMeasureFrom,
     onSearchRadius: handleSearchFromMenu,
   });
+
+  // Bearing tool state
+  const bearingMode = useMapStore((s) => s.bearingMode);
+  const setBearingMode = useMapStore((s) => s.setBearingMode);
+  const [bearingPending, setBearingPending] = useState(null);
+
+  const handleBearingToggle = useCallback(() => {
+    setBearingMode(!bearingMode);
+    setBearingPending(null);
+  }, [bearingMode, setBearingMode]);
 
   // Measure tool state
   const [measuring, setMeasuring] = useState(false);
@@ -263,6 +275,13 @@ export default function MapView() {
           onAddPoint={handleAddMeasurePoint}
         />
 
+        {/* Bearing tool (inside map for click events) */}
+        <BearingTool
+          active={bearingMode}
+          pendingPoint={bearingPending}
+          onSetPending={setBearingPending}
+        />
+
         {/* Map annotations (text, pins, arrows, circles) */}
         <MapAnnotations />
 
@@ -291,12 +310,18 @@ export default function MapView() {
       <CompassRose />
 
       {/* Controls */}
+      {/* Bearing panel (outside map) */}
+      <BearingPanel active={bearingMode} />
+
+      {/* Controls */}
       <MapControls
         mapRef={mapRef}
         onMeasureToggle={handleMeasureToggle}
         measuring={measuring}
         onSpatialSearchToggle={handleSpatialSearchToggle}
         spatialSearch={spatialSearch}
+        onBearingToggle={handleBearingToggle}
+        bearingActive={bearingMode}
       />
 
       {/* Geofence zone manager panel */}

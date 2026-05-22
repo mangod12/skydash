@@ -4,7 +4,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { Wifi, WifiOff, Shield, Crosshair, Activity, LayoutGrid, LayoutList } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 import DataFreshnessBar from '../common/DataFreshnessBar';
-import { StatCard, ActivityFeed } from './DashboardCards';
+import { StatCard } from './DashboardCards';
+import ActivityItem from '../common/ActivityItem';
+import { useActivityStore } from '../../stores/activityStore';
 import DashboardMiniMap from './DashboardMiniMap';
 import FleetSparklines from './FleetSparklines';
 import FleetOverview from '../telemetry/FleetOverview';
@@ -91,6 +93,10 @@ export default function DashboardView() {
   const dataRate = fleet.length > 0 ? `${fleet.length * 2} msg/s` : '0 msg/s';
 
   const feedItems = useMemo(() => buildFeedItems(notifications, events, alerts), [notifications, events, alerts]);
+  const activityFilter = useActivityStore((s) => s.filter);
+  const setActivityFilter = useActivityStore((s) => s.setFilter);
+  const filteredActivities = useActivityStore((s) => s.getFiltered());
+  const ACTIVITY_FILTERS = ['all', 'intel', 'mission', 'system', 'alert', 'telemetry'];
 
   if (widgetMode) {
     return (
@@ -185,10 +191,37 @@ export default function DashboardView() {
           <motion.div className="col-span-2" initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.45, ease: EASE }}>
             <GlassCard className="!p-4 h-full" animate={false}>
-              <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 block mb-3">
-                RECENT ACTIVITY
-              </span>
-              <ActivityFeed items={feedItems} />
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
+                  ACTIVITY FEED
+                </span>
+                <div className="flex gap-1">
+                  {ACTIVITY_FILTERS.map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setActivityFilter(f)}
+                      className={`text-[8px] px-1.5 py-0.5 rounded font-mono tracking-wider transition-colors ${
+                        activityFilter === f
+                          ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                          : 'text-zinc-600 hover:text-zinc-400'
+                      }`}
+                    >
+                      {f.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1 overflow-y-auto max-h-[440px] pr-1 custom-scrollbar">
+                {filteredActivities.length === 0 ? (
+                  <div className="flex items-center justify-center h-32 text-zinc-700 text-[10px] tracking-wider">
+                    NO ACTIVITY
+                  </div>
+                ) : (
+                  filteredActivities.slice(0, 20).map((activity) => (
+                    <ActivityItem key={activity.id} activity={activity} />
+                  ))
+                )}
+              </div>
             </GlassCard>
           </motion.div>
         </div>

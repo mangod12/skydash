@@ -23,6 +23,24 @@ export const useMapStore = create((set) => ({
   ],
   geofenceManagerOpen: false,
 
+  // Bearing lines
+  bearingLines: [],
+  bearingMode: false,
+
+  addBearingLine: (line) => set((s) => ({
+    bearingLines: s.bearingLines.length >= 5
+      ? s.bearingLines
+      : [...s.bearingLines, { ...line, id: `brg-${Date.now()}` }],
+  })),
+
+  removeBearingLine: (id) => set((s) => ({
+    bearingLines: s.bearingLines.filter((l) => l.id !== id),
+  })),
+
+  clearBearingLines: () => set({ bearingLines: [] }),
+
+  setBearingMode: (active) => set({ bearingMode: active }),
+
   // Annotations
   annotations: [],
   annotationMode: null,
