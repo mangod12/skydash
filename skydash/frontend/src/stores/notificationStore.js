@@ -51,7 +51,7 @@ const useNotificationStore = create((set, get) => ({
   addNotification: (notification) => set((s) => {
     const entry = {
       ...notification,
-      id: Date.now(),
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 6),
       read: false,
       timestamp: new Date(),
     };

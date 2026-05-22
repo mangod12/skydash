@@ -12,12 +12,16 @@ from pydantic import BaseModel
 from simulation import FleetSimulator
 from entities import EntityStore
 from missions import MissionStore
+from connectors import OpenSkyConnector, ShodanConnector
+from auth import UserStore, create_token, verify_token, SECRET_KEY
+import database
 
 # ─── Config ──────────────────────────────────────────────────
 
 PORT = int(os.getenv("SKYDASH_PORT", "8001"))
 HOST = os.getenv("SKYDASH_HOST", "0.0.0.0")
 API_KEY = os.getenv("SKYDASH_API_KEY", "")  # Empty = no auth (dev mode)
+AUTH_ENABLED = bool(os.getenv("SKYDASH_AUTH_ENABLED") or os.getenv("SKYDASH_JWT_SECRET"))
 DB_PATH = os.getenv("SKYDASH_DB_PATH", "skydash.db")
 CORS_ORIGINS = os.getenv(
     "SKYDASH_CORS_ORIGINS",
@@ -45,8 +49,15 @@ app.add_middleware(
 )
 
 fleet = FleetSimulator()
-entity_store = EntityStore(db_path=DB_PATH)
-mission_store = MissionStore(db_path=DB_PATH)
+
+# Initialize shared database and run pending migrations
+database.check_migrations()
+
+entity_store = EntityStore()
+mission_store = MissionStore()
+user_store = UserStore() if AUTH_ENABLED else None
+opensky = OpenSkyConnector()
+shodan = ShodanConnector(api_key=os.getenv("SHODAN_API_KEY"))
 start_time = time.time()
 
 # ─── Telemetry History (in-memory ring buffer) ──────────────
@@ -73,16 +84,31 @@ async def start_telemetry_recorder():
 
 # ─── Auth middleware ─────────────────────────────────────────
 
+SKIP_AUTH_PATHS = {"/health", "/docs", "/openapi.json", "/", "/api/auth/login", "/api/auth/register"}
+
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
-    # Skip auth for health, docs, openapi, and WebSocket upgrade
-    skip_paths = {"/health", "/docs", "/openapi.json", "/"}
-    if not API_KEY or request.url.path in skip_paths or request.url.path.startswith("/ws/"):
+    path = request.url.path
+    if path in SKIP_AUTH_PATHS or path.startswith("/ws/"):
         return await call_next(request)
 
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    if token != API_KEY:
-        return JSONResponse(status_code=401, content={"success": False, "error": "Invalid or missing API key"})
+    # Legacy API_KEY check (non-JWT mode)
+    if API_KEY and not AUTH_ENABLED:
+        token = request.headers.get("Authorization", "").replace("Bearer ", "")
+        if token != API_KEY:
+            return JSONResponse(status_code=401, content={"success": False, "error": "Invalid or missing API key"})
+        return await call_next(request)
+
+    # JWT auth check
+    if AUTH_ENABLED:
+        raw = request.headers.get("Authorization", "")
+        if not raw.startswith("Bearer "):
+            return JSONResponse(status_code=401, content={"success": False, "error": "Missing auth token"})
+        payload = verify_token(raw[7:])
+        if not payload:
+            return JSONResponse(status_code=401, content={"success": False, "error": "Invalid or expired token"})
+        request.state.user = payload
 
     return await call_next(request)
 
@@ -109,6 +135,10 @@ async def health():
         "entities": len(entity_store.entities),
         "missions": mission_store.count(),
         "telemetry_samples": len(telemetry_history),
+        "connectors": {
+            "opensky": {"available": True, "cached": len(opensky.cache)},
+            "shodan": {"available": shodan.available, "mode": "live" if shodan.available else "mock"},
+        },
     }
 
 
@@ -128,6 +158,11 @@ async def root():
             "/api/entities": "Entity CRUD",
             "/api/missions": "Mission CRUD",
             "/api/timeline": "Event timeline",
+            "/api/connectors/adsb": "ADS-B aircraft (OpenSky)",
+            "/api/connectors/adsb/entities": "ADS-B as SkyDash entities",
+            "/api/connectors/shodan": "Shodan IoT search",
+            "/api/connectors/shodan/entities": "Shodan as SkyDash entities",
+            "/api/connectors/status": "Connector status overview",
             "/docs": "API documentation",
         },
     }
@@ -243,9 +278,13 @@ async def get_telemetry_stats():
 
 @app.websocket("/ws/telemetry")
 async def ws_telemetry(websocket: WebSocket):
-    if API_KEY:
-        token = websocket.query_params.get("token", "")
-        if token != API_KEY:
+    ws_token = websocket.query_params.get("token", "")
+    if AUTH_ENABLED:
+        if not ws_token or not verify_token(ws_token):
+            await websocket.close(code=4001, reason="Unauthorized")
+            return
+    elif API_KEY:
+        if ws_token != API_KEY:
             await websocket.close(code=4001, reason="Unauthorized")
             return
     await websocket.accept()
@@ -440,6 +479,77 @@ async def delete_mission_note(mission_id: str, note_id: str):
     if not mission_store.delete_note(note_id):
         raise HTTPException(status_code=404, detail="Note not found")
     return {"success": True, "data": {"deleted": note_id}}
+
+
+# ─── REST: Connectors ────────────────────────────────────────
+
+
+@app.get("/api/connectors/adsb")
+async def get_adsb_aircraft(
+    lat_min: float = Query(37.0),
+    lon_min: float = Query(-123.0),
+    lat_max: float = Query(38.0),
+    lon_max: float = Query(-122.0),
+):
+    """Fetch live ADS-B aircraft from OpenSky Network."""
+    aircraft = opensky.fetch_aircraft(bbox=[lat_min, lon_min, lat_max, lon_max])
+    return {
+        "success": True,
+        "data": aircraft,
+        "metadata": {"count": len(aircraft), "source": "OpenSky"},
+    }
+
+
+@app.get("/api/connectors/adsb/entities")
+async def get_adsb_entities():
+    """Fetch ADS-B aircraft as SkyDash entities."""
+    aircraft = opensky.fetch_aircraft()
+    entities = opensky.to_entities(aircraft)
+    return {"success": True, "data": entities}
+
+
+@app.get("/api/connectors/shodan")
+async def search_shodan(
+    query: str = Query("webcam"),
+    limit: int = Query(10, ge=1, le=50),
+):
+    """Search Shodan for IoT devices. Falls back to mock data without API key."""
+    results = shodan.search(query, limit)
+    return {
+        "success": True,
+        "data": results,
+        "metadata": {
+            "count": len(results),
+            "source": "Shodan" if shodan.available else "Mock",
+        },
+    }
+
+
+@app.get("/api/connectors/shodan/entities")
+async def get_shodan_entities(query: str = Query("webcam")):
+    """Search Shodan and return results as SkyDash entities."""
+    results = shodan.search(query)
+    entities = shodan.to_entities(results)
+    return {"success": True, "data": entities}
+
+
+@app.get("/api/connectors/status")
+async def connector_status():
+    """Get status of all data connectors."""
+    return {
+        "success": True,
+        "data": {
+            "opensky": {
+                "available": True,
+                "cached": len(opensky.cache),
+                "last_fetch": opensky.last_fetch,
+            },
+            "shodan": {
+                "available": shodan.available,
+                "mode": "live" if shodan.available else "mock",
+            },
+        },
+    }
 
 
 # ─── REST: Export ─────────────────────────────────────────────

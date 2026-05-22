@@ -1,25 +1,21 @@
 """SQLite-backed mission store for operational mission management.
 Missions group entities, notes, and map context for coordinated operations."""
 import json
-import os
 import sqlite3
-import threading
 import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-DB_PATH = os.getenv("SKYDASH_DB_PATH", "skydash.db")
+import database as db
 
 
 class MissionStore:
-    def __init__(self, db_path: str = DB_PATH):
-        self.db = sqlite3.connect(db_path, check_same_thread=False)
-        self.db.row_factory = sqlite3.Row
-        self._lock = threading.Lock()
+    def __init__(self):
         self._init_tables()
 
     def _init_tables(self):
-        self.db.executescript("""
+        conn = db.get_connection()
+        conn.executescript("""
             CREATE TABLE IF NOT EXISTS missions (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -47,7 +43,7 @@ class MissionStore:
                 FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE
             );
         """)
-        self.db.commit()
+        conn.commit()
 
     # ─── Helpers ──────────────────────────────────────────────
 
@@ -68,7 +64,9 @@ class MissionStore:
         return dict(row)
 
     def count(self) -> int:
-        return self.db.execute("SELECT COUNT(*) FROM missions").fetchone()[0]
+        return db.get_connection().execute(
+            "SELECT COUNT(*) FROM missions"
+        ).fetchone()[0]
 
     # ─── Mission CRUD ─────────────────────────────────────────
 
@@ -87,30 +85,33 @@ class MissionStore:
             "zoom_level": data.get("zoom_level"),
             "tags": data.get("tags", []),
         }
-        self.db.execute(
-            "INSERT INTO missions (id, name, description, status, created_at, updated_at, center_lat, center_lng, zoom_level, tags) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (mid, mission["name"], mission["description"], mission["status"],
-             mission["created_at"], mission["updated_at"],
-             mission["center_lat"], mission["center_lng"],
-             mission["zoom_level"], json.dumps(mission["tags"])),
-        )
-        self.db.commit()
+        conn = db.get_connection()
+        with db.get_lock():
+            conn.execute(
+                "INSERT INTO missions (id, name, description, status, created_at, updated_at, center_lat, center_lng, zoom_level, tags) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (mid, mission["name"], mission["description"], mission["status"],
+                 mission["created_at"], mission["updated_at"],
+                 mission["center_lat"], mission["center_lng"],
+                 mission["zoom_level"], json.dumps(mission["tags"])),
+            )
+            conn.commit()
         return mission
 
     def get_mission(self, mission_id: str) -> Optional[dict]:
-        row = self.db.execute(
+        row = db.get_connection().execute(
             "SELECT * FROM missions WHERE id = ?", (mission_id,)
         ).fetchone()
         return self._row_to_mission(row) if row else None
 
     def list_missions(self, status: Optional[str] = None) -> list:
+        conn = db.get_connection()
         if status:
-            rows = self.db.execute(
+            rows = conn.execute(
                 "SELECT * FROM missions WHERE status = ? ORDER BY updated_at DESC",
                 (status,),
             ).fetchall()
         else:
-            rows = self.db.execute(
+            rows = conn.execute(
                 "SELECT * FROM missions ORDER BY updated_at DESC"
             ).fetchall()
         return [self._row_to_mission(r) for r in rows]
@@ -126,22 +127,26 @@ class MissionStore:
                 existing[key] = data[key]
         existing["updated_at"] = self._now_iso()
 
-        self.db.execute(
-            "UPDATE missions SET name=?, description=?, status=?, updated_at=?, center_lat=?, center_lng=?, zoom_level=?, tags=? WHERE id=?",
-            (existing["name"], existing["description"], existing["status"],
-             existing["updated_at"], existing["center_lat"], existing["center_lng"],
-             existing["zoom_level"], json.dumps(existing["tags"]), mission_id),
-        )
-        self.db.commit()
+        conn = db.get_connection()
+        with db.get_lock():
+            conn.execute(
+                "UPDATE missions SET name=?, description=?, status=?, updated_at=?, center_lat=?, center_lng=?, zoom_level=?, tags=? WHERE id=?",
+                (existing["name"], existing["description"], existing["status"],
+                 existing["updated_at"], existing["center_lat"], existing["center_lng"],
+                 existing["zoom_level"], json.dumps(existing["tags"]), mission_id),
+            )
+            conn.commit()
         return existing
 
     def delete_mission(self, mission_id: str) -> bool:
         if not self.get_mission(mission_id):
             return False
-        self.db.execute("DELETE FROM mission_notes WHERE mission_id = ?", (mission_id,))
-        self.db.execute("DELETE FROM mission_entities WHERE mission_id = ?", (mission_id,))
-        self.db.execute("DELETE FROM missions WHERE id = ?", (mission_id,))
-        self.db.commit()
+        conn = db.get_connection()
+        with db.get_lock():
+            conn.execute("DELETE FROM mission_notes WHERE mission_id = ?", (mission_id,))
+            conn.execute("DELETE FROM mission_entities WHERE mission_id = ?", (mission_id,))
+            conn.execute("DELETE FROM missions WHERE id = ?", (mission_id,))
+            conn.commit()
         return True
 
     # ─── Mission-Entity Junction ──────────────────────────────
@@ -149,36 +154,40 @@ class MissionStore:
     def add_entity_to_mission(self, mission_id: str, entity_id: str) -> bool:
         if not self.get_mission(mission_id):
             return False
+        conn = db.get_connection()
         try:
-            self.db.execute(
-                "INSERT INTO mission_entities (mission_id, entity_id) VALUES (?,?)",
-                (mission_id, entity_id),
-            )
-            self.db.execute(
-                "UPDATE missions SET updated_at = ? WHERE id = ?",
-                (self._now_iso(), mission_id),
-            )
-            self.db.commit()
+            with db.get_lock():
+                conn.execute(
+                    "INSERT INTO mission_entities (mission_id, entity_id) VALUES (?,?)",
+                    (mission_id, entity_id),
+                )
+                conn.execute(
+                    "UPDATE missions SET updated_at = ? WHERE id = ?",
+                    (self._now_iso(), mission_id),
+                )
+                conn.commit()
             return True
         except sqlite3.IntegrityError:
             return False
 
     def remove_entity_from_mission(self, mission_id: str, entity_id: str) -> bool:
-        cursor = self.db.execute(
-            "DELETE FROM mission_entities WHERE mission_id = ? AND entity_id = ?",
-            (mission_id, entity_id),
-        )
-        if cursor.rowcount == 0:
-            return False
-        self.db.execute(
-            "UPDATE missions SET updated_at = ? WHERE id = ?",
-            (self._now_iso(), mission_id),
-        )
-        self.db.commit()
+        conn = db.get_connection()
+        with db.get_lock():
+            cursor = conn.execute(
+                "DELETE FROM mission_entities WHERE mission_id = ? AND entity_id = ?",
+                (mission_id, entity_id),
+            )
+            if cursor.rowcount == 0:
+                return False
+            conn.execute(
+                "UPDATE missions SET updated_at = ? WHERE id = ?",
+                (self._now_iso(), mission_id),
+            )
+            conn.commit()
         return True
 
     def get_mission_entities(self, mission_id: str) -> list:
-        rows = self.db.execute(
+        rows = db.get_connection().execute(
             "SELECT entity_id FROM mission_entities WHERE mission_id = ?",
             (mission_id,),
         ).fetchall()
@@ -191,35 +200,39 @@ class MissionStore:
             return None
         nid = self._new_id()
         now = self._now_iso()
-        self.db.execute(
-            "INSERT INTO mission_notes (id, mission_id, content, created_at) VALUES (?,?,?,?)",
-            (nid, mission_id, content, now),
-        )
-        self.db.execute(
-            "UPDATE missions SET updated_at = ? WHERE id = ?",
-            (now, mission_id),
-        )
-        self.db.commit()
+        conn = db.get_connection()
+        with db.get_lock():
+            conn.execute(
+                "INSERT INTO mission_notes (id, mission_id, content, created_at) VALUES (?,?,?,?)",
+                (nid, mission_id, content, now),
+            )
+            conn.execute(
+                "UPDATE missions SET updated_at = ? WHERE id = ?",
+                (now, mission_id),
+            )
+            conn.commit()
         return {"id": nid, "mission_id": mission_id, "content": content, "created_at": now}
 
     def get_notes(self, mission_id: str) -> list:
-        rows = self.db.execute(
+        rows = db.get_connection().execute(
             "SELECT * FROM mission_notes WHERE mission_id = ? ORDER BY created_at DESC",
             (mission_id,),
         ).fetchall()
         return [self._row_to_note(r) for r in rows]
 
     def delete_note(self, note_id: str) -> bool:
-        row = self.db.execute(
+        conn = db.get_connection()
+        row = conn.execute(
             "SELECT mission_id FROM mission_notes WHERE id = ?", (note_id,)
         ).fetchone()
         if not row:
             return False
         mission_id = row["mission_id"]
-        self.db.execute("DELETE FROM mission_notes WHERE id = ?", (note_id,))
-        self.db.execute(
-            "UPDATE missions SET updated_at = ? WHERE id = ?",
-            (self._now_iso(), mission_id),
-        )
-        self.db.commit()
+        with db.get_lock():
+            conn.execute("DELETE FROM mission_notes WHERE id = ?", (note_id,))
+            conn.execute(
+                "UPDATE missions SET updated_at = ? WHERE id = ?",
+                (self._now_iso(), mission_id),
+            )
+            conn.commit()
         return True

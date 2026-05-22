@@ -4,6 +4,7 @@ import { ChevronUp, ChevronDown, RotateCcw, RotateCw, Zap } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { SectionLabel, ModeChip, QuickBtn, Slider } from './CommandControls';
+import { apiFetch } from '../../utils/api';
 
 const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
 const MODES = ['ORBIT', 'GRID', 'WAYPOINT', 'HOLD', 'RTL', 'LAND'];
@@ -44,7 +45,7 @@ export default function DroneCommandPanel() {
   const sendCommand = useCallback(async (command, params = {}) => {
     pushLog(`${command} ${JSON.stringify(params)}`);
     try {
-      await fetch(`${API_BASE}/api/drone/${selectedDrone}/command`, {
+      await apiFetch(`${API_BASE}/api/drone/${selectedDrone}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command, params }),

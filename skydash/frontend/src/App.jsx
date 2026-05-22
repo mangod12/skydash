@@ -1,9 +1,11 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import Shell from './components/layout/Shell';
 import DashboardView from './components/views/DashboardView';
 import FullMapView from './components/views/FullMapView';
 import IntelView from './components/views/IntelView';
+import LoginScreen from './components/common/LoginScreen';
 import { useUIStore } from './stores/uiStore';
+import { useAuthStore } from './stores/authStore';
 
 const TelemetryView = lazy(() => import('./components/views/TelemetryView'));
 const AnalyticsView = lazy(() => import('./components/views/AnalyticsView'));
@@ -47,6 +49,14 @@ function ViewRouter() {
 }
 
 export default function App() {
+  const token = useAuthStore((s) => s.token);
+  const authEnabled = useAuthStore((s) => s.authEnabled);
+  const checkAuth = useAuthStore((s) => s.checkAuth);
+
+  useEffect(() => { checkAuth(); }, [checkAuth]);
+
+  if (authEnabled && !token) return <LoginScreen />;
+
   return (
     <Shell>
       <ViewRouter />

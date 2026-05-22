@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useTelemetryStore } from '../stores/telemetryStore';
 import { useMapStore } from '../stores/mapStore';
+import { useAuthStore } from '../stores/authStore';
+import { apiFetch } from '../utils/api';
 
 const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
 const WS_BASE = import.meta.env.VITE_WS_URL || (import.meta.env.PROD
@@ -47,7 +49,7 @@ export function useTelemetry() {
     const fetchData = async () => {
       const start = performance.now();
       try {
-        const res = await fetch(HTTP_URL);
+        const res = await apiFetch(HTTP_URL);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         const latency = Math.round(performance.now() - start);
@@ -79,7 +81,9 @@ export function useTelemetry() {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     try {
-      const ws = new WebSocket(WS_URL);
+      const token = useAuthStore.getState().token;
+      const wsUrl = token ? `${WS_URL}?token=${token}` : WS_URL;
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {

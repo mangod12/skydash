@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { toast } from '../components/common/Toast';
+import { apiFetch } from '../utils/api';
 
 const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
 
@@ -11,7 +12,7 @@ export const useMissionStore = create((set, get) => ({
   fetchMissions: async () => {
     set({ loading: true });
     try {
-      const res = await fetch(`${API}/api/missions`);
+      const res = await apiFetch(`${API}/api/missions`);
       const json = await res.json();
       if (json.success) set({ missions: json.data });
     } catch (e) {
@@ -23,7 +24,7 @@ export const useMissionStore = create((set, get) => ({
 
   createMission: async (data) => {
     try {
-      const res = await fetch(`${API}/api/missions`, {
+      const res = await apiFetch(`${API}/api/missions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -42,7 +43,7 @@ export const useMissionStore = create((set, get) => ({
 
   updateMission: async (id, data) => {
     try {
-      const res = await fetch(`${API}/api/missions/${id}`, {
+      const res = await apiFetch(`${API}/api/missions/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -63,7 +64,7 @@ export const useMissionStore = create((set, get) => ({
 
   deleteMission: async (id) => {
     try {
-      const res = await fetch(`${API}/api/missions/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${API}/api/missions/${id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
         set((s) => ({
@@ -83,7 +84,7 @@ export const useMissionStore = create((set, get) => ({
 
   fetchMissionDetail: async (id) => {
     try {
-      const res = await fetch(`${API}/api/missions/${id}`);
+      const res = await apiFetch(`${API}/api/missions/${id}`);
       const json = await res.json();
       if (json.success) {
         set((s) => ({
@@ -101,7 +102,7 @@ export const useMissionStore = create((set, get) => ({
 
   addEntityToMission: async (missionId, entityId) => {
     try {
-      const res = await fetch(`${API}/api/missions/${missionId}/entities`, {
+      const res = await apiFetch(`${API}/api/missions/${missionId}/entities`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entity_id: entityId }),
@@ -125,7 +126,7 @@ export const useMissionStore = create((set, get) => ({
 
   removeEntityFromMission: async (missionId, entityId) => {
     try {
-      const res = await fetch(`${API}/api/missions/${missionId}/entities/${entityId}`, {
+      const res = await apiFetch(`${API}/api/missions/${missionId}/entities/${entityId}`, {
         method: 'DELETE',
       });
       const json = await res.json();
@@ -147,7 +148,7 @@ export const useMissionStore = create((set, get) => ({
 
   addNote: async (missionId, content) => {
     try {
-      const res = await fetch(`${API}/api/missions/${missionId}/notes`, {
+      const res = await apiFetch(`${API}/api/missions/${missionId}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
@@ -171,7 +172,7 @@ export const useMissionStore = create((set, get) => ({
 
   deleteNote: async (missionId, noteId) => {
     try {
-      const res = await fetch(`${API}/api/missions/${missionId}/notes/${noteId}`, {
+      const res = await apiFetch(`${API}/api/missions/${missionId}/notes/${noteId}`, {
         method: 'DELETE',
       });
       const json = await res.json();

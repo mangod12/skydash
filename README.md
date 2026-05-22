@@ -1,5 +1,7 @@
 # SkyDash — Open Source Spatial Intelligence Platform
 
+[![CI](https://github.com/mangod12/skydash/actions/workflows/ci.yml/badge.svg)](https://github.com/mangod12/skydash/actions/workflows/ci.yml)
+
 **Palantir-class spatial intelligence in a browser, for free.**
 
 The first open-source platform that unifies geospatial intelligence, OSINT entity analysis, link analysis, and drone telemetry into a single operational interface. Built for analysts, investigators, and drone operators who need Palantir-level capabilities without the Palantir-level budget.
