@@ -8,7 +8,9 @@ services:
     environment:
       - SKYDASH_HOST=0.0.0.0
       - SKYDASH_PORT=8001
+      - SKYDASH_DB_PATH=/app/data/skydash.db
       - SKYDASH_API_KEY=${SKYDASH_API_KEY:-}
+      - SKYDASH_JWT_SECRET=${SKYDASH_JWT_SECRET:-}
     volumes:
       - skydash-data:/app/data
     restart: unless-stopped
