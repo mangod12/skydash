@@ -5,7 +5,7 @@ import GlassCard from '../common/GlassCard';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { SectionLabel, ModeChip, QuickBtn, Slider } from './CommandControls';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
 const MODES = ['ORBIT', 'GRID', 'WAYPOINT', 'HOLD', 'RTL', 'LAND'];
 const MAX_LOG = 5;
 

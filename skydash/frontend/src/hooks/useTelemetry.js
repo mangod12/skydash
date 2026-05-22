@@ -2,8 +2,10 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useTelemetryStore } from '../stores/telemetryStore';
 import { useMapStore } from '../stores/mapStore';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
-const WS_BASE = import.meta.env.VITE_WS_URL || 'ws://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
+const WS_BASE = import.meta.env.VITE_WS_URL || (import.meta.env.PROD
+  ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
+  : 'ws://localhost:8001');
 const WS_URL = `${WS_BASE}/ws/telemetry`;
 const HTTP_URL = `${API_BASE}/telemetry`;
 const RECONNECT_BASE = 1000;

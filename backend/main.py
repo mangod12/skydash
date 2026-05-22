@@ -18,6 +18,7 @@ from missions import MissionStore
 PORT = int(os.getenv("SKYDASH_PORT", "8001"))
 HOST = os.getenv("SKYDASH_HOST", "0.0.0.0")
 API_KEY = os.getenv("SKYDASH_API_KEY", "")  # Empty = no auth (dev mode)
+DB_PATH = os.getenv("SKYDASH_DB_PATH", "skydash.db")
 CORS_ORIGINS = os.getenv(
     "SKYDASH_CORS_ORIGINS",
     "http://localhost:5173,http://localhost:5174,http://localhost:4173,http://localhost:80,http://localhost"
@@ -44,9 +45,30 @@ app.add_middleware(
 )
 
 fleet = FleetSimulator()
-entity_store = EntityStore()
-mission_store = MissionStore()
+entity_store = EntityStore(db_path=DB_PATH)
+mission_store = MissionStore(db_path=DB_PATH)
 start_time = time.time()
+
+# ─── Telemetry History (in-memory ring buffer) ──────────────
+
+telemetry_history: List[Dict] = []
+MAX_HISTORY = 300  # 5 minutes at 1 sample/sec
+
+
+@app.on_event("startup")
+async def start_telemetry_recorder():
+    """Sample fleet telemetry every second into a ring buffer."""
+    async def record():
+        while True:
+            snapshot = {
+                "timestamp": time.time(),
+                "drones": fleet.get_all_telemetry(),
+            }
+            telemetry_history.append(snapshot)
+            if len(telemetry_history) > MAX_HISTORY:
+                telemetry_history.pop(0)
+            await asyncio.sleep(1)
+    asyncio.create_task(record())
 
 
 # ─── Auth middleware ─────────────────────────────────────────
@@ -86,6 +108,7 @@ async def health():
         "drones": len(fleet.drones),
         "entities": len(entity_store.entities),
         "missions": mission_store.count(),
+        "telemetry_samples": len(telemetry_history),
     }
 
 
@@ -100,6 +123,8 @@ async def root():
             "/telemetry": "All drones telemetry",
             "/telemetry/{drone_id}": "Single drone telemetry",
             "/ws/telemetry": "WebSocket telemetry stream",
+            "/api/telemetry/history": "Historical telemetry data",
+            "/api/telemetry/stats": "Fleet aggregate statistics",
             "/api/entities": "Entity CRUD",
             "/api/missions": "Mission CRUD",
             "/api/timeline": "Event timeline",
@@ -134,6 +159,84 @@ async def reset_simulation():
     fleet.reset()
     log.info("Simulation reset")
     return {"success": True, "data": {"message": "Simulation reset"}}
+
+
+# ─── REST: Telemetry History ────────────────────────────────
+
+HISTORY_FIELDS = {"altitude", "battery_percentage", "signal_strength", "ground_speed"}
+
+
+@app.get("/api/telemetry/history")
+async def get_telemetry_history(
+    drone_id: Optional[str] = Query(None),
+    limit: int = Query(60, ge=1, le=300),
+    field: Optional[str] = Query(None),
+):
+    """Get historical telemetry data for charts."""
+    if field and field not in HISTORY_FIELDS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid field. Must be one of: {', '.join(sorted(HISTORY_FIELDS))}",
+        )
+
+    data = telemetry_history[-limit:]
+
+    if drone_id:
+        result = []
+        for snapshot in data:
+            drone_data = next(
+                (d for d in snapshot["drones"] if d["drone_id"] == drone_id),
+                None,
+            )
+            if drone_data:
+                entry = {"timestamp": snapshot["timestamp"]}
+                if field:
+                    entry["value"] = drone_data.get(field)
+                else:
+                    entry.update(drone_data)
+                result.append(entry)
+        return {
+            "success": True,
+            "data": result,
+            "metadata": {"count": len(result), "drone_id": drone_id},
+        }
+
+    return {
+        "success": True,
+        "data": data,
+        "metadata": {"count": len(data)},
+    }
+
+
+@app.get("/api/telemetry/stats")
+async def get_telemetry_stats():
+    """Get aggregate statistics for fleet."""
+    if not telemetry_history:
+        return {"success": True, "data": {}}
+
+    latest = telemetry_history[-1]["drones"]
+    drone_count = len(latest)
+    if drone_count == 0:
+        return {
+            "success": True,
+            "data": {"active_drones": 0, "total_samples": len(telemetry_history)},
+        }
+
+    stats = {
+        "active_drones": drone_count,
+        "avg_altitude": round(sum(d["altitude"] for d in latest) / drone_count, 2),
+        "avg_battery": round(
+            sum(d["battery_percentage"] for d in latest) / drone_count, 1
+        ),
+        "avg_signal": round(
+            sum(d["signal_strength"] for d in latest) / drone_count, 1
+        ),
+        "total_samples": len(telemetry_history),
+        "recording_duration_s": round(
+            telemetry_history[-1]["timestamp"] - telemetry_history[0]["timestamp"], 1
+        ) if len(telemetry_history) > 1 else 0,
+    }
+    return {"success": True, "data": stats}
 
 
 # ─── WebSocket: Telemetry Stream ─────────────────────────────

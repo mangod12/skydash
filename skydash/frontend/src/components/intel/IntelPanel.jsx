@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
-import { Search, CheckSquare } from 'lucide-react';
+import { Search, CheckSquare, Plus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import EntityCard from './EntityCard';
+import EntityCreateForm from './EntityCreateForm';
 import ThreatMatrix from './ThreatMatrix';
 import EntityFilterBar, { useEntityFilters } from './EntityFilterBar';
 import BulkActionsBar from './BulkActionsBar';
@@ -10,13 +11,17 @@ import VirtualList from '../common/VirtualList';
 import ContextMenu, { useContextMenu } from '../common/ContextMenu';
 import useEntityContextMenu from '../../hooks/useEntityContextMenu';
 import { useIntelStore } from '../../stores/intelStore';
+import { useUIStore } from '../../stores/uiStore';
 import { useBookmarkStore } from '../../stores/bookmarkStore';
 
 export default function IntelPanel() {
   const { entities, selectedEntityId, selectEntity } = useIntelStore();
+  const entityCreateOpen = useUIStore((s) => s.entityCreateOpen);
+  const setEntityCreateOpen = useUIStore((s) => s.setEntityCreateOpen);
   const [search, setSearch] = useState('');
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const createOpen = entityCreateOpen;
   const { menu, show, hide } = useContextMenu();
   const openEntityMenu = useEntityContextMenu(show);
 
@@ -72,6 +77,13 @@ export default function IntelPanel() {
             <span className="text-[9px] font-mono tabular-nums text-zinc-600">
               {resultCount} of {totalCount} entities
             </span>
+            <button
+              onClick={() => setEntityCreateOpen(true)}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] tracking-wider text-zinc-600 hover:text-indigo-400 transition-colors"
+              title="Create Entity"
+            >
+              <Plus size={10} />
+            </button>
             <button
               onClick={() => { setSelectMode((p) => !p); if (selectMode) setSelectedIds(new Set()); }}
               className={`flex items-center gap-1 px-2 py-0.5 rounded text-[9px] tracking-wider transition-colors ${
@@ -153,6 +165,9 @@ export default function IntelPanel() {
 
       {/* Context menu */}
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={hide} />}
+
+      {/* Create entity form */}
+      <EntityCreateForm open={createOpen} onClose={() => setEntityCreateOpen(false)} />
     </div>
   );
 }

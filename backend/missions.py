@@ -1,13 +1,14 @@
 """SQLite-backed mission store for operational mission management.
 Missions group entities, notes, and map context for coordinated operations."""
 import json
+import os
 import sqlite3
 import threading
 import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-DB_PATH = "skydash.db"
+DB_PATH = os.getenv("SKYDASH_DB_PATH", "skydash.db")
 
 
 class MissionStore:

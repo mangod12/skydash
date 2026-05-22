@@ -4,6 +4,7 @@ import DataSources from '../common/DataSources';
 import AuditLog from '../common/AuditLog';
 import AlertRulesConfig from '../common/AlertRulesConfig';
 import SystemHealth from '../common/SystemHealth';
+import PlatformStatus from '../common/PlatformStatus';
 import { startTour } from '../common/OnboardingTour';
 import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
@@ -125,20 +126,8 @@ export default function SettingsView() {
           <DataSources />
         </GlassCard>
 
-        {/* About */}
-        <GlassCard animate={false}>
-          <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-3">ABOUT</h3>
-          <div className="space-y-1 text-[11px]">
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Version</span>
-              <span className="font-mono text-zinc-300">3.0.0</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Build</span>
-              <span className="font-mono text-zinc-300">SkyDash Spatial Intelligence</span>
-            </div>
-          </div>
-        </GlassCard>
+        {/* About / Platform Status */}
+        <PlatformStatus />
       </div>
     </div>
   );

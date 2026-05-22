@@ -32,6 +32,7 @@ const COMMANDS = [
   { id: 'reset', label: 'Reset Simulation', icon: RotateCcw, group: 'ACTIONS' },
   { id: 'tour', label: 'Start Tour', icon: Compass, group: 'ACTIONS', handler: 'tour' },
   { id: 'compare', label: 'Compare Entities', icon: Columns, group: 'ACTIONS', action: 'intel', handler: 'compare' },
+  { id: 'create-entity', label: 'Create Entity', icon: Target, group: 'ACTIONS', action: 'intel', handler: 'create-entity' },
 ];
 
 const ENTITY_ICONS = { vehicle: Car, person: User, building: Building2, device: Wifi, event: Calendar };
@@ -85,7 +86,8 @@ export default function CommandPalette() {
     if (cmd.handler === 'notifications') useUIStore.getState().toggleNotifications();
     if (cmd.handler === 'tour') startTour();
     if (cmd.handler === 'compare') useIntelStore.getState().clearComparison();
-    if (cmd.id === 'reset') fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8001'}/reset`, { method: 'POST' });
+    if (cmd.handler === 'create-entity') useUIStore.getState().setEntityCreateOpen(true);
+    if (cmd.id === 'reset') fetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001')}/reset`, { method: 'POST' });
     close();
   };
 

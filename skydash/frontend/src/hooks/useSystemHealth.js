@@ -5,7 +5,7 @@ import { useAuditStore } from '../stores/auditStore';
 import useNotificationStore from '../stores/notificationStore';
 import { useMapStore } from '../stores/mapStore';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
 const N = 30;
 
 const deriveStatus = (conn, lat, drones) =>

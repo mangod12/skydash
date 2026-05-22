@@ -8,6 +8,7 @@ export const useUIStore = create((set, get) => ({
   theme: 'midnight',
   isMobile: false,
   isTablet: false,
+  entityCreateOpen: false,
   workspace: 'operator',
 
   setWorkspace: (ws) => set({
@@ -22,6 +23,7 @@ export const useUIStore = create((set, get) => ({
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   toggleNotifications: () => set((s) => ({ notificationOpen: !s.notificationOpen })),
   setNotificationOpen: (open) => set({ notificationOpen: open }),
+  setEntityCreateOpen: (open) => set({ entityCreateOpen: open }),
   setTheme: (theme) => set({ theme }),
   setResponsive: (width) => set({
     isMobile: width < 768,

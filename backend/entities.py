@@ -1,13 +1,14 @@
 """SQLite-backed entity store for OSINT intelligence data.
 Entities, relationships, and events persist across restarts."""
 import json
+import os
 import sqlite3
 import threading
 import time
 import uuid
 from typing import Dict, List, Optional
 
-DB_PATH = "skydash.db"
+DB_PATH = os.getenv("SKYDASH_DB_PATH", "skydash.db")
 
 
 class EntityStore:

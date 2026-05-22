@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { toast } from '../components/common/Toast';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
 
 export const useMissionStore = create((set, get) => ({
   missions: [],
