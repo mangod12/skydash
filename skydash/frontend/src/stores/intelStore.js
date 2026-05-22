@@ -95,6 +95,7 @@ export const useIntelStore = create((set, get) => ({
   comparedEntities: [null, null],
   filterThreat: null,
   filterType: null,
+  filterTag: null,
 
   selectEntity: (id) => set({ selectedEntityId: id }),
   clearSelection: () => set({ selectedEntityId: null }),
@@ -108,6 +109,7 @@ export const useIntelStore = create((set, get) => ({
 
   setFilterThreat: (level) => set({ filterThreat: level }),
   setFilterType: (type) => set({ filterType: type }),
+  setFilterTag: (tag) => set({ filterTag: tag }),
 
   getSelectedEntity: () => {
     const state = get();

@@ -119,9 +119,11 @@ export default function EntityCard({ entity, selected, onClick, onContextMenu, s
           <div className="text-[10px] text-zinc-500 mt-0.5 truncate">
             {entity.type.toUpperCase()} &middot; {entity.confidence}% conf
           </div>
-          <div className="text-[9px] text-zinc-600 mt-1">
-            {formatDistanceToNow(entity.lastSeen, { addSuffix: true })}
-          </div>
+          {entity.lastSeen && (
+            <span className="text-[8px] text-zinc-700 font-mono mt-1 block">
+              Seen {formatDistanceToNow(entity.lastSeen, { addSuffix: true })}
+            </span>
+          )}
         </div>
 
         <ChevronRight size={14} className="text-zinc-700 shrink-0 mt-1" />

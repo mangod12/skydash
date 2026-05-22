@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { Wifi, WifiOff, Shield, Crosshair, Activity } from 'lucide-react';
@@ -6,6 +6,7 @@ import GlassCard from '../common/GlassCard';
 import { StatCard, ActivityFeed } from './DashboardCards';
 import DashboardMiniMap from './DashboardMiniMap';
 import FleetSparklines from './FleetSparklines';
+import FleetOverview from '../telemetry/FleetOverview';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
@@ -70,6 +71,24 @@ export default function DashboardView() {
 
   useEffect(() => { fetchMissions(); }, [fetchMissions]);
 
+  // ── Data freshness ticker ──
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const formatFreshness = useCallback((timestamp) => {
+    if (!timestamp) return null;
+    return `Updated ${formatDistanceToNow(timestamp, { addSuffix: true })}`;
+  }, []);
+
+  // Track last-seen timestamps per category
+  const fleetUpdatedAt = fleet.length > 0 && isConnected ? now : null;
+  const entitiesUpdatedAt = entities.length > 0
+    ? Math.max(...entities.map((e) => e.lastSeen || 0))
+    : null;
+
   // ── Derived stats ──
   const droneCount = fleet.length;
   const avgBattery = fleet.length > 0
@@ -106,24 +125,36 @@ export default function DashboardView() {
             sub={allConnected ? `ALL CONNECTED \u00B7 ${avgBattery}% AVG BAT`
               : droneCount > 0 ? `PARTIAL \u00B7 ${avgBattery}% AVG BAT` : 'NO DRONES'}
             accent={allConnected ? 'emerald' : 'amber'} index={0}
+            freshness={formatFreshness(fleetUpdatedAt)}
           />
           <StatCard
             label="THREAT OVERVIEW" value={threatCounts.high + threatCounts.critical} icon={Shield}
             sub={`${threatCounts.high} HIGH \u00B7 ${threatCounts.critical} CRIT \u00B7 ${threatScore}% SCORE`}
             accent={threatAccent} index={1}
+            freshness={formatFreshness(entitiesUpdatedAt)}
           />
           <StatCard
             label="ACTIVE MISSIONS" value={activeMissions.length} icon={Crosshair}
             sub={`${linkedEntities} LINKED ENTITIES \u00B7 ${entities.length} TOTAL`}
             accent="indigo" index={2}
+            freshness={activeMissions.length > 0
+              ? formatFreshness(new Date(activeMissions[0].created_at).getTime())
+              : null}
           />
           <StatCard
             label="SYSTEM HEALTH" value={isConnected ? 'ONLINE' : 'OFFLINE'}
             icon={isConnected ? Activity : WifiOff}
             sub={isConnected ? `${latency}ms LATENCY \u00B7 ${dataRate}` : 'RECONNECTING...'}
             accent={isConnected ? 'cyan' : 'red'} index={3}
+            freshness={isConnected ? 'Updated just now' : 'Connection lost'}
           />
         </div>
+
+        {/* ── Fleet Overview Table ── */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.35, ease: EASE }}>
+          <FleetOverview />
+        </motion.div>
 
         {/* ── Bottom Row: Map + Sparklines | Activity Feed ── */}
         <div className="grid grid-cols-5 gap-3">

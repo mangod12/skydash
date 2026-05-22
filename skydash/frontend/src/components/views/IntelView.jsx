@@ -11,7 +11,9 @@ import PatternPanel from '../intel/PatternPanel';
 import NaturalLanguageQuery from '../intel/NaturalLanguageQuery';
 import AnomalyDetector from '../intel/AnomalyDetector';
 import ReportExport from '../intel/ReportExport';
+import TagCloud from '../intel/TagCloud';
 import { useIntelStore } from '../../stores/intelStore';
+import { useUIStore } from '../../stores/uiStore';
 
 const CENTER_TABS = [
   { id: 'timeline', label: 'Timeline', icon: Clock },

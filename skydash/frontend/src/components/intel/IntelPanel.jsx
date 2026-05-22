@@ -15,7 +15,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { useBookmarkStore } from '../../stores/bookmarkStore';
 
 export default function IntelPanel() {
-  const { entities, selectedEntityId, selectEntity } = useIntelStore();
+  const { entities, selectedEntityId, selectEntity, filterTag, setFilterTag } = useIntelStore();
   const entityCreateOpen = useUIStore((s) => s.entityCreateOpen);
   const setEntityCreateOpen = useUIStore((s) => s.setEntityCreateOpen);
   const [search, setSearch] = useState('');
@@ -40,6 +40,7 @@ export default function IntelPanel() {
 
   const searchFiltered = entities.filter((e) => {
     if (search && !e.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterTag && !(e.tags ?? []).includes(filterTag)) return false;
     return true;
   });
 

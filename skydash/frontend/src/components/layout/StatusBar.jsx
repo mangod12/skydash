@@ -1,9 +1,36 @@
 import { useState, useRef, useEffect } from 'react';
+import { clsx } from 'clsx';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useMissionStore } from '../../stores/missionStore';
 import StatusBadge from '../common/StatusBadge';
 import SystemHealth from '../common/SystemHealth';
+
+function ConnectionBars({ latency, connected }) {
+  const bars = connected
+    ? (latency < 50 ? 5 : latency < 100 ? 4 : latency < 200 ? 3 : latency < 500 ? 2 : 1)
+    : 0;
+  const color = bars >= 4
+    ? 'text-emerald-500'
+    : bars >= 2
+      ? 'text-amber-500'
+      : 'text-red-500';
+
+  return (
+    <div className={clsx('flex items-end gap-px h-3', color)} aria-label={`Signal quality: ${bars} of 5 bars`}>
+      {[3, 5, 7, 9, 11].map((h, i) => (
+        <div
+          key={i}
+          className={clsx(
+            'w-1 rounded-sm transition-all',
+            i < bars ? 'bg-current' : 'bg-zinc-800',
+          )}
+          style={{ height: h }}
+        />
+      ))}
+    </div>
+  );
+}
 
 function formatElapsed(ms) {
   const totalSec = Math.floor(ms / 1000);
@@ -55,9 +82,14 @@ export default function StatusBar() {
         label={isConnected ? 'CONNECTED' : 'OFFLINE'}
         pulse={isConnected}
       />
-      {isConnected && (
-        <span className="text-zinc-600 tabular-nums">{latency}ms</span>
-      )}
+      <div className="flex items-center gap-1.5">
+        <ConnectionBars latency={latency} connected={isConnected} />
+        {isConnected ? (
+          <span className="text-zinc-600 tabular-nums">{latency}ms</span>
+        ) : (
+          <span className="text-red-500 text-[9px] font-bold tracking-wider">OFFLINE</span>
+        )}
+      </div>
     </button>
   );
 

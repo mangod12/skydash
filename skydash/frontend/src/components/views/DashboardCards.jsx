@@ -19,7 +19,7 @@ const TEXT_MAP = {
   cyan: 'text-cyan-400',
 };
 
-export function StatCard({ label, value, sub, icon: Icon, accent, index }) {
+export function StatCard({ label, value, sub, icon: Icon, accent, index, freshness }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
@@ -39,6 +39,11 @@ export function StatCard({ label, value, sub, icon: Icon, accent, index }) {
         {sub && (
           <div className="text-[10px] text-zinc-500 mt-1 font-mono tabular-nums">
             {sub}
+          </div>
+        )}
+        {freshness && (
+          <div className="text-[8px] text-zinc-600 mt-1 font-mono">
+            {freshness}
           </div>
         )}
       </GlassCard>

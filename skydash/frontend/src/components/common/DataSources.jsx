@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Radio, Plane, Usb, Smartphone, Globe, Database } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTelemetryStore } from '../../stores/telemetryStore';
@@ -12,14 +13,31 @@ const STATUS_STYLES = {
   planned:   { dot: 'bg-zinc-600', label: 'text-zinc-600', bar: 'bg-zinc-700' },
 };
 
+function formatTimestamp(ts) {
+  if (!ts) return null;
+  const d = new Date(ts);
+  return d.toISOString().slice(11, 19) + 'Z';
+}
+
 function useDataSources() {
   const { isConnected, fleet, latency } = useTelemetryStore();
   const { entities, events } = useIntelStore();
   const { layers } = useMapStore();
 
+  // Tick every second to keep lastFetch timestamps current
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const fleetStatus = isConnected ? 'connected' : 'error';
   const droneCount = fleet.length || 0;
   const adsbActive = layers.adsb;
+
+  const entitiesLastSeen = entities.length > 0
+    ? Math.max(...entities.map((e) => e.lastSeen || 0))
+    : null;
 
   return [
     {
@@ -30,6 +48,7 @@ function useDataSources() {
       statusLabel: isConnected ? 'CONNECTED' : 'DISCONNECTED',
       description: `${droneCount} drones · 10 Hz · ${latency}ms latency`,
       health: isConnected ? 100 : 0,
+      lastFetch: isConnected ? now : null,
     },
     {
       id: 'adsb',
@@ -39,6 +58,7 @@ function useDataSources() {
       statusLabel: adsbActive ? 'CONNECTED' : 'AVAILABLE',
       description: adsbActive ? '12 aircraft · 15s refresh' : 'Layer disabled in map settings',
       health: adsbActive ? 85 : 0,
+      lastFetch: adsbActive ? now : null,
     },
     {
       id: 'mavlink',
@@ -49,6 +69,7 @@ function useDataSources() {
       description: 'Serial/UDP · ArduPilot compatible',
       health: 0,
       note: 'Not configured',
+      lastFetch: null,
     },
     {
       id: 'dji',
@@ -59,6 +80,7 @@ function useDataSources() {
       description: 'Bridge server required',
       health: 0,
       note: 'Not configured',
+      lastFetch: null,
     },
     {
       id: 'osint',
@@ -69,6 +91,7 @@ function useDataSources() {
       description: 'Shodan · VirusTotal · Censys',
       health: 0,
       note: 'Coming soon',
+      lastFetch: null,
     },
     {
       id: 'entities',
@@ -78,6 +101,7 @@ function useDataSources() {
       statusLabel: 'CONNECTED',
       description: `SQLite · ${entities.length} entities · ${events.length} events`,
       health: 100,
+      lastFetch: entitiesLastSeen,
     },
   ];
 }
@@ -110,6 +134,13 @@ function SourceCard({ source }) {
           {source.health > 0 ? `${source.health}%` : source.note || '—'}
         </span>
       </div>
+      {source.lastFetch && (
+        <div className="ml-[30px] mt-1">
+          <span className="text-[8px] text-zinc-700 font-mono">
+            Last fetch: {formatTimestamp(source.lastFetch)}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
