@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { Clock, GitBranch, Columns, Radar } from 'lucide-react';
+import { PanelBoundary } from '../common/ErrorBoundary';
 import IntelPanel from '../intel/IntelPanel';
 import EntityDetail from '../intel/EntityDetail';
 import EntityComparison from '../intel/EntityComparison';
@@ -32,7 +33,9 @@ export default function IntelView() {
     <div className="h-full flex">
       {/* Left: Entity list */}
       <div className="w-[300px] shrink-0 border-r border-white/[0.06]">
-        <IntelPanel />
+        <PanelBoundary name="Entity List">
+          <IntelPanel />
+        </PanelBoundary>
       </div>
 
       {/* Center: Timeline/Graph + NLQ + Anomaly */}
@@ -58,10 +61,12 @@ export default function IntelView() {
 
         {/* Tab content */}
         <div className="flex-1 min-h-0 overflow-hidden">
-          {centerTab === 'timeline' && <TimelineView />}
-          {centerTab === 'graph' && <LinkGraph />}
-          {centerTab === 'compare' && <EntityComparison />}
-          {centerTab === 'patterns' && <PatternPanel />}
+          <PanelBoundary name={centerTab}>
+            {centerTab === 'timeline' && <TimelineView />}
+            {centerTab === 'graph' && <LinkGraph />}
+            {centerTab === 'compare' && <EntityComparison />}
+            {centerTab === 'patterns' && <PatternPanel />}
+          </PanelBoundary>
         </div>
 
         {/* Bottom tools */}
@@ -75,7 +80,9 @@ export default function IntelView() {
       {/* Right: Entity detail (conditional) */}
       {selectedEntityId && (
         <div className="w-[320px] shrink-0">
-          <EntityDetail />
+          <PanelBoundary name="Entity Detail">
+            <EntityDetail />
+          </PanelBoundary>
         </div>
       )}
     </div>

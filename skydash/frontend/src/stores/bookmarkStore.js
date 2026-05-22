@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 const STORAGE_KEY = 'skydash_bookmarks';
+const STORAGE_VERSION = 2;
 
 const DEFAULT_BOOKMARKS = [
   {
@@ -28,15 +29,21 @@ const DEFAULT_BOOKMARKS = [
 
 const loadBookmarks = () => {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : DEFAULT_BOOKMARKS;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULT_BOOKMARKS;
+    const saved = JSON.parse(raw);
+    // Version check — discard stale data on schema change
+    if (!saved || saved.version !== STORAGE_VERSION) return DEFAULT_BOOKMARKS;
+    return Array.isArray(saved.bookmarks) ? saved.bookmarks : DEFAULT_BOOKMARKS;
   } catch {
     return DEFAULT_BOOKMARKS;
   }
 };
 
 const persist = (bookmarks) => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(bookmarks)); } catch { /* noop */ }
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: STORAGE_VERSION, bookmarks }));
+  } catch { /* quota exceeded — noop */ }
 };
 
 export const useBookmarkStore = create((set, get) => ({
