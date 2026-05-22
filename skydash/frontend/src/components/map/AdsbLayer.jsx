@@ -3,9 +3,7 @@ import { CircleMarker, Tooltip } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
 
 const ADSB_URL = 'https://opensky-network.org/api/states/all';
-const POLL_INTERVAL = 15000; // 15s (OpenSky rate limit)
-
-// Bounds around San Francisco
+const POLL_INTERVAL = 15000;
 const BOUNDS = { lamin: 37.6, lomin: -122.6, lamax: 37.9, lomax: -122.2 };
 
 function parseAircraftState(state) {
@@ -15,17 +13,16 @@ function parseAircraftState(state) {
     country: state[2],
     longitude: state[5],
     latitude: state[6],
-    altitude: state[7], // barometric
+    altitude: state[7],
     onGround: state[8],
     velocity: state[9],
     heading: state[10],
-    verticalRate: state[11],
-    category: state[17],
   };
 }
 
 export default function AdsbLayer() {
   const [aircraft, setAircraft] = useState([]);
+  const [isLive, setIsLive] = useState(false);
   const layers = useMapStore((s) => s.layers);
   const intervalRef = useRef(null);
 
@@ -37,14 +34,12 @@ export default function AdsbLayer() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data.states) {
-          const parsed = data.states
-            .map(parseAircraftState)
-            .filter((a) => a.latitude && a.longitude && !a.onGround);
-          setAircraft(parsed);
+          setAircraft(data.states.map(parseAircraftState).filter((a) => a.latitude && a.longitude && !a.onGround));
+          setIsLive(true);
         }
       } catch {
-        // OpenSky may rate-limit or be unavailable — use simulated fallback
         setAircraft(generateSimulatedAircraft());
+        setIsLive(false);
       }
     };
 
@@ -83,11 +78,27 @@ export default function AdsbLayer() {
           </Tooltip>
         </CircleMarker>
       ))}
+
+      {/* Live/Simulated badge */}
+      <AdsbBadge isLive={isLive} count={aircraft.length} />
     </>
   );
 }
 
-// Simulated aircraft when OpenSky is unavailable
+function AdsbBadge({ isLive, count }) {
+  return (
+    <div className="leaflet-top leaflet-left" style={{ top: 50, left: 10, position: 'absolute', zIndex: 1000 }}>
+      <div className="bg-zinc-900/80 backdrop-blur-sm border border-white/[0.08] rounded-lg px-2.5 py-1 flex items-center gap-2 pointer-events-none">
+        <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+        <span className={`text-[9px] font-mono font-bold tracking-wider ${isLive ? 'text-emerald-400' : 'text-amber-400'}`}>
+          ADS-B {isLive ? 'LIVE' : 'SIM'}
+        </span>
+        <span className="text-[9px] font-mono text-zinc-600">{count}</span>
+      </div>
+    </div>
+  );
+}
+
 function generateSimulatedAircraft() {
   const now = Date.now() / 1000;
   return [

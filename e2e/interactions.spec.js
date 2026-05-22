@@ -223,20 +223,22 @@ test.describe('SkyDash Interaction Tests', () => {
   // ─── COMPASS ROSE ────────────────────────────────────────
 
   test('compass rose renders with heading', async ({ page }) => {
+    await page.goto(BASE);
+    await page.waitForSelector('text=CONNECTED', { timeout: 15000 });
     await page.keyboard.press('m');
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(2500);
 
-    // Compass is an SVG with cardinal markers
+    // Compass SVG has N/E/W cardinal labels
     const compass = page.locator('svg:has(text:text-is("N"))').first();
     await expect(compass).toBeVisible({ timeout: 5000 });
 
-    // Should show a numeric heading (3-digit + degree sign)
-    const headingText = page.locator('span.font-mono.font-bold').first();
-    await expect(headingText).toBeVisible({ timeout: 3000 });
-    const heading = await headingText.textContent();
-    expect(heading).toMatch(/\d/);
+    // Heading readout: 3-digit number + degree — uses tabular-nums class
+    const headingSpan = page.locator('.tabular-nums:has-text("°")').first();
+    await expect(headingSpan).toBeVisible({ timeout: 5000 });
+    const text = await headingSpan.textContent();
+    expect(text).toMatch(/\d{1,3}°/);
 
-    console.log(`Compass: visible with heading ${heading}`);
+    console.log(`Compass: visible with heading ${text}`);
   });
 
   // ─── BOOT SEQUENCE ───────────────────────────────────────

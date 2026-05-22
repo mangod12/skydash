@@ -1,15 +1,71 @@
-"""In-memory entity store for OSINT intelligence data."""
+"""SQLite-backed entity store for OSINT intelligence data.
+Entities, relationships, and events persist across restarts."""
+import json
+import sqlite3
 import time
 import uuid
 from typing import Dict, List, Optional
 
+DB_PATH = "skydash.db"
+
 
 class EntityStore:
-    def __init__(self):
-        self.entities: Dict[str, Dict] = {}
-        self.relationships: List[Dict] = []
-        self.events: List[Dict] = []
-        self._seed()
+    def __init__(self, db_path: str = DB_PATH):
+        self.db = sqlite3.connect(db_path, check_same_thread=False)
+        self.db.row_factory = sqlite3.Row
+        self._init_tables()
+        if self._count("entities") == 0:
+            self._seed()
+
+    def _init_tables(self):
+        self.db.executescript("""
+            CREATE TABLE IF NOT EXISTS entities (
+                id TEXT PRIMARY KEY,
+                type TEXT NOT NULL,
+                name TEXT NOT NULL,
+                coordinates TEXT,
+                properties TEXT DEFAULT '{}',
+                confidence INTEGER DEFAULT 50,
+                source TEXT DEFAULT 'Manual',
+                tags TEXT DEFAULT '[]',
+                threatLevel TEXT DEFAULT 'none',
+                firstSeen REAL,
+                lastSeen REAL
+            );
+            CREATE TABLE IF NOT EXISTS relationships (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                from_entity TEXT NOT NULL,
+                to_entity TEXT NOT NULL,
+                type TEXT NOT NULL,
+                confidence INTEGER DEFAULT 50
+            );
+            CREATE TABLE IF NOT EXISTS events (
+                id TEXT PRIMARY KEY,
+                time REAL NOT NULL,
+                type TEXT,
+                description TEXT,
+                entityId TEXT,
+                severity TEXT DEFAULT 'info'
+            );
+        """)
+        self.db.commit()
+
+    def _count(self, table: str) -> int:
+        return self.db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+
+    def _row_to_entity(self, row) -> Dict:
+        d = dict(row)
+        d["coordinates"] = json.loads(d["coordinates"]) if d["coordinates"] else None
+        d["properties"] = json.loads(d["properties"])
+        d["tags"] = json.loads(d["tags"])
+        return d
+
+    def _row_to_rel(self, row) -> Dict:
+        d = dict(row)
+        return {"from": d["from_entity"], "to": d["to_entity"], "type": d["type"], "confidence": d["confidence"]}
+
+    def _row_to_event(self, row) -> Dict:
+        return dict(row)
 
     def _seed(self):
         seeds = [
@@ -24,28 +80,37 @@ class EntityStore:
              "confidence": 95, "source": "GIS Database", "tags": ["location-of-interest"], "threatLevel": "high"},
         ]
         now = time.time()
+        ids = []
         for s in seeds:
-            eid = str(uuid.uuid4())[:8]
-            self.entities[eid] = {
-                "id": eid, **s,
-                "firstSeen": now - 3600, "lastSeen": now,
-            }
+            e = self.create_entity({**s, "firstSeen": now - 3600, "lastSeen": now})
+            ids.append(e["id"])
 
-        ids = list(self.entities.keys())
         if len(ids) >= 3:
-            self.relationships.append({"from": ids[0], "to": ids[2], "type": "located_at", "confidence": 88})
-            self.relationships.append({"from": ids[1], "to": ids[0], "type": "associated_with", "confidence": 55})
+            self.add_relationship(ids[0], ids[2], "located_at", 88)
+            self.add_relationship(ids[1], ids[0], "associated_with", 55)
+
+    # ─── CRUD ────────────────────────────────────────────────
+
+    @property
+    def entities(self) -> Dict[str, Dict]:
+        """Compat property for health endpoint."""
+        rows = self.db.execute("SELECT * FROM entities").fetchall()
+        return {r["id"]: self._row_to_entity(r) for r in rows}
 
     def list_entities(self, entity_type: Optional[str] = None, threat: Optional[str] = None) -> List[Dict]:
-        result = list(self.entities.values())
+        q = "SELECT * FROM entities WHERE 1=1"
+        params = []
         if entity_type:
-            result = [e for e in result if e.get("type") == entity_type]
+            q += " AND type = ?"
+            params.append(entity_type)
         if threat:
-            result = [e for e in result if e.get("threatLevel") == threat]
-        return result
+            q += " AND threatLevel = ?"
+            params.append(threat)
+        return [self._row_to_entity(r) for r in self.db.execute(q, params).fetchall()]
 
     def get_entity(self, entity_id: str) -> Optional[Dict]:
-        return self.entities.get(entity_id)
+        row = self.db.execute("SELECT * FROM entities WHERE id = ?", (entity_id,)).fetchone()
+        return self._row_to_entity(row) if row else None
 
     def create_entity(self, data: Dict) -> Dict:
         eid = str(uuid.uuid4())[:8]
@@ -60,63 +125,85 @@ class EntityStore:
             "source": data.get("source", "Manual"),
             "tags": data.get("tags", []),
             "threatLevel": data.get("threatLevel", "none"),
-            "firstSeen": now,
-            "lastSeen": now,
+            "firstSeen": data.get("firstSeen", now),
+            "lastSeen": data.get("lastSeen", now),
         }
-        self.entities[eid] = entity
-        self.events.append({
-            "id": str(uuid.uuid4())[:8],
-            "time": now,
-            "type": "detection",
-            "description": f"Entity created: {entity['name']}",
-            "entityId": eid,
-            "severity": "info",
-        })
+        self.db.execute(
+            "INSERT INTO entities (id, type, name, coordinates, properties, confidence, source, tags, threatLevel, firstSeen, lastSeen) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (eid, entity["type"], entity["name"], json.dumps(entity["coordinates"]),
+             json.dumps(entity["properties"]), entity["confidence"], entity["source"],
+             json.dumps(entity["tags"]), entity["threatLevel"], entity["firstSeen"], entity["lastSeen"]),
+        )
+        self.add_event({"type": "detection", "description": f"Entity created: {entity['name']}", "entityId": eid, "severity": "info"})
+        self.db.commit()
         return entity
 
     def update_entity(self, entity_id: str, data: Dict) -> Optional[Dict]:
-        if entity_id not in self.entities:
+        existing = self.get_entity(entity_id)
+        if not existing:
             return None
-        self.entities[entity_id].update(data)
-        self.entities[entity_id]["lastSeen"] = time.time()
-        return self.entities[entity_id]
+        existing.update(data)
+        existing["lastSeen"] = time.time()
+        self.db.execute(
+            "UPDATE entities SET type=?, name=?, coordinates=?, properties=?, confidence=?, source=?, tags=?, threatLevel=?, lastSeen=? WHERE id=?",
+            (existing["type"], existing["name"], json.dumps(existing["coordinates"]),
+             json.dumps(existing["properties"]), existing["confidence"], existing["source"],
+             json.dumps(existing["tags"]), existing["threatLevel"], existing["lastSeen"], entity_id),
+        )
+        self.db.commit()
+        return existing
 
     def delete_entity(self, entity_id: str) -> bool:
-        if entity_id in self.entities:
-            del self.entities[entity_id]
-            self.relationships = [
-                r for r in self.relationships
-                if r["from"] != entity_id and r["to"] != entity_id
-            ]
-            return True
-        return False
+        if not self.get_entity(entity_id):
+            return False
+        self.db.execute("DELETE FROM entities WHERE id = ?", (entity_id,))
+        self.db.execute("DELETE FROM relationships WHERE from_entity = ? OR to_entity = ?", (entity_id, entity_id))
+        self.db.commit()
+        return True
+
+    # ─── Relationships ───────────────────────────────────────
+
+    @property
+    def relationships(self) -> List[Dict]:
+        return [self._row_to_rel(r) for r in self.db.execute("SELECT * FROM relationships").fetchall()]
 
     def add_relationship(self, from_id: str, to_id: str, rel_type: str, confidence: int = 50) -> Dict:
-        rel = {
-            "from": from_id, "to": to_id,
-            "type": rel_type, "confidence": confidence,
-        }
-        self.relationships.append(rel)
-        return rel
+        self.db.execute(
+            "INSERT INTO relationships (from_entity, to_entity, type, confidence) VALUES (?,?,?,?)",
+            (from_id, to_id, rel_type, confidence),
+        )
+        self.db.commit()
+        return {"from": from_id, "to": to_id, "type": rel_type, "confidence": confidence}
 
     def get_entity_graph(self, entity_id: str) -> Dict:
-        related_rels = [
-            r for r in self.relationships
-            if r["from"] == entity_id or r["to"] == entity_id
-        ]
+        rels = self.db.execute(
+            "SELECT * FROM relationships WHERE from_entity = ? OR to_entity = ?",
+            (entity_id, entity_id),
+        ).fetchall()
+        related_rels = [self._row_to_rel(r) for r in rels]
         related_ids = set()
         for r in related_rels:
             related_ids.add(r["from"])
             related_ids.add(r["to"])
-        nodes = [self.entities[eid] for eid in related_ids if eid in self.entities]
+        nodes = [self.get_entity(eid) for eid in related_ids]
+        nodes = [n for n in nodes if n]
         return {"nodes": nodes, "edges": related_rels}
 
+    # ─── Events ──────────────────────────────────────────────
+
     def get_timeline(self, limit: int = 50, offset: int = 0) -> List[Dict]:
-        sorted_events = sorted(self.events, key=lambda e: e["time"], reverse=True)
-        return sorted_events[offset:offset + limit]
+        rows = self.db.execute(
+            "SELECT * FROM events ORDER BY time DESC LIMIT ? OFFSET ?",
+            (limit, offset),
+        ).fetchall()
+        return [self._row_to_event(r) for r in rows]
 
     def add_event(self, event: Dict) -> Dict:
         eid = str(uuid.uuid4())[:8]
-        evt = {"id": eid, "time": time.time(), **event}
-        self.events.append(evt)
-        return evt
+        now = time.time()
+        self.db.execute(
+            "INSERT INTO events (id, time, type, description, entityId, severity) VALUES (?,?,?,?,?,?)",
+            (eid, now, event.get("type"), event.get("description"), event.get("entityId"), event.get("severity", "info")),
+        )
+        self.db.commit()
+        return {"id": eid, "time": now, **event}

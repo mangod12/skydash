@@ -16,6 +16,7 @@ from entities import EntityStore
 
 PORT = int(os.getenv("SKYDASH_PORT", "8001"))
 HOST = os.getenv("SKYDASH_HOST", "0.0.0.0")
+API_KEY = os.getenv("SKYDASH_API_KEY", "")  # Empty = no auth (dev mode)
 CORS_ORIGINS = os.getenv(
     "SKYDASH_CORS_ORIGINS",
     "http://localhost:5173,http://localhost:5174,http://localhost:4173,http://localhost:80,http://localhost"
@@ -44,6 +45,22 @@ app.add_middleware(
 fleet = FleetSimulator()
 entity_store = EntityStore()
 start_time = time.time()
+
+
+# ─── Auth middleware ─────────────────────────────────────────
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    # Skip auth for health, docs, openapi, and WebSocket upgrade
+    skip_paths = {"/health", "/docs", "/openapi.json", "/"}
+    if not API_KEY or request.url.path in skip_paths or request.url.path.startswith("/ws/"):
+        return await call_next(request)
+
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if token != API_KEY:
+        return JSONResponse(status_code=401, content={"success": False, "error": "Invalid or missing API key"})
+
+    return await call_next(request)
 
 
 # ─── Error handling ──────────────────────────────────────────

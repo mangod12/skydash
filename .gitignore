@@ -65,3 +65,6 @@ playwright-report/
 
 # Claude
 .claude/
+
+# Database
+*.db
