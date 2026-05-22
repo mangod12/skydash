@@ -10,6 +10,7 @@ import NoiseOverlay from '../common/NoiseOverlay';
 import KeyboardHelp from '../common/KeyboardHelp';
 import InfoPanel from '../common/InfoPanel';
 import ConnectionLost from '../common/ConnectionLost';
+import ThreatBar from './ThreatBar';
 import OnboardingTour from '../common/OnboardingTour';
 import NotificationCenter from '../common/NotificationCenter';
 import ToastContainer, { toast } from '../common/Toast';
@@ -78,7 +79,9 @@ export default function Shell({ children }) {
     <>
       <BootSequence onComplete={handleBootComplete} />
 
-      <div className="h-screen w-screen flex bg-[var(--surface-0)] text-zinc-100 overflow-hidden">
+      <div className="h-screen w-screen flex flex-col bg-[var(--surface-0)] text-zinc-100 overflow-hidden">
+        <ThreatBar />
+        <div className="flex flex-1 min-h-0">
         {!isMobile && <Sidebar />}
 
         <div className="flex-1 flex flex-col min-w-0">
@@ -96,6 +99,7 @@ export default function Shell({ children }) {
         <InfoPanel open={showInfo} onClose={() => setShowInfo(false)} />
         <NotificationCenter isOpen={notificationOpen} onClose={() => setNotificationOpen(false)} />
         <ConnectionLost />
+        </div>
       </div>
 
       {isMobile && <BottomNav />}

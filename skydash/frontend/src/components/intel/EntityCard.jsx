@@ -4,6 +4,7 @@ import {
   Car, User, Building2, Wifi, AlertTriangle, ChevronRight, Check,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useIntelStore } from '../../stores/intelStore';
 
 const TYPE_CONFIG = {
   vehicle: { icon: Car, color: 'text-blue-400', bg: 'bg-blue-500/10' },
@@ -21,6 +22,53 @@ const THREAT_COLORS = {
   high: 'bg-red-500',
   critical: 'bg-red-600 animate-pulse',
 };
+
+const SPARKLINE_COLORS = {
+  none: '#22d3ee',
+  low: '#22d3ee',
+  medium: '#f59e0b',
+  high: '#ef4444',
+  critical: '#ef4444',
+};
+
+const BIN_COUNT = 12;
+const BIN_DURATION = 2 * 60 * 60 * 1000; // 2 hours
+
+function ActivitySparkline({ entityId, threatLevel }) {
+  const events = useIntelStore((s) => s.events);
+  const now = Date.now();
+  const cutoff = now - BIN_COUNT * BIN_DURATION;
+
+  const bins = Array(BIN_COUNT).fill(0);
+  for (const evt of events) {
+    if (evt.entityId !== entityId || evt.time < cutoff) continue;
+    const idx = Math.min(Math.floor((evt.time - cutoff) / BIN_DURATION), BIN_COUNT - 1);
+    bins[idx]++;
+  }
+
+  const hasActivity = bins.some((c) => c > 0);
+  const fill = SPARKLINE_COLORS[threatLevel] || SPARKLINE_COLORS.none;
+
+  return (
+    <svg width={60} height={16} className="shrink-0" aria-label="Activity sparkline">
+      {bins.map((count, i) => {
+        const barH = hasActivity ? Math.max(Math.min(count * 4, 16), 1) : 1;
+        return (
+          <rect
+            key={i}
+            x={i * 5}
+            y={16 - barH}
+            width={4}
+            height={barH}
+            fill={fill}
+            opacity={hasActivity ? 0.4 : 0.15}
+            rx={1}
+          />
+        );
+      })}
+    </svg>
+  );
+}
 
 export default function EntityCard({ entity, selected, onClick, onContextMenu, selectable, checked }) {
   const config = TYPE_CONFIG[entity.type] || TYPE_CONFIG.event;
@@ -66,6 +114,7 @@ export default function EntityCard({ entity, selected, onClick, onContextMenu, s
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-zinc-200 truncate">{entity.name}</span>
             <div className={clsx('w-2 h-2 rounded-full shrink-0', THREAT_COLORS[entity.threatLevel])} />
+            <ActivitySparkline entityId={entity.id} threatLevel={entity.threatLevel} />
           </div>
           <div className="text-[10px] text-zinc-500 mt-0.5 truncate">
             {entity.type.toUpperCase()} &middot; {entity.confidence}% conf

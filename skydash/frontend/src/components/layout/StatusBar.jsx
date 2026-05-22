@@ -1,17 +1,38 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useUIStore } from '../../stores/uiStore';
+import { useMissionStore } from '../../stores/missionStore';
 import StatusBadge from '../common/StatusBadge';
 import SystemHealth from '../common/SystemHealth';
+
+function formatElapsed(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+  const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+  const s = String(totalSec % 60).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
 
 export default function StatusBar() {
   const { data, isConnected, latency } = useTelemetryStore();
   const isMobile = useUIStore((s) => s.isMobile);
+  const activeMission = useMissionStore((s) => s.getActiveMission());
   const [healthOpen, setHealthOpen] = useState(false);
+  const [elapsed, setElapsed] = useState('00:00:00');
   const popoverRef = useRef(null);
 
   const lat = data?.gps?.latitude?.toFixed(6) ?? '--';
   const lng = data?.gps?.longitude?.toFixed(6) ?? '--';
+
+  // Mission elapsed timer
+  useEffect(() => {
+    if (!activeMission) return;
+    const createdAt = new Date(activeMission.created_at).getTime();
+    const tick = () => setElapsed(formatElapsed(Date.now() - createdAt));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [activeMission]);
 
   useEffect(() => {
     if (!healthOpen) return;
@@ -66,6 +87,24 @@ export default function StatusBar() {
       {/* Center: Coordinates */}
       <div className="text-zinc-500 tabular-nums tracking-wider">
         {lat}, {lng}
+      </div>
+
+      {/* Mission timer */}
+      <div className="flex items-center gap-2 tabular-nums">
+        {activeMission ? (
+          <>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            <span className="text-zinc-300 uppercase tracking-wider truncate max-w-[120px]">
+              {activeMission.name}
+            </span>
+            <span className="text-cyan-400">{elapsed}</span>
+          </>
+        ) : (
+          <span className="text-zinc-600 tracking-wider">NO ACTIVE MISSION</span>
+        )}
       </div>
 
       {/* Right: Data rate */}

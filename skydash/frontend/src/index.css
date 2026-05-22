@@ -99,6 +99,17 @@
   background-size: 40px 40px;
 }
 
+/* Leaflet scale bar dark theme */
+.leaflet-control-scale-line {
+  background: rgba(9, 9, 11, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #a1a1aa !important;
+  font-family: var(--font-mono) !important;
+  font-size: 9px !important;
+  backdrop-filter: blur(8px);
+  padding: 2px 8px !important;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

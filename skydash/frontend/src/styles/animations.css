@@ -151,6 +151,33 @@
   transform-origin: center;
 }
 
+/* Animated drone trail — flowing dash pattern */
+@keyframes trail-flow {
+  to { stroke-dashoffset: -20; }
+}
+
+.animate-trail {
+  animation: trail-flow 1s linear infinite;
+}
+
+.leaflet-interactive.animate-trail {
+  animation: trail-flow 1s linear infinite;
+}
+
+/* Pulsing glow for trail head marker */
+@keyframes trail-head-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.6)); }
+  50% { filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.9)); }
+}
+
+.animate-trail-head {
+  animation: trail-head-pulse 1.5s ease-in-out infinite;
+}
+
+.leaflet-interactive.animate-trail-head {
+  animation: trail-head-pulse 1.5s ease-in-out infinite;
+}
+
 /* Entity popup styling — override Leaflet defaults */
 .entity-popup .leaflet-popup-content-wrapper {
   background: rgba(9, 9, 11, 0.92);

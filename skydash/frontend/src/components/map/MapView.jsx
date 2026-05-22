@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Polyline, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, CircleMarker, ScaleControl, useMap, useMapEvents } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import DroneMarker from './DroneMarker';
@@ -182,6 +182,8 @@ export default function MapView() {
           maxNativeZoom={tileConfig.maxNativeZoom}
         />
 
+        <ScaleControl position="bottomright" imperial={false} />
+
         {/* Flight path trail — glowing dual-line */}
         {pathPoints.length > 1 && (
           <>
@@ -203,10 +205,28 @@ export default function MapView() {
                 opacity: 0.7,
                 lineCap: 'round',
                 lineJoin: 'round',
+                dashArray: '8 12',
+                dashOffset: '0',
+                className: 'animate-trail',
               }}
             />
           </>
+        )}
 
+        {/* Glowing head marker at latest flight path position */}
+        {pathPoints.length > 2 && (
+          <CircleMarker
+            center={pathPoints[pathPoints.length - 1]}
+            radius={5}
+            pathOptions={{
+              color: '#818cf8',
+              fillColor: '#6366f1',
+              fillOpacity: 0.9,
+              weight: 2,
+              opacity: 0.8,
+              className: 'animate-trail-head',
+            }}
+          />
         )}
 
         {/* Drone marker */}
