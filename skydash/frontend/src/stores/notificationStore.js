@@ -87,6 +87,6 @@ const useNotificationStore = create((set, get) => ({
 export const notify = (opts) =>
   useNotificationStore.getState().addNotification(opts);
 
-window.__skydash_notify = notify;
+if (import.meta.env.DEV) window.__skydash_notify = notify;
 
 export default useNotificationStore;

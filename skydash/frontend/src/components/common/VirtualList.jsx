@@ -6,14 +6,6 @@ export default function VirtualList({ items, itemHeight, renderItem, className, 
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
 
-  if (!items || items.length === 0) return null;
-
-  const totalHeight = items.length * itemHeight;
-  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
-  const endIndex = Math.min(items.length, Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan);
-  const visibleItems = items.slice(startIndex, endIndex);
-  const offsetY = startIndex * itemHeight;
-
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -23,6 +15,14 @@ export default function VirtualList({ items, itemHeight, renderItem, className, 
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => { obs.disconnect(); el.removeEventListener('scroll', onScroll); };
   }, []);
+
+  if (!items || items.length === 0) return null;
+
+  const totalHeight = items.length * itemHeight;
+  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
+  const endIndex = Math.min(items.length, Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan);
+  const visibleItems = items.slice(startIndex, endIndex);
+  const offsetY = startIndex * itemHeight;
 
   return (
     <div ref={containerRef} className={clsx('overflow-y-auto', className)}>

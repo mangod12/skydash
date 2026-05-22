@@ -2,6 +2,7 @@
 Entities, relationships, and events persist across restarts."""
 import json
 import sqlite3
+import threading
 import time
 import uuid
 from typing import Dict, List, Optional
@@ -13,6 +14,7 @@ class EntityStore:
     def __init__(self, db_path: str = DB_PATH):
         self.db = sqlite3.connect(db_path, check_same_thread=False)
         self.db.row_factory = sqlite3.Row
+        self._lock = threading.Lock()
         self._init_tables()
         if self._count("entities") == 0:
             self._seed()
@@ -50,7 +52,11 @@ class EntityStore:
         """)
         self.db.commit()
 
+    _VALID_TABLES = {"entities", "relationships", "events"}
+
     def _count(self, table: str) -> int:
+        if table not in self._VALID_TABLES:
+            raise ValueError(f"Invalid table: {table}")
         return self.db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
 
     def _row_to_entity(self, row) -> Dict:
@@ -128,29 +134,34 @@ class EntityStore:
             "firstSeen": data.get("firstSeen", now),
             "lastSeen": data.get("lastSeen", now),
         }
-        self.db.execute(
-            "INSERT INTO entities (id, type, name, coordinates, properties, confidence, source, tags, threatLevel, firstSeen, lastSeen) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-            (eid, entity["type"], entity["name"], json.dumps(entity["coordinates"]),
-             json.dumps(entity["properties"]), entity["confidence"], entity["source"],
-             json.dumps(entity["tags"]), entity["threatLevel"], entity["firstSeen"], entity["lastSeen"]),
-        )
-        self.add_event({"type": "detection", "description": f"Entity created: {entity['name']}", "entityId": eid, "severity": "info"})
-        self.db.commit()
+        with self._lock:
+            self.db.execute(
+                "INSERT INTO entities (id, type, name, coordinates, properties, confidence, source, tags, threatLevel, firstSeen, lastSeen) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                (eid, entity["type"], entity["name"], json.dumps(entity["coordinates"]),
+                 json.dumps(entity["properties"]), entity["confidence"], entity["source"],
+                 json.dumps(entity["tags"]), entity["threatLevel"], entity["firstSeen"], entity["lastSeen"]),
+            )
+            self.add_event({"type": "detection", "description": f"Entity created: {entity['name']}", "entityId": eid, "severity": "info"})
+            self.db.commit()
         return entity
+
+    _MUTABLE_FIELDS = {"type", "name", "coordinates", "properties", "confidence", "source", "tags", "threatLevel"}
 
     def update_entity(self, entity_id: str, data: Dict) -> Optional[Dict]:
         existing = self.get_entity(entity_id)
         if not existing:
             return None
-        existing.update(data)
+        safe_data = {k: v for k, v in data.items() if k in self._MUTABLE_FIELDS}
+        existing.update(safe_data)
         existing["lastSeen"] = time.time()
-        self.db.execute(
-            "UPDATE entities SET type=?, name=?, coordinates=?, properties=?, confidence=?, source=?, tags=?, threatLevel=?, lastSeen=? WHERE id=?",
-            (existing["type"], existing["name"], json.dumps(existing["coordinates"]),
-             json.dumps(existing["properties"]), existing["confidence"], existing["source"],
-             json.dumps(existing["tags"]), existing["threatLevel"], existing["lastSeen"], entity_id),
-        )
-        self.db.commit()
+        with self._lock:
+            self.db.execute(
+                "UPDATE entities SET type=?, name=?, coordinates=?, properties=?, confidence=?, source=?, tags=?, threatLevel=?, lastSeen=? WHERE id=?",
+                (existing["type"], existing["name"], json.dumps(existing["coordinates"]),
+                 json.dumps(existing["properties"]), existing["confidence"], existing["source"],
+                 json.dumps(existing["tags"]), existing["threatLevel"], existing["lastSeen"], entity_id),
+            )
+            self.db.commit()
         return existing
 
     def delete_entity(self, entity_id: str) -> bool:

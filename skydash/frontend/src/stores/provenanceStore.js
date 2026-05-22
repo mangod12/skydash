@@ -38,7 +38,7 @@ export const useProvenanceStore = create((set, get) => ({
       actor,
       detail,
       timestamp: new Date().toISOString(),
-    }],
+    }].slice(-1000),
   })),
 
   getForEntity: (entityId) => get().entries.filter((e) => e.entityId === entityId),

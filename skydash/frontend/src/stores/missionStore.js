@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { toast } from '../components/common/Toast';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 
@@ -15,6 +16,7 @@ export const useMissionStore = create((set, get) => ({
       if (json.success) set({ missions: json.data });
     } catch (e) {
       console.error('Failed to fetch missions', e);
+      toast('Failed to load missions', 'error');
     }
     set({ loading: false });
   },
@@ -33,6 +35,7 @@ export const useMissionStore = create((set, get) => ({
       }
     } catch (e) {
       console.error('Failed to create mission', e);
+      toast('Failed to create mission', 'error');
     }
     return null;
   },
@@ -53,6 +56,7 @@ export const useMissionStore = create((set, get) => ({
       }
     } catch (e) {
       console.error('Failed to update mission', e);
+      toast('Failed to update mission', 'error');
     }
     return null;
   },
@@ -70,6 +74,7 @@ export const useMissionStore = create((set, get) => ({
       }
     } catch (e) {
       console.error('Failed to delete mission', e);
+      toast('Failed to delete mission', 'error');
     }
     return false;
   },

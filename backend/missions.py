@@ -2,6 +2,7 @@
 Missions group entities, notes, and map context for coordinated operations."""
 import json
 import sqlite3
+import threading
 import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
@@ -13,6 +14,7 @@ class MissionStore:
     def __init__(self, db_path: str = DB_PATH):
         self.db = sqlite3.connect(db_path, check_same_thread=False)
         self.db.row_factory = sqlite3.Row
+        self._lock = threading.Lock()
         self._init_tables()
 
     def _init_tables(self):
