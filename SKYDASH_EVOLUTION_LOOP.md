@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 20 COMPLETE
+## CURRENT PHASE: 21 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -1046,6 +1046,30 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
      chunk eliminated, empty vendor-react fixed (0→142KB), vendor-charts
      567→454KB (-20%), vendor-utils 87→65KB (-25%). Zero build warnings.
   ESLint warnings: 42→31 (-26%). 124 tests passing. Build: clean.
+
+[Phase 21] [2026-05-23] Deck.gl 3D visualization — WebGL overlay integration:
+  1. Core integration: DeckGlOverlay.jsx — Deck instance synced to Leaflet
+     viewport (move/zoom events), WebGL canvas at z-index 350 (between tiles
+     and Leaflet markers), pointer-events:none for Leaflet interop, MapView
+     integration as child of MapContainer.
+  2. Entity scatter: ScatterplotLayer with threat-colored dots (radius by
+     threat level 60-160m, RGBA from designTokens), stroked + filled, 0.6
+     opacity, radiusMinPixels 6 for visibility at all zoom levels.
+  3. Relationship arcs: ArcLayer connecting related entities with colored
+     arcs (cyan=located_at, violet=associated_with, amber=traveled_to,
+     red=communicates_with, emerald=owns), width by confidence, height 0.4
+     for arc curvature, 0.7 opacity.
+  4. Flight trails: PathLayer rendering primary drone path as smooth WebGL
+     trail (indigo, 4px width, rounded caps/joints), fleet drone position
+     indicators with cyan accent.
+  5. Hex density: HexagonLayer from @deck.gl/aggregation-layers — hexagonal
+     binning of entity positions with threat-weighted color aggregation,
+     scattered density points, 6-stop cyan→red color range, 80m radius,
+     0.85 coverage, flat mode (no extrusion — top-down view).
+  Layer toggles in MapControls under "DECK.GL 3D LAYERS" section. Defaults:
+  arcs ON, trails ON, scatter OFF, hex OFF. Vite vendor-deckgl chunk (672KB,
+  192KB gzip). chunkSizeWarningLimit raised to 700KB.
+  3 new files, 5 files modified. 124 tests passing. Build: clean.
 ---
 ---
 ```

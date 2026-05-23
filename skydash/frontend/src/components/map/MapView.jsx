@@ -14,6 +14,8 @@ import SpatialSearchPanel from './SpatialSearch';
 import BearingPanel from './BearingPanel';
 import ContextMenu from '../common/ContextMenu';
 import MapOverlays from './MapOverlays';
+import DeckGlOverlay from './DeckGlOverlay';
+import { useDeckLayers } from './deckLayers';
 import { useMapInteractions } from './MapInteractions';
 import 'leaflet/dist/leaflet.css';
 
@@ -92,6 +94,7 @@ export default function MapView() {
   const mapRef = useRef(null);
 
   const interactions = useMapInteractions();
+  const deckLayers = useDeckLayers();
 
   const pathPoints = layers.flightPath
     ? flightPath.map((p) => [p.lat, p.lng])
@@ -119,6 +122,8 @@ export default function MapView() {
           maxZoom={tileConfig.maxZoom}
           maxNativeZoom={tileConfig.maxNativeZoom}
         />
+
+        <DeckGlOverlay layers={deckLayers} />
 
         <MapOverlays
           layers={layers}

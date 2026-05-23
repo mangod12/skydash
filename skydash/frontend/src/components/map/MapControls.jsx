@@ -20,6 +20,13 @@ const LAYER_LIST = [
   { key: 'satellite', label: 'Satellite Tiles' },
 ];
 
+const DECK_LAYER_LIST = [
+  { key: 'deckArcs', label: 'Relationship Arcs' },
+  { key: 'deckScatter', label: 'Entity Scatter' },
+  { key: 'deckTrails', label: 'Flight Trails' },
+  { key: 'deckHex', label: 'Hex Density' },
+];
+
 function ToggleSwitch({ on, onChange, label }) {
   return (
     <button onClick={onChange} className="flex items-center justify-between w-full py-1.5 group">
@@ -99,6 +106,21 @@ function LayerPanel({ layers, toggleLayer, onClose }) {
             label={layer.label}
           />
         ))}
+      </div>
+      <div className="mt-3 pt-2 border-t border-white/[0.06]">
+        <div className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-2">
+          DECK.GL 3D LAYERS
+        </div>
+        <div className="space-y-0.5">
+          {DECK_LAYER_LIST.map((layer) => (
+            <ToggleSwitch
+              key={layer.key}
+              on={!!layers[layer.key]}
+              onChange={() => toggleLayer(layer.key)}
+              label={layer.label}
+            />
+          ))}
+        </div>
       </div>
     </motion.div>
   );
