@@ -12,6 +12,10 @@ import DashboardIntelSummary from './DashboardIntelSummary';
 import DashboardMiniMap from './DashboardMiniMap';
 import FleetSparklines from './FleetSparklines';
 import FleetOverview from '../telemetry/FleetOverview';
+import AlertTimeline from './AlertTimeline';
+import MissionProgressCard from './MissionProgressCard';
+import EntityRadar from './EntityRadar';
+import CommsLog from './CommsLog';
 import WidgetGrid from './WidgetGrid';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
@@ -134,8 +138,14 @@ export default function DashboardView() {
           />
         </div>
 
-        {/* ── Threat Gauge + Intel Summary ── */}
-        <div className="grid grid-cols-5 gap-3">
+        {/* ── Alert Timeline ── */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.28, ease: EASE }}>
+          <AlertTimeline events={events} />
+        </motion.div>
+
+        {/* ── Threat Gauge + Mission Progress + Intel Summary ── */}
+        <div className="grid grid-cols-6 gap-3">
           <motion.div className="col-span-2" initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3, ease: EASE }}>
             <ThreatGaugeCard
@@ -144,7 +154,11 @@ export default function DashboardView() {
               critCount={threatCounts.critical}
             />
           </motion.div>
-          <motion.div className="col-span-3" initial={{ opacity: 0, y: 12 }}
+          <motion.div className="col-span-2" initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.33, ease: EASE }}>
+            <MissionProgressCard mission={activeMissions[0] || null} />
+          </motion.div>
+          <motion.div className="col-span-2" initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.35, ease: EASE }}>
             <DashboardIntelSummary
               entities={entities}
@@ -160,11 +174,11 @@ export default function DashboardView() {
           <FleetOverview />
         </motion.div>
 
-        {/* ── Bottom Row: Map + Sparklines | Activity Feed ── */}
-        <div className="grid grid-cols-5 gap-3">
-          <div className="col-span-3 space-y-3">
+        {/* ── Bottom Row: Map + Radar | Sparklines + Comms | Activity Feed ── */}
+        <div className="grid grid-cols-6 gap-3">
+          <div className="col-span-2 space-y-3">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.4, ease: EASE }}>
+              transition={{ duration: 0.4, delay: 0.45, ease: EASE }}>
               <GlassCard className="!p-3" animate={false}>
                 <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 block mb-2">
                   OPERATIONAL MAP
@@ -175,6 +189,13 @@ export default function DashboardView() {
 
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.5, ease: EASE }}>
+              <EntityRadar />
+            </motion.div>
+          </div>
+
+          <div className="col-span-2 space-y-3">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.48, ease: EASE }}>
               <GlassCard className="!p-4" animate={false}>
                 <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 block mb-3">
                   FLEET TELEMETRY
@@ -182,10 +203,15 @@ export default function DashboardView() {
                 <FleetSparklines />
               </GlassCard>
             </motion.div>
+
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.52, ease: EASE }}>
+              <CommsLog />
+            </motion.div>
           </div>
 
           <motion.div className="col-span-2" initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.45, ease: EASE }}>
+            animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.5, ease: EASE }}>
             <DashboardActivityFeed />
           </motion.div>
         </div>

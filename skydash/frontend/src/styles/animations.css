@@ -178,6 +178,12 @@
   animation: trail-head-pulse 1.5s ease-in-out infinite;
 }
 
+/* Radar sweep rotation */
+@keyframes radarSweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Entity popup styling — override Leaflet defaults */
 .entity-popup .leaflet-popup-content-wrapper {
   background: rgba(9, 9, 11, 0.92);

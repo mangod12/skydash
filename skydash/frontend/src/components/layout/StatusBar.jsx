@@ -5,6 +5,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { useMissionStore } from '../../stores/missionStore';
 import StatusBadge from '../common/StatusBadge';
 import SystemHealth from '../common/SystemHealth';
+import SystemPulse from '../common/SystemPulse';
 import FreshnessIndicator from '../common/FreshnessIndicator';
 
 function ConnectionBars({ latency, connected }) {
@@ -140,15 +141,15 @@ export default function StatusBar() {
         )}
       </div>
 
-      {/* WS Freshness + Data rate */}
+      {/* System pulse + WS Freshness */}
       <div className="flex items-center gap-3 text-zinc-600">
+        <SystemPulse />
         <FreshnessIndicator
           timestamp={isConnected ? Date.now() : null}
           source="WS"
           compact
         />
         <span>{data?.gps?.satellites ?? '--'} SATS</span>
-        <span>{data?.flight_mode ?? '--'}</span>
       </div>
     </footer>
   );
