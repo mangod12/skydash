@@ -7,6 +7,8 @@ import DataFreshnessBar from '../common/DataFreshnessBar';
 import { PanelBoundary } from '../common/ErrorBoundary';
 import { StatCard } from './DashboardCards';
 import DashboardActivityFeed from './DashboardActivityFeed';
+import ThreatGaugeCard from './ThreatGaugeCard';
+import DashboardIntelSummary from './DashboardIntelSummary';
 import DashboardMiniMap from './DashboardMiniMap';
 import FleetSparklines from './FleetSparklines';
 import FleetOverview from '../telemetry/FleetOverview';
@@ -22,6 +24,8 @@ export default function DashboardView() {
   const isConnected = useTelemetryStore((s) => s.isConnected);
   const latency = useTelemetryStore((s) => s.latency);
   const entities = useIntelStore((s) => s.entities);
+  const events = useIntelStore((s) => s.events);
+  const relationships = useIntelStore((s) => s.relationships);
   const missions = useMissionStore((s) => s.missions);
   const fetchMissions = useMissionStore((s) => s.fetchMissions);
   const [widgetMode, setWidgetMode] = useState(false);
@@ -130,9 +134,29 @@ export default function DashboardView() {
           />
         </div>
 
+        {/* ── Threat Gauge + Intel Summary ── */}
+        <div className="grid grid-cols-5 gap-3">
+          <motion.div className="col-span-2" initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3, ease: EASE }}>
+            <ThreatGaugeCard
+              score={threatScore}
+              highCount={threatCounts.high}
+              critCount={threatCounts.critical}
+            />
+          </motion.div>
+          <motion.div className="col-span-3" initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.35, ease: EASE }}>
+            <DashboardIntelSummary
+              entities={entities}
+              events={events}
+              relationships={relationships}
+            />
+          </motion.div>
+        </div>
+
         {/* ── Fleet Overview Table ── */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.35, ease: EASE }}>
+          transition={{ duration: 0.4, delay: 0.4, ease: EASE }}>
           <FleetOverview />
         </motion.div>
 

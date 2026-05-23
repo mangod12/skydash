@@ -6,6 +6,9 @@ import { useIntelStore } from '../../stores/intelStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { generateNetworkSummary } from '../../utils/networkAnalysis';
 import { EntityDistributionChart, ThreatBreakdownChart, AltitudeTrendChart } from './AnalyticsCharts';
+import ThreatTrendChart from './ThreatTrendChart';
+import TemporalHeatmap from './TemporalHeatmap';
+import EntityTypeCards from './EntityTypeCards';
 import AnalyticsNetwork from './AnalyticsNetwork';
 
 function StatCard({ label, value, sub, color = 'text-indigo-400' }) {
@@ -77,6 +80,15 @@ export default function AnalyticsView() {
             <StatCard label="ACTIVE DRONES" value={fleet.length || 1} color="text-violet-400" />
           </GlassCard>
         </div>
+
+        {/* Threat timeline + heatmap */}
+        <div className="grid grid-cols-2 gap-3">
+          <ThreatTrendChart events={events} />
+          <TemporalHeatmap events={events} />
+        </div>
+
+        {/* Entity type breakdown */}
+        <EntityTypeCards entities={entities} />
 
         {/* Charts row */}
         <div className="grid grid-cols-3 gap-3">

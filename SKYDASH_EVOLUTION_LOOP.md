@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 21 COMPLETE
+## CURRENT PHASE: 22 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -1070,6 +1070,29 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
   arcs ON, trails ON, scatter OFF, hex OFF. Vite vendor-deckgl chunk (672KB,
   192KB gzip). chunkSizeWarningLimit raised to 700KB.
   3 new files, 5 files modified. 124 tests passing. Build: clean.
+
+[Phase 22] [2026-05-23] Intelligence dashboard & analytics depth:
+  1. Threat timeline: ThreatTrendChart.jsx — stacked area chart bucketing
+     events by severity (low/medium/high/critical) across 12 time intervals,
+     gradient fills, custom tooltip with severity dots. AnalyticsView.
+  2. Activity heatmap: TemporalHeatmap.jsx — 4-row × 12-column grid
+     (CRITICAL/WARNING/INFO/DETECT × time buckets), 6-level intensity
+     coloring, tooltips, GitHub-style legend. AnalyticsView.
+  3. Entity type cards: EntityTypeCards.jsx — per-type summary cards
+     (person/vehicle/facility/signal/event) with count, avg confidence,
+     threat breakdown bar, top entity. 5-column grid. AnalyticsView.
+  4. Threat gauge: ThreatGaugeCard.jsx — SVG semicircular arc gauge with
+     4 colored segments (low/med/high/crit), animated needle, score display,
+     high/critical counts. Framer Motion arc animation. DashboardView.
+  5. Intel summary: DashboardIntelSummary.jsx — auto-generated findings
+     from entity/event/relationship data (critical entities, recent events,
+     hub entities, low-confidence warnings, geo-located count). Priority-
+     sorted, icon-coded (threat/trend/surveillance/location). DashboardView.
+  AnalyticsView now has: threat timeline + heatmap → entity type cards →
+  distribution/threat/altitude charts → risk overview → network intelligence.
+  DashboardView now has: stat cards → threat gauge + intel summary → fleet
+  overview → mini map + sparklines + activity feed.
+  5 new files, 3 files modified. 124 tests passing. Build: clean.
 ---
 ---
 ```
