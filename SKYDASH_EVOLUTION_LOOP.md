@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 23 COMPLETE
+## CURRENT PHASE: 24 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -1118,6 +1118,30 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
   gauge + mission progress + intel summary → fleet overview → map + radar |
   sparklines + comms | activity feed. Radar sweep CSS keyframe added.
   6 new files, 3 files modified. 124 tests passing. Build: clean.
+
+[Phase 24] [2026-05-23] Tactical map intelligence:
+  1. Threat zones: ThreatZones.jsx — gradient danger circles around
+     high/critical/medium entities (200-400m radius by threat level),
+     dual-ring design (outer dashed + inner fill), 3-tier opacity.
+     Leaflet Circle components inside MapOverlays. Default ON.
+  2. Drone footprint: DroneFootprint.jsx — camera sensor FOV polygon
+     computed from drone altitude + 60deg FOV + heading rotation,
+     4:3 aspect ratio, dashed cyan outline, nadir cross indicator.
+     Scales with altitude. Default ON.
+  3. Tactical labels: TacticalLabels.jsx — floating HUD-style labels
+     near each entity showing type abbreviation (PER/VEH/FAC/SIG/EVT),
+     truncated name, distance from drone (haversine), threat-colored
+     type badge. Leaflet DivIcon markers. Default OFF.
+  4. Sector grid: SectorGrid.jsx — 4 named operational sectors
+     (ALPHA/BRAVO/CHARLIE/DELTA) centered on map center, color-coded
+     rectangles with faded name labels, dashed borders. Default OFF.
+  5. Proximity warning: ProximityWarning.jsx — animated alert overlay
+     when drone enters 500m of high/critical threat entities, shows
+     entity name + distance in meters, red-tinted glass panel with
+     pulsing AlertTriangle icon. Framer Motion enter/exit. MapView.
+  Layer toggles under new "TACTICAL OVERLAYS" section in MapControls.
+  mapStore extended with 4 tactical layer flags.
+  5 new files, 5 files modified. 124 tests passing. Build: clean.
 ---
 ---
 ```

@@ -27,6 +27,13 @@ const DECK_LAYER_LIST = [
   { key: 'deckHex', label: 'Hex Density' },
 ];
 
+const TACTICAL_LAYER_LIST = [
+  { key: 'threatZones', label: 'Threat Zones' },
+  { key: 'droneFootprint', label: 'Drone FOV' },
+  { key: 'tacticalLabels', label: 'Tactical Labels' },
+  { key: 'sectors', label: 'Sector Grid' },
+];
+
 function ToggleSwitch({ on, onChange, label }) {
   return (
     <button onClick={onChange} className="flex items-center justify-between w-full py-1.5 group">
@@ -113,6 +120,21 @@ function LayerPanel({ layers, toggleLayer, onClose }) {
         </div>
         <div className="space-y-0.5">
           {DECK_LAYER_LIST.map((layer) => (
+            <ToggleSwitch
+              key={layer.key}
+              on={!!layers[layer.key]}
+              onChange={() => toggleLayer(layer.key)}
+              label={layer.label}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="mt-3 pt-2 border-t border-white/[0.06]">
+        <div className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-2">
+          TACTICAL OVERLAYS
+        </div>
+        <div className="space-y-0.5">
+          {TACTICAL_LAYER_LIST.map((layer) => (
             <ToggleSwitch
               key={layer.key}
               on={!!layers[layer.key]}

@@ -10,6 +10,10 @@ import MeasureTool from './MeasureTool';
 import BearingTool from './BearingTool';
 import MapAnnotations from './MapAnnotations';
 import PlaybackMarkers from './PlaybackMarkers';
+import ThreatZones from './ThreatZones';
+import DroneFootprint from './DroneFootprint';
+import TacticalLabels from './TacticalLabels';
+import SectorGrid from './SectorGrid';
 import { SpatialSearchMapHandler, SpatialSearchOverlay } from './SpatialSearch';
 
 /**
@@ -131,6 +135,12 @@ export default function MapOverlays({
 
       {/* Map annotations */}
       <MapAnnotations />
+
+      {/* Tactical overlays */}
+      {layers.threatZones && <ThreatZones />}
+      {layers.droneFootprint && <DroneFootprint />}
+      {layers.tacticalLabels && <TacticalLabels />}
+      {layers.sectors && <SectorGrid />}
 
       {/* Playback ghost markers */}
       <PlaybackMarkers />

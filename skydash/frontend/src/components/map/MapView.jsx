@@ -15,6 +15,7 @@ import BearingPanel from './BearingPanel';
 import ContextMenu from '../common/ContextMenu';
 import MapOverlays from './MapOverlays';
 import DeckGlOverlay from './DeckGlOverlay';
+import ProximityWarning from './ProximityWarning';
 import { useDeckLayers } from './deckLayers';
 import { useMapInteractions } from './MapInteractions';
 import 'leaflet/dist/leaflet.css';
@@ -147,6 +148,7 @@ export default function MapView() {
       </MapContainer>
 
       <GridOverlay />
+      <ProximityWarning />
       <MapHUD data={data} />
       <CompassRose />
       <BearingPanel active={interactions.bearingMode} />
