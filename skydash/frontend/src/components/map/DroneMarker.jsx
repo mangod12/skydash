@@ -15,7 +15,7 @@ function createDroneIcon(heading = 0) {
         <!-- Glow background -->
         <div style="position:absolute;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,0.25) 0%,transparent 70%);"></div>
         <!-- Main body -->
-        <div style="width:36px;height:36px;border-radius:50%;border:2px solid rgba(99,102,241,0.7);display:flex;align-items:center;justify-content:center;background:rgba(9,9,11,0.8);backdrop-filter:blur(4px);box-shadow:0 0 20px rgba(99,102,241,0.4),inset 0 0 10px rgba(99,102,241,0.1);">
+        <div style="width:36px;height:36px;border-radius:50%;border:2px solid rgba(99,102,241,0.7);display:flex;align-items:center;justify-content:center;background:rgba(9,9,11,0.8);backdrop-filter:blur(16px);box-shadow:0 0 20px rgba(99,102,241,0.4),inset 0 0 10px rgba(99,102,241,0.1);">
           <svg width="22" height="22" viewBox="0 0 22 22" style="transform:rotate(${heading}deg);filter:drop-shadow(0 0 4px rgba(99,102,241,0.6));">
             <polygon points="11,1 7,16 11,13 15,16" fill="#818cf8" stroke="rgba(255,255,255,0.5)" stroke-width="0.5"/>
             <polygon points="11,1 7,16 11,13 15,16" fill="url(#droneGrad)" opacity="0.5"/>

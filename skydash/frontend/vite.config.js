@@ -6,12 +6,14 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-map': ['leaflet', 'react-leaflet'],
-          'vendor-charts': ['recharts'],
-          'vendor-motion': ['framer-motion'],
-          'vendor-utils': ['zustand', 'clsx', 'date-fns', 'cmdk', 'lucide-react'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('/react/') || id.includes('/react-dom/')) return 'vendor-react';
+            if (id.includes('/leaflet/') || id.includes('/react-leaflet/')) return 'vendor-map';
+            if (id.includes('/recharts/') || id.includes('/date-fns/') || id.includes('/clsx/')) return 'vendor-charts';
+            if (id.includes('/framer-motion/')) return 'vendor-motion';
+            if (id.includes('/zustand/') || id.includes('/cmdk/') || id.includes('/lucide-react/')) return 'vendor-utils';
+          }
         },
       },
     },

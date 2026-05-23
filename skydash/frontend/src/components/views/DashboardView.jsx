@@ -4,9 +4,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { Wifi, WifiOff, Shield, Crosshair, Activity, LayoutGrid, LayoutList } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 import DataFreshnessBar from '../common/DataFreshnessBar';
+import { PanelBoundary } from '../common/ErrorBoundary';
 import { StatCard } from './DashboardCards';
-import ActivityItem from '../common/ActivityItem';
-import { useActivityStore } from '../../stores/activityStore';
+import DashboardActivityFeed from './DashboardActivityFeed';
 import DashboardMiniMap from './DashboardMiniMap';
 import FleetSparklines from './FleetSparklines';
 import FleetOverview from '../telemetry/FleetOverview';
@@ -67,24 +67,22 @@ export default function DashboardView() {
   const linkedEntities = missions.reduce((s, m) => s + (m.entityIds?.length || 0), 0);
   const dataRate = fleet.length > 0 ? `${fleet.length * 2} msg/s` : '0 msg/s';
 
-  const activityFilter = useActivityStore((s) => s.filter);
-  const setActivityFilter = useActivityStore((s) => s.setFilter);
-  const filteredActivities = useActivityStore((s) => s.getFiltered());
-  const ACTIVITY_FILTERS = ['all', 'intel', 'mission', 'system', 'alert', 'telemetry'];
-
   if (widgetMode) {
     return (
-      <div className="h-full relative">
-        <button onClick={() => setWidgetMode(false)}
-          className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-mono text-zinc-500 border border-white/[0.06] hover:border-white/[0.12] hover:text-zinc-300 bg-zinc-950/80 backdrop-blur transition-all">
-          <LayoutList size={12} /> CLASSIC VIEW
-        </button>
-        <WidgetGrid />
-      </div>
+      <PanelBoundary name="Dashboard">
+        <div className="h-full relative">
+          <button onClick={() => setWidgetMode(false)}
+            className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-mono text-zinc-500 border border-white/[0.06] hover:border-white/[0.12] hover:text-zinc-300 bg-zinc-950/80 backdrop-blur transition-all">
+            <LayoutList size={12} /> CLASSIC VIEW
+          </button>
+          <WidgetGrid />
+        </div>
+      </PanelBoundary>
     );
   }
 
   return (
+    <PanelBoundary name="Dashboard">
     <div className="h-full overflow-y-auto p-4">
       <div className="max-w-7xl mx-auto space-y-3">
         {/* ── Data Freshness Bar + Widget Toggle ── */}
@@ -164,42 +162,11 @@ export default function DashboardView() {
 
           <motion.div className="col-span-2" initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.45, ease: EASE }}>
-            <GlassCard className="!p-4 h-full" animate={false}>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
-                  ACTIVITY FEED
-                </span>
-                <div className="flex gap-1">
-                  {ACTIVITY_FILTERS.map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setActivityFilter(f)}
-                      className={`text-[8px] px-1.5 py-0.5 rounded font-mono tracking-wider transition-colors ${
-                        activityFilter === f
-                          ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
-                          : 'text-zinc-600 hover:text-zinc-400'
-                      }`}
-                    >
-                      {f.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-1 overflow-y-auto max-h-[440px] pr-1 custom-scrollbar">
-                {filteredActivities.length === 0 ? (
-                  <div className="flex items-center justify-center h-32 text-zinc-700 text-[10px] tracking-wider">
-                    NO ACTIVITY
-                  </div>
-                ) : (
-                  filteredActivities.slice(0, 20).map((activity) => (
-                    <ActivityItem key={activity.id} activity={activity} />
-                  ))
-                )}
-              </div>
-            </GlassCard>
+            <DashboardActivityFeed />
           </motion.div>
         </div>
       </div>
     </div>
+    </PanelBoundary>
   );
 }

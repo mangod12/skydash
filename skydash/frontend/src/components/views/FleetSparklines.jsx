@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { useTelemetryStore } from '../../stores/telemetryStore';
+import { COLORS } from '../../utils/designTokens';
 
 const SPARK_POINTS = 20;
 
 function batteryColor(pct) {
-  if (pct < 15) return '#ef4444';
-  if (pct < 30) return '#f59e0b';
-  return '#10b981';
+  if (pct < 15) return COLORS.critical;
+  if (pct < 30) return COLORS.warning;
+  return COLORS.healthy;
 }
 
 function generateHistory(drone) {
@@ -73,7 +74,7 @@ export default function FleetSparklines() {
             {id}
           </span>
           <div className="flex items-center gap-4">
-            <Spark data={data} dataKey="alt" color="#22d3ee" label="ALT" />
+            <Spark data={data} dataKey="alt" color={COLORS.dataLight} label="ALT" />
             <Spark data={data} dataKey="bat" color={batteryColor(batPct)} label="BAT" />
           </div>
         </div>

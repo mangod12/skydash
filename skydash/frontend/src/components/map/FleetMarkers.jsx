@@ -1,11 +1,12 @@
 import { Marker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import { useTelemetryStore } from '../../stores/telemetryStore';
+import { PATTERN_COLORS } from '../../utils/designTokens';
 
 const PATTERN_STYLES = {
-  orbit: { color: '#22d3ee', label: 'ORBIT' },
-  grid: { color: '#f59e0b', label: 'GRID' },
-  waypoint: { color: '#8b5cf6', label: 'WAYPOINT' },
+  orbit: { color: PATTERN_COLORS.orbit, label: 'ORBIT' },
+  grid: { color: PATTERN_COLORS.grid, label: 'GRID' },
+  waypoint: { color: PATTERN_COLORS.waypoint, label: 'WAYPOINT' },
 };
 
 function createFleetIcon(color, heading = 0) {

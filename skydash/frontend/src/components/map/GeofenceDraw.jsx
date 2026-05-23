@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMapEvents, CircleMarker, Polyline, Polygon } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
 import { toast } from '../common/Toast';
+import { COLORS } from '../../utils/designTokens';
 
 export default function GeofenceDraw({ active, mode, onComplete }) {
   const [points, setPoints] = useState([]);
@@ -30,7 +31,7 @@ export default function GeofenceDraw({ active, mode, onComplete }) {
             type: 'circle',
             center,
             radius: Math.round(radius),
-            color: '#6366f1',
+            color: COLORS.brand,
             active: true,
             alertOnEntry: true,
             alertOnExit: false,
@@ -54,7 +55,7 @@ export default function GeofenceDraw({ active, mode, onComplete }) {
         name: `Zone ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}${Math.floor(Math.random() * 99)}`,
         type: 'polygon',
         points: [...points],
-        color: '#6366f1',
+        color: COLORS.brand,
         active: true,
         alertOnEntry: true,
         alertOnExit: false,
@@ -75,7 +76,7 @@ export default function GeofenceDraw({ active, mode, onComplete }) {
         <CircleMarker
           center={[center.lat, center.lng]}
           radius={5}
-          pathOptions={{ color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.8 }}
+          pathOptions={{ color: COLORS.warning, fillColor: COLORS.warning, fillOpacity: 0.8 }}
         />
       )}
 
@@ -87,19 +88,19 @@ export default function GeofenceDraw({ active, mode, onComplete }) {
               key={i}
               center={[p.lat, p.lng]}
               radius={4}
-              pathOptions={{ color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.8 }}
+              pathOptions={{ color: COLORS.warning, fillColor: COLORS.warning, fillOpacity: 0.8 }}
             />
           ))}
           {points.length > 1 && (
             <Polyline
               positions={points.map((p) => [p.lat, p.lng])}
-              pathOptions={{ color: '#f59e0b', weight: 2, dashArray: '6 4' }}
+              pathOptions={{ color: COLORS.warning, weight: 2, dashArray: '6 4' }}
             />
           )}
           {points.length >= 3 && (
             <Polygon
               positions={points.map((p) => [p.lat, p.lng])}
-              pathOptions={{ color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.06, weight: 1, dashArray: '6 4' }}
+              pathOptions={{ color: COLORS.warning, fillColor: COLORS.warning, fillOpacity: 0.06, weight: 1, dashArray: '6 4' }}
             />
           )}
         </>

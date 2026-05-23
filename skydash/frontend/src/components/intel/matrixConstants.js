@@ -1,6 +1,7 @@
 import {
   Car, User, Building2, Wifi, AlertTriangle,
 } from 'lucide-react';
+import { COLORS } from '../../utils/designTokens';
 
 export const TYPE_ICONS = {
   vehicle: Car, person: User, building: Building2,
@@ -47,6 +48,6 @@ export function getCellOpacity(count, maxCount) {
 }
 
 export function getCssColor(category) {
-  const map = { data: '#22d3ee', intel: '#8b5cf6', suspicious: '#f59e0b', adversarial: '#ef4444' };
-  return map[category] || '#22d3ee';
+  const map = { data: COLORS.dataLight, intel: COLORS.intel, suspicious: COLORS.warning, adversarial: COLORS.critical };
+  return map[category] || COLORS.dataLight;
 }

@@ -181,7 +181,7 @@
 /* Entity popup styling — override Leaflet defaults */
 .entity-popup .leaflet-popup-content-wrapper {
   background: rgba(9, 9, 11, 0.92);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 10px;
   color: #d4d4d8;

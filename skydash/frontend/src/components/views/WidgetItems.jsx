@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useIntelStore } from '../../stores/intelStore';
 import { useFeedStore } from '../../stores/feedStore';
+import { COLORS } from '../../utils/designTokens';
 
 /* ─── Threat Gauge Widget ──────────────────────────────── */
 
@@ -14,7 +15,7 @@ export function ThreatGaugeWidget() {
   }, [entities]);
 
   const angle = (score / 100) * 180;
-  const color = score > 70 ? '#ef4444' : score > 40 ? '#f59e0b' : '#10b981';
+  const color = score > 70 ? COLORS.critical : score > 40 ? COLORS.warning : COLORS.healthy;
 
   return (
     <div className="flex flex-col items-center justify-center h-full">
@@ -26,7 +27,7 @@ export function ThreatGaugeWidget() {
           strokeDasharray={`${(angle / 180) * 157} 157`} />
         <text x="60" y="55" textAnchor="middle" fill={color}
           fontSize="18" fontFamily="JetBrains Mono, monospace" fontWeight="bold">{score}</text>
-        <text x="60" y="66" textAnchor="middle" fill="#71717a"
+        <text x="60" y="66" textAnchor="middle" fill={COLORS.muted}
           fontSize="6" letterSpacing="0.1em">THREAT SCORE</text>
       </svg>
     </div>

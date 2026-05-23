@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useMapEvents, Polyline, CircleMarker, Tooltip } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
 import { calculateBearing, calculateDistance, midpoint, formatBearing, formatDistance } from '../../utils/bearing';
+import { COLORS } from '../../utils/designTokens';
 
 /**
  * BearingTool — map event handler for drawing bearing lines
@@ -41,7 +42,7 @@ export default function BearingTool({ active, pendingPoint, onSetPending }) {
         <CircleMarker
           center={[pendingPoint.lat, pendingPoint.lng]}
           radius={5}
-          pathOptions={{ color: '#06b6d4', fillColor: '#06b6d4', fillOpacity: 1, weight: 2 }}
+          pathOptions={{ color: COLORS.data, fillColor: COLORS.data, fillOpacity: 1, weight: 2 }}
         >
           <Tooltip permanent direction="top" offset={[0, -8]} className="bearing-tooltip">
             <span className="font-mono text-[10px]">START</span>
@@ -79,7 +80,7 @@ function BearingLineOverlay({ start, end, mid, bearing, distance, onContextMenu 
       <Polyline
         positions={[[start.lat, start.lng], [end.lat, end.lng]]}
         pathOptions={{
-          color: '#06b6d4',
+          color: COLORS.data,
           weight: 2,
           dashArray: '8 6',
           opacity: 0.85,
@@ -94,7 +95,7 @@ function BearingLineOverlay({ start, end, mid, bearing, distance, onContextMenu 
       <CircleMarker
         center={[start.lat, start.lng]}
         radius={4}
-        pathOptions={{ color: '#06b6d4', fillColor: '#0e7490', fillOpacity: 1, weight: 2 }}
+        pathOptions={{ color: COLORS.data, fillColor: '#0e7490', fillOpacity: 1, weight: 2 }}
       >
         <Tooltip permanent direction="bottom" offset={[0, 6]} className="bearing-tooltip">
           <span className="font-mono text-[9px]">
@@ -107,7 +108,7 @@ function BearingLineOverlay({ start, end, mid, bearing, distance, onContextMenu 
       <CircleMarker
         center={[end.lat, end.lng]}
         radius={4}
-        pathOptions={{ color: '#06b6d4', fillColor: '#06b6d4', fillOpacity: 1, weight: 2 }}
+        pathOptions={{ color: COLORS.data, fillColor: COLORS.data, fillOpacity: 1, weight: 2 }}
       >
         <Tooltip permanent direction="bottom" offset={[0, 6]} className="bearing-tooltip">
           <span className="font-mono text-[9px]">
@@ -151,7 +152,7 @@ function ArrowHead({ start, end }) {
     <Polyline
       positions={[left, tip, right]}
       pathOptions={{
-        color: '#06b6d4',
+        color: COLORS.data,
         weight: 2,
         opacity: 0.9,
         fill: false,

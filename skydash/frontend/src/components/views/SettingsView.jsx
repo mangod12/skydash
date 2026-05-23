@@ -6,6 +6,7 @@ import AlertRulesConfig from '../common/AlertRulesConfig';
 import SystemHealth from '../common/SystemHealth';
 import PlatformStatus from '../common/PlatformStatus';
 import { startTour } from '../common/OnboardingTour';
+import { PanelBoundary } from '../common/ErrorBoundary';
 import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
@@ -20,6 +21,7 @@ export default function SettingsView() {
   const { fleet } = useTelemetryStore();
 
   return (
+    <PanelBoundary name="Settings">
     <div className="h-full overflow-y-auto p-6">
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
@@ -130,5 +132,6 @@ export default function SettingsView() {
         <PlatformStatus />
       </div>
     </div>
+    </PanelBoundary>
   );
 }

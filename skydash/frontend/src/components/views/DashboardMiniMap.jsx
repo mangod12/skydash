@@ -2,22 +2,10 @@ import { useMemo } from 'react';
 import { MapContainer, TileLayer, CircleMarker } from 'react-leaflet';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
+import { PATTERN_COLORS, THREAT_COLORS, COLORS } from '../../utils/designTokens';
 import 'leaflet/dist/leaflet.css';
 
 const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-
-const PATTERN_COLORS = {
-  orbit: '#22d3ee',
-  grid: '#f59e0b',
-  waypoint: '#8b5cf6',
-};
-
-const THREAT_COLORS = {
-  low: '#10b981',
-  medium: '#f59e0b',
-  high: '#ef4444',
-  critical: '#dc2626',
-};
 
 function computeCentroid(fleet, entities) {
   const points = [];
@@ -57,14 +45,14 @@ export default function DashboardMiniMap() {
         touchZoom={false}
         keyboard={false}
         attributionControl={false}
-        style={{ background: '#09090b' }}
+        style={{ background: COLORS.surface }}
       >
         <TileLayer url={TILE_URL} maxZoom={20} maxNativeZoom={20} />
 
         {/* Fleet drone dots */}
         {fleet.map((drone) => {
           if (!drone.gps?.latitude) return null;
-          const color = PATTERN_COLORS[drone.pattern] || '#22d3ee';
+          const color = PATTERN_COLORS[drone.pattern] || COLORS.dataLight;
           return (
             <CircleMarker
               key={drone.drone_id}
@@ -85,7 +73,7 @@ export default function DashboardMiniMap() {
         {entities
           .filter((e) => e.coordinates)
           .map((entity) => {
-            const color = THREAT_COLORS[entity.threatLevel] || '#71717a';
+            const color = THREAT_COLORS[entity.threatLevel] || COLORS.muted;
             return (
               <CircleMarker
                 key={entity.id}

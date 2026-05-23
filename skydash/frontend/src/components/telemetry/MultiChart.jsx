@@ -6,18 +6,19 @@ import {
 } from 'recharts';
 import { clsx } from 'clsx';
 import { useTelemetryStore } from '../../stores/telemetryStore';
+import { COLORS } from '../../utils/designTokens';
 
 const CHART_CONFIGS = [
-  { id: 'altitude', label: 'ALT', dataKey: 'altitude', color: '#10b981', unit: 'm' },
+  { id: 'altitude', label: 'ALT', dataKey: 'altitude', color: COLORS.healthy, unit: 'm' },
   { id: 'speed', label: 'SPD', dataKey: 'speed', color: '#3b82f6', unit: 'm/s' },
-  { id: 'battery', label: 'BAT', dataKey: 'battery', color: '#f59e0b', unit: 'V' },
-  { id: 'signal', label: 'SIG', dataKey: 'signal', color: '#8b5cf6', unit: '%' },
+  { id: 'battery', label: 'BAT', dataKey: 'battery', color: COLORS.warning, unit: 'V' },
+  { id: 'signal', label: 'SIG', dataKey: 'signal', color: COLORS.intel, unit: '%' },
 ];
 
 function ChartTooltip({ active, payload, config }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-zinc-900/90 border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs backdrop-blur-sm">
+    <div className="bg-zinc-900/90 border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs backdrop-blur-[16px]">
       <span className="font-mono tabular-nums" style={{ color: config.color }}>
         {payload[0].value?.toFixed(1)}{config.unit}
       </span>

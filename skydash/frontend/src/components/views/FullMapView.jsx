@@ -5,6 +5,7 @@ import MapView from '../map/MapView';
 import SplitMapView from '../map/SplitMapView';
 import AlertBar from '../telemetry/AlertBar';
 import BookmarkBar from '../common/BookmarkBar';
+import { PanelBoundary } from '../common/ErrorBoundary';
 import { useMapStore } from '../../stores/mapStore';
 import { useBookmarkStore } from '../../stores/bookmarkStore';
 
@@ -31,6 +32,7 @@ export default function FullMapView() {
   }, []);
 
   return (
+    <PanelBoundary name="Map">
     <div className="h-full flex flex-col">
       <AlertBar />
       <div className="flex items-center gap-2 px-3">
@@ -60,5 +62,6 @@ export default function FullMapView() {
         </AnimatePresence>
       </div>
     </div>
+    </PanelBoundary>
   );
 }

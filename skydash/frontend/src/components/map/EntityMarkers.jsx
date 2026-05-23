@@ -1,13 +1,14 @@
 import { CircleMarker, Tooltip, Circle, Popup } from 'react-leaflet';
 import { useIntelStore } from '../../stores/intelStore';
 import { useEntityNavigation } from '../../hooks/useEntityNavigation';
+import { THREAT_COLORS, COLORS } from '../../utils/designTokens';
 
 const THREAT_STYLES = {
-  none: { color: '#71717a', radius: 6, pulse: false },
-  low: { color: '#10b981', radius: 7, pulse: false },
-  medium: { color: '#f59e0b', radius: 8, pulse: true },
-  high: { color: '#ef4444', radius: 9, pulse: true },
-  critical: { color: '#dc2626', radius: 10, pulse: true },
+  none: { color: THREAT_COLORS.none, radius: 6, pulse: false },
+  low: { color: THREAT_COLORS.low, radius: 7, pulse: false },
+  medium: { color: THREAT_COLORS.medium, radius: 8, pulse: true },
+  high: { color: THREAT_COLORS.high, radius: 9, pulse: true },
+  critical: { color: THREAT_COLORS.critical, radius: 10, pulse: true },
 };
 
 const TYPE_LABELS = {
@@ -56,8 +57,8 @@ export default function EntityMarkers({ onEntityContextMenu }) {
                   center={entity.coordinates}
                   radius={80}
                   pathOptions={{
-                    color: '#22d3ee',
-                    fillColor: '#22d3ee',
+                    color: COLORS.dataLight,
+                    fillColor: COLORS.dataLight,
                     fillOpacity: 0.08,
                     weight: 2,
                     opacity: 0.6,
@@ -71,8 +72,8 @@ export default function EntityMarkers({ onEntityContextMenu }) {
                 center={entity.coordinates}
                 radius={style.radius}
                 pathOptions={{
-                  color: isSelected ? '#22d3ee' : style.color,
-                  fillColor: isSelected ? '#22d3ee' : style.color,
+                  color: isSelected ? COLORS.dataLight : style.color,
+                  fillColor: isSelected ? COLORS.dataLight : style.color,
                   fillOpacity: isSelected ? 0.7 : 0.5,
                   weight: isSelected ? 3 : 2,
                   opacity: 0.9,

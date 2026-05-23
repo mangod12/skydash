@@ -17,7 +17,7 @@ Use parallel agents for independent tasks. Commit after each phase.
 
 ---
 
-## CURRENT PHASE: 19 COMPLETE
+## CURRENT PHASE: 20 COMPLETE
 ## CURRENT CYCLE: 3
 
 ---
@@ -1024,6 +1024,28 @@ EVOLUTION COMPLETE. 64 source files. 9 phases. 0 build errors.
      stats grid + live uptime tracking). Fixed uptime from random to real
      elapsed timer.
   14 files changed, 1490 insertions. Build: clean.
+
+[Phase 20] [2026-05-23] Structural hardening — godmode audit + 4 parallel remediation streams:
+  1. Backend decomposition: main.py (660→178 lines) split into routes/
+     (telemetry.py, entities.py, missions.py, auth_routes.py, connectors.py,
+     export.py) + deps.py (shared state) + models.py (Pydantic models).
+     Ring buffer upgraded to collections.deque(maxlen=300) for O(1).
+     try/except added to all route handlers.
+  2. Frontend file splitting: MapView (359→181 + MapInteractions 106 +
+     MapOverlays 150), AnalyticsView (329→101 + AnalyticsCharts 153 +
+     AnalyticsNetwork 113), MissionView (303→32 + MissionList 61 +
+     MissionDetail 180 + MissionBriefingTab 43), OpsCenterPanels (218→
+     FleetPanel 76 + ThreatPanel 74 + StatusPanel 73 + barrel 3).
+     DashboardActivityFeed extracted (47 lines).
+  3. Design token enforcement: designTokens.js (COLORS, THREAT_COLORS,
+     PATTERN_COLORS), 9 files updated to use centralized constants.
+     Glass blur fixed: DroneMarker 4→16px, MultiChart 12→16px,
+     animations.css popup 12→16px.
+  4. Error boundaries + build health: PanelBoundary on all 7 views.
+     Vite config rewritten with function-based manualChunks — circular
+     chunk eliminated, empty vendor-react fixed (0→142KB), vendor-charts
+     567→454KB (-20%), vendor-utils 87→65KB (-25%). Zero build warnings.
+  ESLint warnings: 42→31 (-26%). 124 tests passing. Build: clean.
 ---
 ---
 ```

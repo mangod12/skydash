@@ -1,30 +1,20 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Polyline, CircleMarker, ScaleControl, useMap, useMapEvents } from 'react-leaflet';
+import { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
-import DroneMarker from './DroneMarker';
 import MapHUD from './MapHUD';
 import MapControls from './MapControls';
 import CompassRose from './CompassRose';
 import CoordinateDisplay from './CoordinateDisplay';
-import MeasureTool, { MeasureOverlay } from './MeasureTool';
-import GeofenceOverlay from './GeofenceOverlay';
-import ClusterMarkers from './ClusterMarkers';
-import FleetMarkers from './FleetMarkers';
-import TimelineSlider from './TimelineSlider';
-import AdsbLayer from './AdsbLayer';
-import HeatmapLayer from './HeatmapLayer';
-import GeofenceDraw from './GeofenceDraw';
+import { MeasureOverlay } from './MeasureTool';
 import GeofenceManager from './GeofenceManager';
-import SpatialSearchPanel, { SpatialSearchMapHandler, SpatialSearchOverlay } from './SpatialSearch';
-import MapAnnotations from './MapAnnotations';
-import BearingTool from './BearingTool';
-import BearingPanel from './BearingPanel';
+import TimelineSlider from './TimelineSlider';
 import PlaybackController from './PlaybackController';
-import PlaybackMarkers from './PlaybackMarkers';
-import ContextMenu, { useContextMenu } from '../common/ContextMenu';
-import useMapContextMenu from '../../hooks/useMapContextMenu';
-import useEntityContextMenu from '../../hooks/useEntityContextMenu';
+import SpatialSearchPanel from './SpatialSearch';
+import BearingPanel from './BearingPanel';
+import ContextMenu from '../common/ContextMenu';
+import MapOverlays from './MapOverlays';
+import { useMapInteractions } from './MapInteractions';
 import 'leaflet/dist/leaflet.css';
 
 function MapContextHandler({ onContextMenu }) {
@@ -101,74 +91,8 @@ export default function MapView() {
   const data = useTelemetryStore((s) => s.data);
   const mapRef = useRef(null);
 
-  // Context menu
-  const { menu, show, hide } = useContextMenu();
-  const entityMenu = useEntityContextMenu(show);
+  const interactions = useMapInteractions();
 
-  const handleMeasureFrom = useCallback((point) => {
-    setMeasuring(true);
-    setMeasurePoints([point]);
-  }, []);
-
-  const handleSearchFromMenu = useCallback((point) => {
-    setSpatialSearch(true);
-    setSearchCenter(point);
-  }, []);
-
-  const openMapMenu = useMapContextMenu({
-    show,
-    onMeasureFrom: handleMeasureFrom,
-    onSearchRadius: handleSearchFromMenu,
-  });
-
-  // Bearing tool state
-  const bearingMode = useMapStore((s) => s.bearingMode);
-  const setBearingMode = useMapStore((s) => s.setBearingMode);
-  const [bearingPending, setBearingPending] = useState(null);
-
-  const handleBearingToggle = useCallback(() => {
-    setBearingMode(!bearingMode);
-    setBearingPending(null);
-  }, [bearingMode, setBearingMode]);
-
-  // Measure tool state
-  const [measuring, setMeasuring] = useState(false);
-  const [measurePoints, setMeasurePoints] = useState([]);
-
-  const handleMeasureToggle = useCallback(() => {
-    setMeasuring((prev) => {
-      if (prev) setMeasurePoints([]);
-      return !prev;
-    });
-  }, []);
-
-  const handleAddMeasurePoint = useCallback((point) => {
-    setMeasurePoints((prev) => [...prev, point]);
-  }, []);
-
-  // Spatial search state
-  const [spatialSearch, setSpatialSearch] = useState(false);
-  const [searchCenter, setSearchCenter] = useState(null);
-  const [searchRadius, setSearchRadius] = useState(500);
-  const [highlightedEntityId, setHighlightedEntityId] = useState(null);
-
-  const handleSpatialSearchToggle = useCallback(() => {
-    setSpatialSearch((prev) => {
-      if (prev) {
-        setSearchCenter(null);
-        setHighlightedEntityId(null);
-      }
-      return !prev;
-    });
-  }, []);
-
-  const handleSpatialSearchClose = useCallback(() => {
-    setSpatialSearch(false);
-    setSearchCenter(null);
-    setHighlightedEntityId(null);
-  }, []);
-
-  // Flight path polyline positions
   const pathPoints = layers.flightPath
     ? flightPath.map((p) => [p.lat, p.lng])
     : [];
@@ -188,7 +112,7 @@ export default function MapView() {
         <MapRefBridge mapRef={mapRef} />
         <FlyToHandler />
         <DroneTracker />
-        <MapContextHandler onContextMenu={openMapMenu} />
+        <MapContextHandler onContextMenu={interactions.openMapMenu} />
 
         <TileLayer
           url={tileConfig.url}
@@ -196,164 +120,62 @@ export default function MapView() {
           maxNativeZoom={tileConfig.maxNativeZoom}
         />
 
-        <ScaleControl position="bottomright" imperial={false} />
-
-        {/* Flight path trail — glowing dual-line */}
-        {pathPoints.length > 1 && (
-          <>
-            <Polyline
-              positions={pathPoints}
-              pathOptions={{
-                color: '#6366f1',
-                weight: 6,
-                opacity: 0.15,
-                lineCap: 'round',
-                lineJoin: 'round',
-              }}
-            />
-            <Polyline
-              positions={pathPoints}
-              pathOptions={{
-                color: '#818cf8',
-                weight: 2,
-                opacity: 0.7,
-                lineCap: 'round',
-                lineJoin: 'round',
-                dashArray: '8 12',
-                dashOffset: '0',
-                className: 'animate-trail',
-              }}
-            />
-          </>
-        )}
-
-        {/* Glowing head marker at latest flight path position */}
-        {pathPoints.length > 2 && (
-          <CircleMarker
-            center={pathPoints[pathPoints.length - 1]}
-            radius={5}
-            pathOptions={{
-              color: '#818cf8',
-              fillColor: '#6366f1',
-              fillOpacity: 0.9,
-              weight: 2,
-              opacity: 0.8,
-              className: 'animate-trail-head',
-            }}
-          />
-        )}
-
-        {/* Drone marker */}
-        <DroneMarker />
-
-        {/* Geofences */}
-        {layers.geofences && <GeofenceOverlay />}
-
-        {/* Intel entity markers — clustered at low zoom */}
-        {layers.entities && <ClusterMarkers onEntityContextMenu={entityMenu} />}
-
-        {/* Fleet secondary drones */}
-        {layers.fleet && <FleetMarkers />}
-
-        {/* Activity heatmap layer */}
-        <HeatmapLayer visible={layers.heatmap} />
-
-        {/* ADS-B aircraft layer */}
-        <AdsbLayer />
-
-        {/* Geofence drawing tool */}
-        <GeofenceDraw
-          active={drawingGeofence}
-          mode={geofenceMode}
-          onComplete={stopDrawGeofence}
-        />
-
-        {/* Measure tool (inside map for click events) */}
-        <MeasureTool
-          active={measuring}
-          points={measurePoints}
-          onAddPoint={handleAddMeasurePoint}
-        />
-
-        {/* Bearing tool (inside map for click events) */}
-        <BearingTool
-          active={bearingMode}
-          pendingPoint={bearingPending}
-          onSetPending={setBearingPending}
-        />
-
-        {/* Map annotations (text, pins, arrows, circles) */}
-        <MapAnnotations />
-
-        {/* Playback ghost markers */}
-        <PlaybackMarkers />
-
-        {/* Spatial search map handler + circle overlay */}
-        <SpatialSearchMapHandler
-          active={spatialSearch}
-          onSetCenter={setSearchCenter}
-        />
-        <SpatialSearchOverlay
-          center={searchCenter}
-          radius={searchRadius}
-          highlightedId={highlightedEntityId}
+        <MapOverlays
+          layers={layers}
+          drawingGeofence={drawingGeofence}
+          geofenceMode={geofenceMode}
+          stopDrawGeofence={stopDrawGeofence}
+          entityMenu={interactions.entityMenu}
+          measuring={interactions.measuring}
+          measurePoints={interactions.measurePoints}
+          onAddMeasurePoint={interactions.handleAddMeasurePoint}
+          bearingMode={interactions.bearingMode}
+          bearingPending={interactions.bearingPending}
+          onSetBearingPending={interactions.setBearingPending}
+          spatialSearch={interactions.spatialSearch}
+          onSetSearchCenter={interactions.setSearchCenter}
+          searchCenter={interactions.searchCenter}
+          searchRadius={interactions.searchRadius}
+          highlightedEntityId={interactions.highlightedEntityId}
+          pathPoints={pathPoints}
         />
       </MapContainer>
 
-      {/* Grid overlay */}
       <GridOverlay />
-
-      {/* HUD overlay */}
       <MapHUD data={data} />
-
-      {/* Compass */}
       <CompassRose />
+      <BearingPanel active={interactions.bearingMode} />
 
-      {/* Controls */}
-      {/* Bearing panel (outside map) */}
-      <BearingPanel active={bearingMode} />
-
-      {/* Controls */}
       <MapControls
         mapRef={mapRef}
-        onMeasureToggle={handleMeasureToggle}
-        measuring={measuring}
-        onSpatialSearchToggle={handleSpatialSearchToggle}
-        spatialSearch={spatialSearch}
-        onBearingToggle={handleBearingToggle}
-        bearingActive={bearingMode}
+        onMeasureToggle={interactions.handleMeasureToggle}
+        measuring={interactions.measuring}
+        onSpatialSearchToggle={interactions.handleSpatialSearchToggle}
+        spatialSearch={interactions.spatialSearch}
+        onBearingToggle={interactions.handleBearingToggle}
+        bearingActive={interactions.bearingMode}
       />
 
-      {/* Geofence zone manager panel */}
       <GeofenceManager />
-
-      {/* Measure distance display */}
-      <MeasureOverlay active={measuring} points={measurePoints} />
-
-      {/* Timeline playback slider */}
+      <MeasureOverlay active={interactions.measuring} points={interactions.measurePoints} />
       <TimelineSlider />
-
-      {/* Temporal playback controller */}
       <PlaybackController />
 
-      {/* Spatial search results panel */}
       <SpatialSearchPanel
-        active={spatialSearch}
-        center={searchCenter}
-        radius={searchRadius}
-        onRadiusChange={setSearchRadius}
-        onClose={handleSpatialSearchClose}
-        onHighlight={setHighlightedEntityId}
+        active={interactions.spatialSearch}
+        center={interactions.searchCenter}
+        radius={interactions.searchRadius}
+        onRadiusChange={interactions.setSearchRadius}
+        onClose={interactions.handleSpatialSearchClose}
+        onHighlight={interactions.setHighlightedEntityId}
       />
 
-      {/* Coordinate display */}
       <CoordinateDisplay
         lat={dronePosition?.lat}
         lng={dronePosition?.lng}
       />
 
-      {/* Context menu */}
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={hide} />}
+      {interactions.menu && <ContextMenu x={interactions.menu.x} y={interactions.menu.y} items={interactions.menu.items} onClose={interactions.hide} />}
     </div>
   );
 }
