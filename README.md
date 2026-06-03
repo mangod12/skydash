@@ -156,6 +156,28 @@ SVG instruments, multi-chart streams, drone command panel with flight modes and 
 
 ## Architecture
 
+```mermaid
+flowchart LR
+  Browser["React/Vite browser UI"]
+  Stores["Zustand stores\ntelemetry, map, intel, missions, audit"]
+  Views["Operational views\nDashboard, Map, Intel, Missions, Telemetry"]
+  API["FastAPI REST API"]
+  WS["WebSocket telemetry stream"]
+  SQLite["SQLite local persistence\nentities, relationships, missions, notes"]
+  Sim["Fleet simulator\n3 drones at 10Hz"]
+  External["Optional external sources\nOpenSky fallback, future MAVLink/STIX/PostGIS"]
+  Export["Exports\nGeoJSON, KML, CSV, dossier, mission brief"]
+
+  Browser --> Stores
+  Stores --> Views
+  Views --> API
+  Views --> WS
+  API --> SQLite
+  API --> Export
+  WS --> Sim
+  API --> External
+```
+
 ```
 Frontend (200+ source files, 19k+ LOC)
   components/
