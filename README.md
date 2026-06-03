@@ -182,6 +182,8 @@ flowchart LR
   API --> External
 ```
 
+Detailed walkthrough: [docs/architecture-walkthrough.md](docs/architecture-walkthrough.md)
+
 ```
 Frontend (200+ source files, 19k+ LOC)
   components/
