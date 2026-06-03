@@ -60,6 +60,8 @@ If you work in geospatial, OSINT, drones, security tooling, or real-time systems
 2. What would make the data model more credible for a real workflow?
 3. What should be removed or constrained to make the tool safer for beginners?
 
+Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ## Why This Exists
 
 Spatial intelligence tools are powerful, but many of the workflows are hard to inspect because they live behind procurement, demos, and enterprise pricing.

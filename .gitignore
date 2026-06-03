@@ -66,6 +66,12 @@ playwright-report/
 # Claude
 .claude/
 
+# Local agent/browser artifacts
+.playwright-mcp/
+
+# Local launch/campaign notes
+social media/
+
 # Database
 *.db
 *.db-journal
