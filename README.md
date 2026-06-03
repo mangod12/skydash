@@ -255,6 +255,16 @@ It is a local prototype for exploring the overlap between those workflows:
 
 The useful next step is integration depth, not more dashboard surface area.
 
+## Known Gaps / Design Questions
+
+These are the areas where critique is most useful:
+
+- **Persistence**: SQLite keeps the local prototype simple, but a serious geospatial workflow likely needs PostGIS, GeoPackage, MBTiles, or another spatial storage layer.
+- **Interoperability**: OSINT/intelligence workflows need clear import/export paths. STIX/TAXII, OpenCTI, MISP, Maltego-style transforms, and evidence export are all candidates.
+- **Drone integration**: telemetry is simulated today. The safest real-drone path is probably SITL/log replay/read-only MAVLink ingest before any command/control support.
+- **Trust and provenance**: map markers and graph links should preserve source lineage, confidence, timestamps, and analyst decisions so another person can audit the workflow later.
+- **Production hardening**: auth/RBAC, deployment guidance, audit guarantees, data governance, and safer defaults are required before this should be used beyond local experimentation.
+
 ## Development
 
 ```bash
