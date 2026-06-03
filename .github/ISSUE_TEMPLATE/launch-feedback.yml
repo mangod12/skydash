@@ -1,0 +1,63 @@
+name: Launch feedback
+description: Leave one concrete critique after seeing SkyDash from HN, LinkedIn, Reddit, or GitHub.
+title: "[Launch feedback]: "
+labels: ["feedback", "launch"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking a look. SkyDash is an early local-first prototype, not production investigation software. The most useful feedback is one specific weakness, missing integration, or misleading assumption.
+  - type: dropdown
+    id: source
+    attributes:
+      label: Where did you see SkyDash?
+      options:
+        - Hacker News
+        - LinkedIn
+        - Reddit
+        - GitHub search/discovery
+        - Direct link
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feedback area
+      options:
+        - Local setup / README
+        - Geospatial storage / PostGIS
+        - GIS interoperability
+        - OSINT entity model
+        - Evidence / provenance
+        - Drone telemetry / MAVLink
+        - Mission workflow
+        - API / backend architecture
+        - Frontend UX
+        - Safety / misuse boundary
+        - Production hardening
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: critique
+    attributes:
+      label: One concrete critique
+      description: What should change first, and why?
+      placeholder: "Example: The map entities should move to PostGIS before adding more visual layers, because spatial indexing and geofence queries will otherwise stay toy-level."
+    validations:
+      required: true
+  - type: textarea
+    id: minimum
+    attributes:
+      label: Minimum useful improvement
+      description: What is the smallest change that would make this more credible?
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Your context
+      description: Optional background, such as GIS, OSINT, UAV, security, backend, or ops dashboard experience.
+    validations:
+      required: false
