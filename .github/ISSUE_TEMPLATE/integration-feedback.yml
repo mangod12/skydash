@@ -1,0 +1,50 @@
+name: Integration feedback
+description: Suggest which real integration SkyDash should prioritize next.
+title: "[Integration]: "
+labels: ["feedback", "integration"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking a look at SkyDash. This template is for practical feedback on the next real integration.
+  - type: dropdown
+    id: integration
+    attributes:
+      label: Which integration should come first?
+      options:
+        - PostGIS
+        - GeoPackage / MBTiles
+        - STAC
+        - WMS / WFS
+        - STIX / TAXII
+        - OpenCTI / MISP
+        - MAVLink SITL
+        - MAVLink UDP telemetry ingest
+        - ULog / log replay
+        - Cesium 3D globe
+        - Plugin system
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: What workflow would this unlock?
+      description: Describe the real GIS, OSINT, drone, telemetry, or operational workflow this would support.
+      placeholder: "Example: replay PX4 SITL logs and compare vehicle divergence before testing real hardware."
+    validations:
+      required: true
+  - type: textarea
+    id: minimum
+    attributes:
+      label: Minimum useful version
+      description: What is the smallest implementation that would be useful rather than cosmetic?
+    validations:
+      required: true
+  - type: textarea
+    id: pitfalls
+    attributes:
+      label: Pitfalls or safety boundaries
+      description: What would make this misleading, unsafe, or not credible for real users?
+    validations:
+      required: false

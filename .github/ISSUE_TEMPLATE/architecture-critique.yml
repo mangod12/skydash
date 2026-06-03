@@ -1,0 +1,49 @@
+name: Architecture critique
+description: Critique SkyDash's data model, workflow, backend, frontend, or safety boundaries.
+title: "[Architecture]: "
+labels: ["feedback", "architecture"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for blunt technical critique. SkyDash is a local-first prototype, not production investigation software.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Geospatial model
+        - OSINT / entity model
+        - Link analysis
+        - Evidence / provenance
+        - Drone telemetry
+        - Mission workflow
+        - Backend API
+        - Frontend UX
+        - Safety / misuse boundary
+        - Deployment
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: critique
+    attributes:
+      label: Critique
+      description: What is weak, missing, overbuilt, or misleading?
+      placeholder: "Example: SQLite is fine for local demos, but the spatial model should move to PostGIS before adding more map UI."
+    validations:
+      required: true
+  - type: textarea
+    id: recommendation
+    attributes:
+      label: What would you change first?
+      description: Prefer one concrete change over a broad wishlist.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Your context
+      description: Optional background, such as GIS, UAV, OSINT, security, backend, or ops dashboard experience.
+    validations:
+      required: false

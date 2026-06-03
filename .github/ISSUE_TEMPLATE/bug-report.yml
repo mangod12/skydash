@@ -1,0 +1,49 @@
+name: Bug report
+description: Report something broken while running SkyDash locally.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What broke?
+      description: Give a short, concrete summary.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: List the exact commands or UI steps.
+      placeholder: |
+        1. cd backend && python main.py
+        2. cd skydash/frontend && npm run dev
+        3. Open ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS / environment
+      placeholder: "Windows 11, Ubuntu 24.04, macOS, WSL2, etc."
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      render: text
+    validations:
+      required: false
