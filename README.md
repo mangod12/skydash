@@ -62,7 +62,7 @@ Spatial intelligence tools are powerful, but many of the workflows are hard to i
 
 SkyDash is a local, hackable version of the core interface ideas: entity tracking, link analysis, geospatial context, mission workflow, exports, and telemetry. It is meant to be inspected, criticized, and extended.
 
-Started as a single-drone telemetry dashboard. Grew into a 126-file, 12,600-line spatial intelligence platform across 16 development phases.
+Started as a single-drone telemetry dashboard. Grew into a 200+ file, 20k+ line spatial intelligence prototype across multiple development phases.
 
 ## Features
 
@@ -152,12 +152,12 @@ SVG instruments, multi-chart streams, drone command panel with flight modes and 
 
 **Backend** — Python, FastAPI, Uvicorn, Pydantic, SQLite (WAL mode), WebSocket
 
-**Testing** — Vitest (41 unit tests), Playwright (E2E)
+**Testing** — Vitest (124 unit tests), Playwright (E2E)
 
 ## Architecture
 
 ```
-Frontend (126 source files, 12,600 LOC)
+Frontend (200+ source files, 19k+ LOC)
   components/
     common/     18 — GlassCard, Toast, CommandPalette, NotificationCenter,
                      ContextMenu, BookmarkBar, OnboardingTour, AuditLog,
@@ -242,23 +242,24 @@ Full Swagger docs at `http://localhost:8001/docs`.
 
 WebSocket auth: set `SKYDASH_API_KEY` env var, pass `?token=` on WS connect.
 
-## Comparison
+## Where It Fits
 
-| Capability | SkyDash | Palantir ($10M+/yr) | Maltego ($6.6K/yr) | ArcGIS ($30K+/yr) | QGroundControl |
-|---|---|---|---|---|---|
-| Geospatial mapping | Strong | Strong | Minimal | Excellent | Moderate |
-| OSINT entities | Strong | Excellent | Strong | None | None |
-| Link analysis | Yes | Yes | Excellent | None | None |
-| Drone telemetry | Yes | Partial | None | Partial | Excellent |
-| Real-time streaming | 10Hz WS | Yes | Partial | Yes | Yes |
-| Mission workspace | Yes | Yes | No | No | Yes (flight) |
-| Price | **$0** | $1M+ | $66K (10 seats) | $30K+ | $0 |
+SkyDash is not trying to replace mature GIS, OSINT, or drone ground-control tools.
+
+It is a local prototype for exploring the overlap between those workflows:
+
+- GIS-style spatial context and export formats
+- OSINT-style entities, relationships, provenance, and timelines
+- Drone telemetry and mission state in the same operational UI
+- A hackable React/FastAPI codebase that can be inspected and extended
+
+The useful next step is integration depth, not more dashboard surface area.
 
 ## Development
 
 ```bash
 npm --prefix skydash/frontend run build   # Production build
-npm --prefix skydash/frontend run test    # Run unit tests (41)
+npm --prefix skydash/frontend run test    # Run unit tests (124)
 npm --prefix skydash/frontend run lint    # ESLint
 npx playwright test                       # E2E tests
 ```
