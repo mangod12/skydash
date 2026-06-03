@@ -38,8 +38,8 @@ function updateLinks(linkGroup, links, highlightedEdges) {
     .attr('fill', 'none').attr('marker-end', 'url(#arrow)');
   return enter.merge(sel)
     .attr('stroke', (d) => highlightedEdges.has(`${d.source}-${d.target}`) ? '#22d3ee' : (REL_COLORS[d.type] || '#3f3f46'))
-    .attr('stroke-opacity', (d) => highlightedEdges.has(`${d.source}-${d.target}`) ? 0.9 : 0.2 + (d.confidence / 100) * 0.4)
-    .attr('stroke-width', (d) => highlightedEdges.has(`${d.source}-${d.target}`) ? 3 : 1 + (d.confidence / 100) * 1.5)
+    .attr('stroke-opacity', (d) => highlightedEdges.has(`${d.source}-${d.target}`) ? 0.95 : 0.45 + (d.confidence / 100) * 0.35)
+    .attr('stroke-width', (d) => highlightedEdges.has(`${d.source}-${d.target}`) ? 3.5 : 1.5 + (d.confidence / 100) * 2)
     .attr('stroke-dasharray', (d) => d.confidence < 50 ? '4 4' : 'none');
 }
 
@@ -149,8 +149,8 @@ export default function useGraphSimulation({
 
     // Simulation
     const sim = d3Force.forceSimulation(nodes)
-      .force('link', d3Force.forceLink(links).id((d) => d.id).distance(layout === 'grid' ? 80 : 120))
-      .force('charge', d3Force.forceManyBody().strength(layout === 'radial' ? -200 : -400))
+      .force('link', d3Force.forceLink(links).id((d) => d.id).distance(layout === 'grid' ? 70 : 95))
+      .force('charge', d3Force.forceManyBody().strength(layout === 'radial' ? -140 : -260))
       .force('center', d3Force.forceCenter(width / 2, height / 2))
       .force('collision', d3Force.forceCollide().radius(30));
 
