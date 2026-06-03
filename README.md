@@ -50,6 +50,8 @@ SkyDash is a local-first engineering prototype, not production investigation sof
 - No breached data, private-account scraping, or black-box enrichment is included
 - Production use would need auth/RBAC, audit hardening, stronger data governance, and real integrations
 
+Safety boundaries: [docs/safety-and-scope.md](docs/safety-and-scope.md)
+
 ## Feedback I Need
 
 If you work in geospatial, OSINT, drones, security tooling, or real-time systems, the most useful feedback is:
