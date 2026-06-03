@@ -17,6 +17,8 @@ It is built for:
 
 ## What You Can Try In 5 Minutes
 
+Manual development run:
+
 ```bash
 # Backend
 cd backend
@@ -184,6 +186,8 @@ Backend (5 modules, 26 endpoints)
 
 ## Getting Started
 
+### Manual Development
+
 ```bash
 # Backend
 cd backend
@@ -197,6 +201,16 @@ npm run dev                       # Opens on localhost:5173
 ```
 
 Open http://localhost:5173 — boot sequence plays, then the full dashboard with live telemetry from 3 simulated drones.
+
+### Docker Compose
+
+If you prefer containers:
+
+```bash
+docker compose up --build
+```
+
+Open http://localhost. The frontend is served by nginx and proxies API/WebSocket traffic to the FastAPI backend.
 
 ## Keyboard Shortcuts
 
@@ -243,10 +257,10 @@ WebSocket auth: set `SKYDASH_API_KEY` env var, pass `?token=` on WS connect.
 ## Development
 
 ```bash
-npm run build          # Production build
-npm run test           # Run unit tests (41)
-npm run lint           # ESLint
-npx playwright test    # E2E tests
+npm --prefix skydash/frontend run build   # Production build
+npm --prefix skydash/frontend run test    # Run unit tests (41)
+npm --prefix skydash/frontend run lint    # ESLint
+npx playwright test                       # E2E tests
 ```
 
 ## Roadmap
@@ -257,7 +271,7 @@ npx playwright test    # E2E tests
 - [ ] STIX2/TAXII import/export (OpenCTI interop)
 - [ ] CesiumJS 3D globe view
 - [ ] Plugin architecture
-- [ ] Docker Compose one-click deploy
+- [ ] Production Docker hardening and deployment guide
 
 ## License
 
