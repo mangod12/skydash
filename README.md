@@ -38,6 +38,8 @@ Open http://localhost:5173 and you get:
 - OSINT-style entity records with relationship/link analysis
 - Mission workspaces, alerts, audit logs, and report/data exports
 
+Short reviewer path: [docs/reviewer-walkthrough.md](docs/reviewer-walkthrough.md)
+
 ## Current Status
 
 SkyDash is a local-first engineering prototype, not production investigation software.
