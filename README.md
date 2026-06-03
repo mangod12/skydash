@@ -1,16 +1,64 @@
-# SkyDash — Open Source Spatial Intelligence Platform
+# SkyDash — Open-Source Spatial Intelligence Dashboard
 
 [![CI](https://github.com/mangod12/skydash/actions/workflows/ci.yml/badge.svg)](https://github.com/mangod12/skydash/actions/workflows/ci.yml)
 
-**Palantir-class spatial intelligence in a browser, for free.**
+**Geospatial maps, OSINT-style entities, relationship graphs, missions, exports, and simulated drone telemetry in one local browser workflow.**
 
-The first open-source platform that unifies geospatial intelligence, OSINT entity analysis, link analysis, and drone telemetry into a single operational interface. Built for analysts, investigators, and drone operators who need Palantir-level capabilities without the Palantir-level budget.
+SkyDash is an open-source prototype for people who want to study, fork, and extend spatial intelligence workflows without starting from a sales-gated enterprise product.
+
+It is built for:
+
+- Geospatial builders testing map/entity workflows
+- OSINT and security practitioners thinking about provenance, relationships, and exports
+- Drone and robotics teams exploring telemetry and mission interfaces
+- Backend/platform teams evaluating real-time WebSocket systems with a dense operational UI
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
+## What You Can Try In 5 Minutes
+
+```bash
+# Backend
+cd backend
+pip install -r requirements.txt
+python main.py
+
+# Frontend (separate terminal)
+cd skydash/frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173 and you get:
+
+- A live dashboard with simulated 3-drone telemetry
+- A Leaflet map with entities, geofences, heatmaps, annotations, and spatial search
+- OSINT-style entity records with relationship/link analysis
+- Mission workspaces, alerts, audit logs, and report/data exports
+
+## Current Status
+
+SkyDash is a local-first engineering prototype, not production investigation software.
+
+- Telemetry is simulated at 10Hz today
+- MAVLink support is currently an adapter stub
+- SQLite is used for local persistence
+- No breached data, private-account scraping, or black-box enrichment is included
+- Production use would need auth/RBAC, audit hardening, stronger data governance, and real integrations
+
+## Feedback I Need
+
+If you work in geospatial, OSINT, drones, security tooling, or real-time systems, the most useful feedback is:
+
+1. Which integration should come first: PostGIS, STIX/TAXII, OpenCTI/MISP, MAVLink, Cesium, or plugins?
+2. What would make the data model more credible for a real workflow?
+3. What should be removed or constrained to make the tool safer for beginners?
+
 ## Why This Exists
 
-Defense contractors charge millions for spatial intelligence platforms. SkyDash delivers the same core capabilities — entity tracking, link analysis, geospatial fusion, mission management, and real-time telemetry — as a lightweight web app that runs on a laptop.
+Spatial intelligence tools are powerful, but many of the workflows are hard to inspect because they live behind procurement, demos, and enterprise pricing.
+
+SkyDash is a local, hackable version of the core interface ideas: entity tracking, link analysis, geospatial context, mission workflow, exports, and telemetry. It is meant to be inspected, criticized, and extended.
 
 Started as a single-drone telemetry dashboard. Grew into a 126-file, 12,600-line spatial intelligence platform across 16 development phases.
 
