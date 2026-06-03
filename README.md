@@ -129,10 +129,10 @@ Entity list with filter bar, link analysis graph with community detection, timel
 
 ![Intel](docs/screenshots/intel.png)
 
-### Mission Workspace
-Investigation management with entity linking, analyst notes, and map bookmarks.
+### Analytics View
+Risk scoring, entity metrics, activity trends, and operational summaries for reviewing the current workspace.
 
-![Missions](docs/screenshots/missions.png)
+![Analytics](docs/screenshots/analytics.png)
 
 ### Full Map
 8 toggleable layers, spatial search, annotations, geofence zones, split-view comparison, heatmap.
