@@ -54,7 +54,6 @@ function ConfidenceBar({ confidence, sourceCount, lastVerified }) {
 }
 
 export default function EvidenceChain({ entityId, confidence, defaultExpanded = false }) {
-  if (!entityId) return null;
   const [expanded, setExpanded] = useState(defaultExpanded);
   const provenanceEntries = useProvenanceStore((s) => s.entries);
 
@@ -78,6 +77,7 @@ export default function EvidenceChain({ entityId, confidence, defaultExpanded = 
     return latest.entry.timestamp;
   }, [chain]);
 
+  if (!entityId) return null;
   if (chain.length === 0) return null;
 
   const Icon = expanded ? ChevronDown : ChevronRight;
