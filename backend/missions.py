@@ -4,9 +4,18 @@ import json
 import sqlite3
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import database as db
+
+
+def _safe_json_loads(value, fallback):
+    if value is None:
+        return fallback
+    try:
+        return json.loads(value)
+    except (TypeError, json.JSONDecodeError):
+        return fallback
 
 
 class MissionStore:
@@ -42,6 +51,16 @@ class MissionStore:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE
             );
+            CREATE TABLE IF NOT EXISTS mission_detections (
+                id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL,
+                source_name TEXT NOT NULL,
+                model TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                detections TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE
+            );
         """)
         conn.commit()
 
@@ -62,6 +81,12 @@ class MissionStore:
 
     def _row_to_note(self, row) -> Dict:
         return dict(row)
+
+    def _row_to_detection(self, row) -> Dict:
+        detection = dict(row)
+        detection["summary"] = _safe_json_loads(detection["summary"], {})
+        detection["detections"] = _safe_json_loads(detection["detections"], [])
+        return detection
 
     def count(self) -> int:
         return db.get_connection().execute(
@@ -145,6 +170,7 @@ class MissionStore:
         with db.get_lock():
             conn.execute("DELETE FROM mission_notes WHERE mission_id = ?", (mission_id,))
             conn.execute("DELETE FROM mission_entities WHERE mission_id = ?", (mission_id,))
+            conn.execute("DELETE FROM mission_detections WHERE mission_id = ?", (mission_id,))
             conn.execute("DELETE FROM missions WHERE id = ?", (mission_id,))
             conn.commit()
         return True
@@ -233,6 +259,79 @@ class MissionStore:
             conn.execute(
                 "UPDATE missions SET updated_at = ? WHERE id = ?",
                 (self._now_iso(), mission_id),
+            )
+            conn.commit()
+        return True
+
+    # Mission detections
+
+    def add_detection(self, mission_id: str, result: dict) -> Optional[dict]:
+        if not self.get_mission(mission_id):
+            return None
+
+        detection_id = self._new_id()
+        now = self._now_iso()
+        source_name = result.get("source_name") or "uploaded-frame"
+        model = result.get("model") or "unknown"
+        summary = result.get("summary") or {}
+        detections = result.get("detections") or []
+
+        conn = db.get_connection()
+        with db.get_lock():
+            conn.execute(
+                """
+                INSERT INTO mission_detections
+                    (id, mission_id, source_name, model, summary, detections, created_at)
+                VALUES (?,?,?,?,?,?,?)
+                """,
+                (
+                    detection_id,
+                    mission_id,
+                    source_name,
+                    model,
+                    json.dumps(summary),
+                    json.dumps(detections),
+                    now,
+                ),
+            )
+            conn.execute(
+                "UPDATE missions SET updated_at = ? WHERE id = ?",
+                (now, mission_id),
+            )
+            conn.commit()
+
+        return {
+            "id": detection_id,
+            "mission_id": mission_id,
+            "source_name": source_name,
+            "model": model,
+            "summary": summary,
+            "detections": detections,
+            "created_at": now,
+        }
+
+    def get_detections(self, mission_id: str) -> list:
+        rows = db.get_connection().execute(
+            "SELECT * FROM mission_detections WHERE mission_id = ? ORDER BY created_at DESC",
+            (mission_id,),
+        ).fetchall()
+        return [self._row_to_detection(row) for row in rows]
+
+    def delete_detection(self, detection_id: str, mission_id: Optional[str] = None) -> bool:
+        conn = db.get_connection()
+        row = conn.execute(
+            "SELECT mission_id FROM mission_detections WHERE id = ?", (detection_id,)
+        ).fetchone()
+        if not row:
+            return False
+        stored_mission_id = row["mission_id"]
+        if mission_id and mission_id != stored_mission_id:
+            return False
+        with db.get_lock():
+            conn.execute("DELETE FROM mission_detections WHERE id = ?", (detection_id,))
+            conn.execute(
+                "UPDATE missions SET updated_at = ? WHERE id = ?",
+                (self._now_iso(), stored_mission_id),
             )
             conn.commit()
         return True

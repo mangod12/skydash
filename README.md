@@ -38,6 +38,7 @@ SkyDash is not production investigation software. It is a hackable engineering p
 - Pattern, risk, network, temporal, and graph analysis helpers.
 - Missions, notes, bookmarks, audit log, alerts, and notifications.
 - Export generators for operational reports and data formats.
+- Optional RT-DETR image analysis for mission/debrief frames.
 
 ### UI
 
@@ -106,6 +107,32 @@ Common settings:
 | `SKYDASH_AUTH_ENABLED` | Enables JWT-style auth path. |
 | `SKYDASH_CORS_ORIGINS` | Comma-separated frontend origins. |
 | `SHODAN_API_KEY` | Optional live Shodan connector. |
+| `SKYDASH_RTDETR_MODEL` | Optional RT-DETR model name/path, default `rtdetr-l.pt`. |
+| `SKYDASH_RTDETR_CONFIDENCE` | Optional detection confidence threshold, default `0.35`. |
+| `SKYDASH_RTDETR_MAX_UPLOAD_BYTES` | Optional max mission frame upload size, default 8 MB. |
+
+## Optional RT-DETR Mission Debrief
+
+SkyDash can attach RT-DETR object detections to a mission debrief. The base backend stays lightweight; install the vision extras only on machines that should run object detection.
+
+```bash
+cd backend
+pip install -r requirements-vision.txt
+python main.py
+```
+
+Then open a mission and select the **DEBRIEF** tab. You can either upload a JPEG/PNG/WebP mission frame or use the built-in sample monitoring feed. Results are stored on the mission, can be added to analyst notes, and are included in generated mission briefings.
+
+Useful endpoints:
+
+- `GET /api/vision/status`
+- `GET /api/vision/sample-feed`
+- `GET /api/vision/sample-frame`
+- `GET /api/vision/sample-viewer`
+- `POST /api/missions/{mission_id}/detections/analyze`
+- `POST /api/missions/{mission_id}/detections/sample-monitor`
+- `GET /api/missions/{mission_id}/detections`
+- `DELETE /api/missions/{mission_id}/detections/{detection_id}`
 
 ## Tests And Quality
 
@@ -153,7 +180,7 @@ The repo also contains separate `Dockerfile.backend` and `Dockerfile.frontend` f
 
 ## Safety And Scope
 
-SkyDash currently uses simulated telemetry and local/demo data. It does not include private-account scraping, breached-data ingestion, or autonomous operational control. Real deployments would need stronger auth/RBAC, audit retention, data governance, connector review, and safety constraints.
+SkyDash currently uses simulated telemetry and local/demo data. It does not include private-account scraping, breached-data ingestion, or autonomous operational control. RT-DETR detections are analyst-assist debrief evidence, not identity, targeting, or autonomous response decisions. Real deployments would need stronger auth/RBAC, audit retention, data governance, connector review, model evaluation, privacy review, and safety constraints.
 
 See:
 

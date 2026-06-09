@@ -35,6 +35,7 @@ export function generateBriefing(mission, entities, telemetry) {
   const situation = buildSituation(linkedEntities, threats, maxThreat, mission);
   const missionSection = buildMission(mission, linkedEntities);
   const execution = buildExecution(mission, linkedEntities);
+  const visualDebrief = buildVisualDebrief(mission);
   const sustainment = buildSustainment(telemetry);
   const command = buildCommand(mission);
 
@@ -48,6 +49,7 @@ export function generateBriefing(mission, entities, telemetry) {
     situation,
     mission: missionSection,
     execution,
+    visualDebrief,
     sustainment,
     command,
   };
@@ -110,6 +112,35 @@ function buildExecution(mission, entities) {
     }));
 
   return { timeline, assignedEntities, waypoints };
+}
+
+function buildVisualDebrief(mission) {
+  const runs = mission.detections || [];
+  const objectCounts = {};
+  let totalObjects = 0;
+
+  runs.forEach((run) => {
+    Object.entries(run.summary?.labels || {}).forEach(([label, count]) => {
+      objectCounts[label] = (objectCounts[label] || 0) + count;
+      totalObjects += count;
+    });
+  });
+
+  return {
+    runs: runs.map((run) => ({
+      source: run.source_name,
+      model: run.model,
+      createdAt: toDTG(run.created_at),
+      total: run.summary?.total || 0,
+      labels: run.summary?.labels || {},
+      topDetections: (run.detections || []).slice(0, 5).map((detection) => ({
+        label: detection.label,
+        confidence: `${Math.round((detection.confidence || 0) * 100)}%`,
+      })),
+    })),
+    totalObjects,
+    objectCounts,
+  };
 }
 
 function buildSustainment(telemetry) {
@@ -229,8 +260,33 @@ export function formatBriefingText(briefing) {
   }
   lines.push('');
 
-  // 4. SUSTAINMENT
-  lines.push('4. SUSTAINMENT');
+  // 4. VISUAL DEBRIEF
+  lines.push('4. VISUAL DEBRIEF');
+  lines.push(DASH);
+  lines.push('');
+  if (briefing.visualDebrief.runs.length > 0) {
+    lines.push(`  RT-DETR Analysis Runs: ${briefing.visualDebrief.runs.length}`);
+    lines.push(`  Total Objects Detected: ${briefing.visualDebrief.totalObjects}`);
+    lines.push('');
+    lines.push('  Object Counts:');
+    Object.entries(briefing.visualDebrief.objectCounts).forEach(([label, count]) =>
+      lines.push(`    - ${label}: ${count}`),
+    );
+    lines.push('');
+    lines.push('  Recent Runs:');
+    briefing.visualDebrief.runs.slice(0, 5).forEach((run) => {
+      lines.push(`    - ${run.source} [${run.model}] ${run.createdAt}: ${run.total} object(s)`);
+      run.topDetections.forEach((detection) =>
+        lines.push(`      * ${detection.label} (${detection.confidence})`),
+      );
+    });
+  } else {
+    lines.push('  No RT-DETR frame analysis attached to this mission.');
+  }
+  lines.push('');
+
+  // 5. SUSTAINMENT
+  lines.push('5. SUSTAINMENT');
   lines.push(DASH);
   lines.push('');
   lines.push(`  Battery Status: ${briefing.sustainment.overallBattery}`);
@@ -246,8 +302,8 @@ export function formatBriefingText(briefing) {
   }
   lines.push('');
 
-  // 5. COMMAND AND SIGNAL
-  lines.push('5. COMMAND AND SIGNAL');
+  // 6. COMMAND AND SIGNAL
+  lines.push('6. COMMAND AND SIGNAL');
   lines.push(DASH);
   lines.push('');
   lines.push('  a. Communications:');

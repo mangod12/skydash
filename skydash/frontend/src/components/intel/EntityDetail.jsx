@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { MapPin, Link2, Activity, X } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import GlassCard from '../common/GlassCard';
@@ -15,17 +16,26 @@ import { useEntityNavigation } from '../../hooks/useEntityNavigation';
 import { formatDecimal } from '../../utils/coordinates';
 
 export default function EntityDetail() {
-  const entity = useIntelStore((s) => s.getSelectedEntity());
-  const clearSelection = useIntelStore((s) => s.clearSelection);
-  const relationships = useIntelStore((s) =>
-    entity ? s.getEntityRelationships(entity.id) : []
-  );
-  const events = useIntelStore((s) =>
-    entity ? s.getEntityEvents(entity.id) : []
-  );
   const entities = useIntelStore((s) => s.entities);
+  const selectedEntityId = useIntelStore((s) => s.selectedEntityId);
+  const allRelationships = useIntelStore((s) => s.relationships);
+  const allEvents = useIntelStore((s) => s.events);
   const missions = useMissionStore((s) => s.missions);
+  const clearSelection = useIntelStore((s) => s.clearSelection);
   const setActiveView = useUIStore((s) => s.setActiveView);
+
+  const entity = useMemo(
+    () => entities.find((item) => item.id === selectedEntityId) ?? null,
+    [entities, selectedEntityId],
+  );
+
+  const relationships = useMemo(() => (
+    entity ? allRelationships.filter((r) => r.from === entity.id || r.to === entity.id) : []
+  ), [allRelationships, entity]);
+
+  const events = useMemo(() => (
+    entity ? allEvents.filter((e) => e.entityId === entity.id).sort((a, b) => b.time - a.time) : []
+  ), [allEvents, entity]);
   const { flyToEntity } = useEntityNavigation();
 
   if (!entity) return null;

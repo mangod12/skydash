@@ -3,8 +3,22 @@ const { test, expect } = require('@playwright/test');
 
 const BASE = 'http://localhost:5173';
 
+const getIntelCards = (page) => page
+  .locator('h3:text-is("INTELLIGENCE")')
+  .locator('xpath=ancestor::div[contains(@class, "h-full flex")][1]')
+  .locator('.overflow-y-auto.h-full.p-2')
+  .locator('button')
+  .filter({ has: page.locator('.text-xs.font-semibold') });
+
 test.describe('SkyDash Interaction Tests', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('skydash_tour_completed', 'true');
+      } catch (e) {
+        // Ignore if localStorage is unavailable in this execution context.
+      }
+    });
     await page.goto(BASE);
     await page.waitForSelector('text=CONNECTED', { timeout: 15000 });
     await page.waitForTimeout(500);
@@ -121,26 +135,27 @@ test.describe('SkyDash Interaction Tests', () => {
     await expect(page.locator('text=EVENT TIMELINE')).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(1000);
 
-    // Verify TANGO-7 entity card exists
-    const tangoCard = page.locator('button:has-text("TANGO-7")').first();
-    await expect(tangoCard).toBeVisible({ timeout: 5000 });
+    const entityCard = getIntelCards(page).first();
+    await expect(entityCard).toBeVisible({ timeout: 5000 });
+    const entityName = (await entityCard.locator('.text-xs.font-semibold').first().textContent())?.trim();
+    expect(entityName).toBeTruthy();
 
-    // Click it
-    await tangoCard.click();
+    await entityCard.click();
     await page.waitForTimeout(1000);
+    await expect(
+      page.locator('.text-sm.font-semibold.text-zinc-200').filter({ hasText: entityName }),
+    ).toBeVisible();
 
     await page.screenshot({ path: 'e2e/screenshots/10-entity-detail.png', fullPage: true });
-    console.log('Entity click: TANGO-7 card clicked, screenshot taken');
+    console.log(`Entity click: ${entityName} card clicked, detail shown`);
   });
 
   // ─── ALERT SYSTEM ────────────────────────────────────────
 
   test('toast notifications appear on app load', async ({ page }) => {
-    // Toast may have auto-dismissed (3s duration) — check page ever had it
-    // The toast container always renders; if we're CONNECTED, boot toast fired
-    const isConnected = await page.locator('text=CONNECTED').isVisible();
-    expect(isConnected).toBe(true);
-    console.log('Toast: boot completed (CONNECTED confirmed — toast was shown)');
+    // Verify the system connection badge is visible and active on load.
+    await expect(page.getByRole('button', { name: /^CONNECTED/ })).toBeVisible();
+    console.log('Toast: boot completed (CONNECTED badge visible)');
   });
 
   // ─── MULTI-CHART ─────────────────────────────────────────
@@ -273,17 +288,17 @@ test.describe('SkyDash Interaction Tests', () => {
     await page.waitForTimeout(300);
 
     // Report button should exist
-    const reportBtn = page.locator('button:has-text("REPORT")');
+    const reportBtn = page.getByRole('button', { name: /^FULL REPORT$/i });
     await expect(reportBtn).toBeVisible({ timeout: 5000 });
 
     // GeoJSON button
-    const geojsonBtn = page.locator('button:has-text("GEOJSON")');
+    const geojsonBtn = page.getByRole('button', { name: 'GEOJSON' });
     await expect(geojsonBtn).toBeVisible();
 
-    // CSV button (use text-is for exact match)
-    const csvBtn = page.locator('button span:text-is("CSV")');
+    // CSV button
+    const csvBtn = page.getByRole('button', { name: 'CSV' });
     await expect(csvBtn).toBeVisible();
 
-    console.log('Export: REPORT, GEOJSON, CSV buttons visible');
+    console.log('Export: FULL REPORT, GEOJSON, CSV buttons visible');
   });
 });

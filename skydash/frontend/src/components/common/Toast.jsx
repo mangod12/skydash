@@ -19,9 +19,11 @@ const COLORS = {
 
 // Global toast state
 let addToastFn = null;
+let toastId = 0;
 
 export function toast(message, type = 'info', duration = 3000) {
-  addToastFn?.({ message, type, duration, id: Date.now() });
+  toastId += 1;
+  addToastFn?.({ message, type, duration, id: `${Date.now()}-${toastId}` });
 }
 
 export default function ToastContainer() {
@@ -55,7 +57,7 @@ export default function ToastContainer() {
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 40, scale: 0.95 }}
               className={clsx(
-                'pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl border',
+                'pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-lg border',
                 'bg-zinc-900/90 backdrop-blur-md shadow-lg max-w-xs',
                 COLORS[t.type],
               )}

@@ -22,7 +22,7 @@ function useSourceTimestamps() {
   const events = useIntelStore((s) => s.events);
   const adsbActive = useMapStore((s) => s.layers.adsb);
 
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
@@ -94,7 +94,7 @@ function SourceDot({ source, now, expanded }) {
 
 export default function DataFreshnessBar({ className }) {
   const sources = useSourceTimestamps();
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);

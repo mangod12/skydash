@@ -26,7 +26,7 @@ export default function FreshnessIndicator({
   compact = false,
   className,
 }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -52,7 +52,7 @@ export default function FreshnessIndicator({
   const ageMs = Math.max(0, now - ts);
   const tier = getTier(ageMs);
   const exactTime = format(new Date(ts), 'yyyy-MM-dd HH:mm:ss');
-  const tooltip = source ? `${source} — ${exactTime}` : exactTime;
+  const tooltip = source ? `${source} - ${exactTime}` : exactTime;
 
   return (
     <span

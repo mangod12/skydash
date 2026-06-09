@@ -1,13 +1,15 @@
 import { create } from 'zustand';
 import { toast } from '../components/common/Toast';
 import { apiFetch } from '../utils/api';
+import { API_BASE } from '../utils/runtimeConfig';
 
-const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
+const API = API_BASE;
 
 export const useMissionStore = create((set, get) => ({
   missions: [],
   activeMissionId: null,
   loading: false,
+  visionStatus: null,
 
   fetchMissions: async () => {
     set({ loading: true });
@@ -89,7 +91,14 @@ export const useMissionStore = create((set, get) => ({
       if (json.success) {
         set((s) => ({
           missions: s.missions.map((m) =>
-            m.id === id ? { ...m, entityIds: json.data.entities, notes: json.data.notes } : m,
+            m.id === id
+              ? {
+                  ...m,
+                  entityIds: json.data.entities,
+                  notes: json.data.notes,
+                  detections: json.data.detections,
+                }
+              : m,
           ),
         }));
         return json.data;
@@ -188,6 +197,94 @@ export const useMissionStore = create((set, get) => ({
       }
     } catch (e) {
       console.error('Failed to delete note', e);
+    }
+    return false;
+  },
+
+  fetchVisionStatus: async () => {
+    try {
+      const res = await apiFetch(`${API}/api/vision/status`);
+      const json = await res.json();
+      if (json.success) {
+        set({ visionStatus: json.data });
+        return json.data;
+      }
+    } catch (e) {
+      console.error('Failed to fetch vision status', e);
+    }
+    return null;
+  },
+
+  analyzeMissionImage: async (missionId, file) => {
+    try {
+      const body = new FormData();
+      body.append('image', file);
+      const res = await apiFetch(`${API}/api/missions/${missionId}/detections/analyze`, {
+        method: 'POST',
+        body,
+      });
+      const json = await res.json();
+      if (json.success) {
+        set((s) => ({
+          missions: s.missions.map((m) =>
+            m.id === missionId
+              ? { ...m, detections: [json.data, ...(m.detections || [])] }
+              : m,
+          ),
+        }));
+        return json.data;
+      }
+      toast(json.error || 'Detection analysis failed', 'error');
+    } catch (e) {
+      console.error('Failed to analyze mission image', e);
+      toast('Detection analysis failed', 'error');
+    }
+    return null;
+  },
+
+  monitorSampleVideo: async (missionId) => {
+    try {
+      const res = await apiFetch(`${API}/api/missions/${missionId}/detections/sample-monitor`, {
+        method: 'POST',
+      });
+      const json = await res.json();
+      if (json.success) {
+        set((s) => ({
+          missions: s.missions.map((m) =>
+            m.id === missionId
+              ? { ...m, detections: [json.data, ...(m.detections || [])] }
+              : m,
+          ),
+        }));
+        toast('Sample feed analyzed with RT-DETR', 'success');
+        return json.data;
+      }
+      toast(json.error || 'Sample feed analysis failed', 'error');
+    } catch (e) {
+      console.error('Failed to monitor sample video', e);
+      toast('Sample feed analysis failed', 'error');
+    }
+    return null;
+  },
+
+  deleteDetection: async (missionId, detectionId) => {
+    try {
+      const res = await apiFetch(`${API}/api/missions/${missionId}/detections/${detectionId}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) {
+        set((s) => ({
+          missions: s.missions.map((m) =>
+            m.id === missionId
+              ? { ...m, detections: (m.detections || []).filter((d) => d.id !== detectionId) }
+              : m,
+          ),
+        }));
+        return true;
+      }
+    } catch (e) {
+      console.error('Failed to delete detection', e);
     }
     return false;
   },

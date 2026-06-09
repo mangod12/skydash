@@ -73,7 +73,7 @@ def reset(db_path=None):
 
 # --- Migration System ---------------------------------------------------
 
-SCHEMA_VERSION = 2  # Increment when schema changes
+SCHEMA_VERSION = 3  # Increment when schema changes
 
 
 def get_schema_version():
@@ -139,3 +139,28 @@ def _run_migrations(from_version):
         )""")
         conn.commit()
         log.info("Migration v2: users table created")
+
+    if from_version < 3:
+        # v3: Ensure mission detections table and index for debrief workflow.
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS mission_detections (
+                id TEXT PRIMARY KEY,
+                mission_id TEXT NOT NULL,
+                source_name TEXT NOT NULL,
+                model TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                detections TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE
+            )"""
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_mission_detections_mission_id "
+            "ON mission_detections (mission_id)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_mission_detections_created_at "
+            "ON mission_detections (mission_id, created_at)"
+        )
+        conn.commit()
+        log.info("Migration v3: mission detections table/indexes created")

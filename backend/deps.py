@@ -25,6 +25,7 @@ DB_PATH = os.getenv("SKYDASH_DB_PATH", "skydash.db")
 CORS_ORIGINS = os.getenv(
     "SKYDASH_CORS_ORIGINS",
     "http://localhost:5173,http://localhost:5174,"
+    "http://127.0.0.1:5173,http://127.0.0.1:5174,"
     "http://localhost:4173,http://localhost:80,http://localhost",
 ).split(",")
 
@@ -35,11 +36,12 @@ log = logging.getLogger("skydash")
 
 # ── Shared instances ─────────────────────────────────────────
 
-database.check_migrations()
-
 fleet = FleetSimulator()
 entity_store = EntityStore()
 mission_store = MissionStore()
+
+database.check_migrations()
+
 user_store = UserStore() if AUTH_ENABLED else None
 opensky = OpenSkyConnector()
 shodan = ShodanConnector(api_key=os.getenv("SHODAN_API_KEY"))

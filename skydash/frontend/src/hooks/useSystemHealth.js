@@ -4,8 +4,9 @@ import { useIntelStore } from '../stores/intelStore';
 import { useAuditStore } from '../stores/auditStore';
 import useNotificationStore from '../stores/notificationStore';
 import { useMapStore } from '../stores/mapStore';
+import { API_BASE } from '../utils/runtimeConfig';
 
-const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
+const API = API_BASE;
 const N = 30;
 
 const deriveStatus = (conn, lat, drones) =>

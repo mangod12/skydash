@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Target, FileText, MapPin, Clock, Plus, X, ChevronRight, Trash2, ScrollText,
+  Target, FileText, MapPin, Clock, Plus, X, ChevronRight, Trash2, ScrollText, ScanSearch,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useMissionStore } from '../../stores/missionStore';
@@ -10,10 +10,12 @@ import { useIntelStore } from '../../stores/intelStore';
 import { useMapStore } from '../../stores/mapStore';
 import EntityCard from '../intel/EntityCard';
 import MissionBriefingTab from './MissionBriefingTab';
+import DetectionDebriefTab from './DetectionDebriefTab';
 
 const TABS = [
   { id: 'entities', label: 'ENTITIES', icon: Target },
   { id: 'notes', label: 'NOTES', icon: FileText },
+  { id: 'debrief', label: 'DEBRIEF', icon: ScanSearch },
   { id: 'briefing', label: 'BRIEFING', icon: ScrollText },
   { id: 'map', label: 'MAP', icon: MapPin },
   { id: 'timeline', label: 'TIMELINE', icon: Clock },
@@ -169,6 +171,7 @@ export default function MissionDetail({ mission, tab, onTab }) {
           <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
             {tab === 'entities' && <EntitiesTab mission={mission} />}
             {tab === 'notes' && <NotesTab mission={mission} />}
+            {tab === 'debrief' && <DetectionDebriefTab mission={mission} />}
             {tab === 'briefing' && <MissionBriefingTab mission={mission} />}
             {tab === 'map' && <MapTab mission={mission} />}
             {tab === 'timeline' && <TimelineTab mission={mission} />}

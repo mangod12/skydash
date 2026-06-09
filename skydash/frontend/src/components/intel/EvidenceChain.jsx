@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import { Shield, ChevronDown, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
@@ -54,10 +54,29 @@ function ConfidenceBar({ confidence, sourceCount, lastVerified }) {
 }
 
 export default function EvidenceChain({ entityId, confidence, defaultExpanded = false }) {
+  if (!entityId) return null;
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const chain = useProvenanceStore((s) => s.getChain(entityId));
-  const sourceCount = useProvenanceStore((s) => s.getSourceCount(entityId));
-  const lastVerified = useProvenanceStore((s) => s.getLastVerified(entityId));
+  const provenanceEntries = useProvenanceStore((s) => s.entries);
+
+  const chain = useMemo(() => {
+    return provenanceEntries
+      .filter((entry) => entry.entityId === entityId)
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  }, [provenanceEntries, entityId]);
+
+  const sourceCount = useMemo(() => {
+    return new Set(chain.map((entry) => entry.actor)).size;
+  }, [chain]);
+
+  const lastVerified = useMemo(() => {
+    const confirmed = chain.filter((entry) => entry.action === 'confirmed');
+    if (confirmed.length === 0) return null;
+    const latest = confirmed.reduce((acc, entry) => {
+      const t = new Date(entry.timestamp).getTime();
+      return t > acc.time ? { entry, time: t } : acc;
+    }, { entry: confirmed[0], time: new Date(confirmed[0].timestamp).getTime() });
+    return latest.entry.timestamp;
+  }, [chain]);
 
   if (chain.length === 0) return null;
 

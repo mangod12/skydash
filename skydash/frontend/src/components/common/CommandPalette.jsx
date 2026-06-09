@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { startTour } from './OnboardingTour';
 import { apiFetch } from '../../utils/api';
+import { API_BASE } from '../../utils/runtimeConfig';
 
 const COMMANDS = [
   { id: 'dashboard', label: 'Go to Dashboard', icon: Crosshair, group: 'NAVIGATION', action: 'dashboard' },
@@ -88,7 +89,7 @@ export default function CommandPalette() {
     if (cmd.handler === 'tour') startTour();
     if (cmd.handler === 'compare') useIntelStore.getState().clearComparison();
     if (cmd.handler === 'create-entity') useUIStore.getState().setEntityCreateOpen(true);
-    if (cmd.id === 'reset') apiFetch(`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001')}/reset`, { method: 'POST' });
+    if (cmd.id === 'reset') apiFetch(`${API_BASE}/reset`, { method: 'POST' });
     close();
   };
 

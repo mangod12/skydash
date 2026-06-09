@@ -40,6 +40,7 @@ async def get_mission(mission_id: str):
         raise HTTPException(status_code=404, detail="Mission not found")
     mission["entities"] = mission_store.get_mission_entities(mission_id)
     mission["notes"] = mission_store.get_notes(mission_id)
+    mission["detections"] = mission_store.get_detections(mission_id)
     return {"success": True, "data": mission}
 
 

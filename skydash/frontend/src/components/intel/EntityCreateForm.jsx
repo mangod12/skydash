@@ -4,8 +4,9 @@ import { X, Plus, Trash2 } from 'lucide-react';
 import { useIntelStore } from '../../stores/intelStore';
 import { toast } from '../common/Toast';
 import { apiFetch } from '../../utils/api';
+import { API_BASE } from '../../utils/runtimeConfig';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API = API_BASE;
 const TYPES = ['vehicle', 'person', 'building', 'device', 'event', 'organization'];
 const THREATS = ['none', 'low', 'medium', 'high', 'critical'];
 const THREAT_DOT = { none: 'bg-zinc-500', low: 'bg-emerald-500', medium: 'bg-amber-500', high: 'bg-red-500', critical: 'bg-red-600' };

@@ -9,6 +9,7 @@ import { startTour } from '../common/OnboardingTour';
 import { PanelBoundary } from '../common/ErrorBoundary';
 import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
+import { API_BASE } from '../../utils/runtimeConfig';
 
 const THEMES = [
   { id: 'midnight', label: 'MIDNIGHT', desc: 'Dark zinc, indigo accents', color: 'bg-indigo-500' },
@@ -74,7 +75,7 @@ export default function SettingsView() {
           <div className="space-y-2 text-[11px]">
             <div className="flex justify-between">
               <span className="text-zinc-500">API Endpoint</span>
-              <span className="font-mono text-zinc-300">localhost:8001</span>
+              <span className="font-mono text-zinc-300">{API_BASE.replace(/^https?:\/\//, '')}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-zinc-500">Protocol</span>

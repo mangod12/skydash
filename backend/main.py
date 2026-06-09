@@ -26,6 +26,7 @@ from deps import (
 from routes.telemetry import router as telemetry_router
 from routes.entities import router as entities_router
 from routes.missions import router as missions_router
+from routes.vision import router as vision_router
 from routes.auth_routes import router as auth_router
 from routes.connectors import router as connectors_router
 from routes.export import router as export_router
@@ -54,6 +55,7 @@ app.add_middleware(
 app.include_router(telemetry_router)
 app.include_router(entities_router)
 app.include_router(missions_router)
+app.include_router(vision_router)
 app.include_router(auth_router)
 app.include_router(connectors_router)
 app.include_router(export_router)
@@ -162,6 +164,14 @@ async def root():
             "/api/telemetry/stats": "Fleet aggregate statistics",
             "/api/entities": "Entity CRUD",
             "/api/missions": "Mission CRUD",
+            "/api/vision/status": "Optional RT-DETR detector status",
+            "/api/vision/sample-feed": "Optional MJPEG sample monitoring feed",
+            "/api/vision/sample-frame": "Optional JPEG sample monitoring frame",
+            "/api/vision/sample-viewer": "RT-DETR sample feed viewer",
+            "/api/missions/{id}/detections": "Mission detection results",
+            "/api/missions/{id}/detections/analyze": "Analyze a mission frame with RT-DETR",
+            "/api/missions/{id}/detections/sample-monitor": "Analyze the sample feed frame with RT-DETR",
+            "/api/missions/{id}/detections/{detection_id}": "Delete a mission detection result",
             "/api/timeline": "Event timeline",
             "/api/connectors/adsb": "ADS-B aircraft (OpenSky)",
             "/api/connectors/adsb/entities": "ADS-B as SkyDash entities",

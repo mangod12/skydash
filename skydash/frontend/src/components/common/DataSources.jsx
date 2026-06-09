@@ -25,7 +25,7 @@ function useDataSources() {
   const { layers } = useMapStore();
 
   // Tick every second to keep lastFetch timestamps current
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
@@ -46,7 +46,7 @@ function useDataSources() {
       name: 'FLEET SIMULATOR',
       status: fleetStatus,
       statusLabel: isConnected ? 'CONNECTED' : 'DISCONNECTED',
-      description: `${droneCount} drones · 10 Hz · ${latency}ms latency`,
+      description: `${droneCount} drones - 10 Hz - ${latency}ms latency`,
       health: isConnected ? 100 : 0,
       lastFetch: isConnected ? now : null,
     },
@@ -56,7 +56,7 @@ function useDataSources() {
       name: 'ADS-B (OPENSKY)',
       status: adsbActive ? 'connected' : 'available',
       statusLabel: adsbActive ? 'CONNECTED' : 'AVAILABLE',
-      description: adsbActive ? '12 aircraft · 15s refresh' : 'Layer disabled in map settings',
+      description: adsbActive ? '12 aircraft - 15s refresh' : 'Layer disabled in map settings',
       health: adsbActive ? 85 : 0,
       lastFetch: adsbActive ? now : null,
     },
@@ -66,7 +66,7 @@ function useDataSources() {
       name: 'MAVLINK',
       status: 'available',
       statusLabel: 'AVAILABLE',
-      description: 'Serial/UDP · ArduPilot compatible',
+      description: 'Serial/UDP - ArduPilot compatible',
       health: 0,
       note: 'Not configured',
       lastFetch: null,
@@ -88,7 +88,7 @@ function useDataSources() {
       name: 'OSINT FEEDS',
       status: 'planned',
       statusLabel: 'PLANNED',
-      description: 'Shodan · VirusTotal · Censys',
+      description: 'Shodan - VirusTotal - Censys',
       health: 0,
       note: 'Coming soon',
       lastFetch: null,
@@ -99,7 +99,7 @@ function useDataSources() {
       name: 'ENTITY DATABASE',
       status: 'connected',
       statusLabel: 'CONNECTED',
-      description: `SQLite · ${entities.length} entities · ${events.length} events`,
+      description: `SQLite - ${entities.length} entities - ${events.length} events`,
       health: 100,
       lastFetch: entitiesLastSeen,
     },

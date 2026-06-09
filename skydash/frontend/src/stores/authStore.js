@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+import { API_BASE } from '../utils/runtimeConfig';
 
-const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
+const API = API_BASE;
 
 export const useAuthStore = create((set, get) => ({
   token: localStorage.getItem('skydash_token'),
