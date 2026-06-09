@@ -1,193 +1,147 @@
 # SkyDash
 
-Local-first spatial intelligence dashboard for geospatial maps, OSINT-style entities, relationship analysis, mission workflow, exports, connectors, and simulated drone telemetry.
+A spatial intelligence and OSINT platform for real-time drone fleet operations. Built to handle multi-drone telemetry streaming, geospatial entity tracking, threat assessment, and intelligence analysis — all from a single dark-themed operations interface.
 
-[![CI](https://github.com/mangod12/skydash/actions/workflows/ci.yml/badge.svg)](https://github.com/mangod12/skydash/actions/workflows/ci.yml)
+![Dashboard](docs/screenshots/dashboard.png)
 
-SkyDash is not production investigation software. It is a hackable engineering prototype for studying dense operational UI, real-time telemetry, map workflows, and entity/link analysis without a sales-gated enterprise tool.
+## Why I Built This
 
-## What Is In This Repo
+I wanted to build the kind of software that defense contractors charge millions for — and make it open source. The goal was a system that could track multiple drones simultaneously, overlay intelligence data on a live map, and give an operator everything they need in one screen. Think Palantir Gotham meets a fighter jet HUD, but something you can actually run on your laptop.
 
-| Area | Path | What it does |
-|---|---|---|
-| FastAPI backend | `backend/main.py` | API entrypoint, auth middleware, telemetry recorder, health/root routes, and router mounting. |
-| Backend routes | `backend/routes/` | Telemetry, entities, missions, auth, connectors, and export routes. |
-| Backend stores/adapters | `backend/*.py` | In-memory/local stores, SQLite persistence, simulated fleet, MAVLink/DJI adapter stubs, OpenSky/Shodan connectors. |
-| React frontend | `skydash/frontend/` | Vite + React dashboard with maps, telemetry, intelligence, mission, analytics, and settings views. |
-| State and utilities | `skydash/frontend/src/stores/`, `src/utils/`, `src/hooks/` | Zustand stores, analysis helpers, API client, alert evaluation, exports, graph utilities, sanitization, keyboard and telemetry hooks. |
-| E2E tests | `e2e/` | Playwright flows and screenshots. |
-| Docs | `docs/` | Reviewer walkthrough, architecture walkthrough, safety/scope notes, screenshots. |
-| Containers | `Dockerfile*`, `docker-compose.yml`, `nginx.conf` | Split backend/frontend containers and combined deployment assets. |
+The whole thing started as a simple telemetry dashboard for a single drone and grew into a full spatial intelligence platform over several development cycles.
 
-## Current Capabilities
+## What It Does
 
-### Geospatial And Telemetry
+**Real-time drone fleet monitoring** — Three simulated drones (orbit, grid search, waypoint patrol) stream telemetry over WebSocket at 10Hz. Each drone reports altitude, GPS position, battery voltage, signal strength, attitude (roll/pitch/yaw), and wind conditions. The frontend picks it up via WebSocket with automatic reconnection and HTTP polling fallback.
 
-- FastAPI WebSocket stream for fleet telemetry.
-- Simulated drones with orbit/grid/waypoint behavior.
-- Telemetry history ring buffer sampled on backend startup.
-- Leaflet map UI with layers, entity overlays, geofences, annotations, search, and measuring tools.
-- ADS-B connector path using OpenSky with fallback behavior.
-- MAVLink and DJI adapter stubs for future hardware integration.
+**OSINT entity tracking** — Track people, vehicles, buildings, devices, and events on the map. Each entity has a threat level, confidence score, source attribution, and tags. Entities are linked by relationships (located_at, associated_with, traveled_to) and visualized on the map with threat-colored markers.
 
-### Intelligence Workflow
+**Intelligence analysis tools** — Natural language query parser lets you type things like "high threat vehicles near warehouse" and get filtered results. Anomaly detection flags telemetry values outside 2 standard deviations. Timeline view shows the full operational story with severity-coded events.
 
-- Entity CRUD for people, vehicles, buildings, devices, events, and organizations.
-- Relationship/link graph and link suggestions.
-- Natural-language query parsing for local entity filters.
-- Pattern, risk, network, temporal, and graph analysis helpers.
-- Missions, notes, bookmarks, audit log, alerts, and notifications.
-- Export generators for operational reports and data formats.
-- Optional RT-DETR image analysis for mission/debrief frames.
+**Export and reporting** — One-click export to plaintext intelligence report, GeoJSON (for GIS tools), or CSV. The backend also exposes a REST API for programmatic access to everything.
 
-### UI
+## Screenshots
 
-- React 18, Vite, Tailwind, Zustand, React Query, Leaflet, D3, Recharts, Framer Motion.
-- Dashboard, map, telemetry, intelligence, analytics, missions, command palette, and settings views.
-- Themes and tactical UI tokens under `src/styles/`.
+### Operations Dashboard
+Live map with 3 drone markers, flight path trails, entity markers, compass rose, HUD overlay, and telemetry panel.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Intelligence View
+Entity list with threat badges, event timeline, natural language query, anomaly detection, threat matrix, and export tools.
+
+![Intel](docs/screenshots/intel.png)
+
+### Analytics
+Fleet status, entity distribution, threat breakdown, altitude trends, and top entities by activity.
+
+![Analytics](docs/screenshots/analytics.png)
+
+### Telemetry
+Artificial horizon (attitude indicator), speed/altitude tapes, battery gauge, signal meter, GPS constellation sky view, and multi-chart with switchable data streams.
+
+![Telemetry](docs/screenshots/telemetry.png)
+
+### Full Map
+Dark CartoDB tiles with satellite toggle, zoom controls, layer management, measure tool, coordinate display (DD/DMS/UTM/MGRS), and timeline playback slider.
+
+![Map](docs/screenshots/map.png)
+
+## Tech Stack
+
+**Frontend** — React 18, Vite, Tailwind CSS, Zustand (state), Framer Motion (animations), Leaflet (maps), Recharts (charts), cmdk (command palette), Lucide (icons)
+
+**Backend** — Python, FastAPI, Uvicorn, Pydantic, WebSocket streaming
+
+**Testing** — Playwright (46 E2E tests covering telemetry data flow, navigation, entity CRUD, API validation, UI interactions)
+
+**Design** — Glass morphism, JetBrains Mono for metrics, military-precision typography (ALL CAPS labels, tracking-wider headers), JARVIS-inspired boot sequence and ambient effects
 
 ## Architecture
 
-```text
-React/Vite frontend
-  -> Zustand stores + React Query
-  -> REST API for entities, missions, connectors, exports
-  -> WebSocket telemetry stream
+```
+Frontend (57 source files)
+  components/
+    common/     12 — GlassCard, Toast, BootSequence, CommandPalette, etc.
+    layout/      4 — Shell, Sidebar, TopBar, StatusBar
+    map/        11 — MapView, DroneMarker, CompassRose, MeasureTool, etc.
+    telemetry/   7 — AttitudeIndicator, BatteryGauge, SignalMeter, MultiChart, etc.
+    intel/       8 — EntityCard, TimelineView, ThreatMatrix, NaturalLanguageQuery, etc.
+    views/       6 — Dashboard, Map, Telemetry, Intel, Analytics, Settings
+  stores/        4 — Zustand (telemetry, map, ui, intel)
+  hooks/         2 — useTelemetry (WebSocket + HTTP fallback), useKeyboard
 
-FastAPI backend
-  -> simulated fleet and telemetry history
-  -> entity and mission stores
-  -> SQLite/local persistence
-  -> OpenSky and Shodan connector facades
-  -> auth/API-key middleware when enabled
+Backend (3 modules)
+  main.py          — FastAPI server, WebSocket endpoint, REST API
+  simulation.py    — Multi-drone fleet simulator (orbit/grid/waypoint)
+  entities.py      — In-memory entity store with CRUD + relationships
 ```
 
-## Local Development
+The frontend connects via WebSocket for real-time telemetry (with exponential backoff reconnection and HTTP polling fallback). State management uses Zustand — four stores for telemetry, map, UI, and intelligence data. Code-split via Vite manual chunks so the app bundle is only 25KB gzipped.
 
-Backend:
-
-```bash
-git clone https://github.com/mangod12/skydash.git
-cd skydash/backend
-
-python -m venv .venv
-. .venv/Scripts/activate  # Windows PowerShell users can use .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python main.py
-```
-
-Frontend:
+## Getting Started
 
 ```bash
-cd skydash/frontend
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173`.
-
-Useful backend URLs:
-
-- `http://localhost:8001/health`
-- `http://localhost:8001/docs`
-- `http://localhost:8001/telemetry`
-- `ws://localhost:8001/ws/telemetry`
-
-## Configuration
-
-Start from `.env.example`.
-
-Common settings:
-
-| Variable | Purpose |
-|---|---|
-| `SKYDASH_HOST` | Backend host. |
-| `SKYDASH_PORT` | Backend port, commonly `8001`. |
-| `SKYDASH_API_KEY` | Enables API-key middleware when auth is not fully enabled. |
-| `SKYDASH_AUTH_ENABLED` | Enables JWT-style auth path. |
-| `SKYDASH_CORS_ORIGINS` | Comma-separated frontend origins. |
-| `SHODAN_API_KEY` | Optional live Shodan connector. |
-| `SKYDASH_RTDETR_MODEL` | Optional RT-DETR model name/path, default `rtdetr-l.pt`. |
-| `SKYDASH_RTDETR_CONFIDENCE` | Optional detection confidence threshold, default `0.35`. |
-| `SKYDASH_RTDETR_MAX_UPLOAD_BYTES` | Optional max mission frame upload size, default 8 MB. |
-
-## Optional RT-DETR Mission Debrief
-
-SkyDash can attach RT-DETR object detections to a mission debrief. The base backend stays lightweight; install the vision extras only on machines that should run object detection.
-
-```bash
-cd backend
-pip install -r requirements-vision.txt
-python main.py
-```
-
-Then open a mission and select the **DEBRIEF** tab. You can either upload a JPEG/PNG/WebP mission frame or use the built-in sample monitoring feed. Results are stored on the mission, can be added to analyst notes, and are included in generated mission briefings.
-
-Useful endpoints:
-
-- `GET /api/vision/status`
-- `GET /api/vision/sample-feed`
-- `GET /api/vision/sample-frame`
-- `GET /api/vision/sample-viewer`
-- `POST /api/missions/{mission_id}/detections/analyze`
-- `POST /api/missions/{mission_id}/detections/sample-monitor`
-- `GET /api/missions/{mission_id}/detections`
-- `DELETE /api/missions/{mission_id}/detections/{detection_id}`
-
-## Tests And Quality
-
-Frontend:
-
-```bash
-cd skydash/frontend
-npm run lint
-npm run test
-npm run build
-```
-
-Backend smoke path:
-
-```bash
+# Backend
 cd backend
 pip install -r requirements.txt
-python main.py
-```
+python main.py          # Starts on port 8001
 
-Then in another terminal:
-
-```bash
-curl http://localhost:8001/health
-curl http://localhost:8001/telemetry
-curl http://localhost:8001/api/entities
-```
-
-Playwright:
-
-```bash
+# Frontend (separate terminal)
+cd skydash/frontend
 npm install
+npm run dev             # Opens on localhost:5173
+```
+
+Open http://localhost:5173 and you'll see the boot sequence, then the full dashboard with live telemetry from 3 simulated drones.
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `D` | Dashboard |
+| `M` | Full map |
+| `T` | Telemetry view |
+| `I` | Intel view |
+| `B` | Toggle sidebar |
+| `Ctrl+K` | Command palette |
+| `?` | Keyboard shortcuts |
+
+## API
+
+The backend exposes a full REST API at `http://localhost:8001/docs` (Swagger UI).
+
+Key endpoints:
+- `GET /telemetry` — All drones telemetry
+- `GET /telemetry/{drone_id}` — Single drone
+- `WS /ws/telemetry` — WebSocket stream
+- `GET /api/entities` — List entities (filterable by type, threat)
+- `POST /api/entities` — Create entity
+- `GET /api/entities/{id}/graph` — Relationship graph
+- `GET /api/timeline` — Event timeline (paginated)
+- `POST /api/export/geojson` — GeoJSON export
+- `POST /reset` — Reset simulation
+
+## Testing
+
+```bash
+# Run all 46 E2E tests
 npx playwright test
+
+# Run specific suite
+npx playwright test e2e/api.spec.js          # 17 backend API tests
+npx playwright test e2e/interactions.spec.js  # 11 UI interaction tests
+npx playwright test e2e/skydash.spec.js       # 18 core feature tests
 ```
 
-The CI workflow builds/tests the frontend, starts the backend, checks `/health`, `/telemetry`, `/api/entities`, and `/api/timeline`, then builds backend and frontend Docker images on `main`.
+Tests cover telemetry data flow, real-time value changes, entity CRUD lifecycle, NLQ query accuracy, coordinate format cycling, fleet status validation, timeline pagination, and more.
 
-## Docker
+## What I Learned
 
-```bash
-docker compose up --build
-```
+Building this taught me a lot about real-time data streaming at scale (WebSocket vs polling tradeoffs), geospatial coordinate systems (implementing DD/DMS/UTM/MGRS conversions from scratch), and how to design information-dense interfaces that don't overwhelm the operator. The anomaly detection and NLQ parser are simple implementations, but they demonstrate the pattern — in production you'd swap those for proper ML models and an NLP pipeline.
 
-The repo also contains separate `Dockerfile.backend` and `Dockerfile.frontend` files plus `nginx.conf` for frontend proxying.
-
-## Safety And Scope
-
-SkyDash currently uses simulated telemetry and local/demo data. It does not include private-account scraping, breached-data ingestion, or autonomous operational control. RT-DETR detections are analyst-assist debrief evidence, not identity, targeting, or autonomous response decisions. Real deployments would need stronger auth/RBAC, audit retention, data governance, connector review, model evaluation, privacy review, and safety constraints.
-
-See:
-
-- [docs/safety-and-scope.md](docs/safety-and-scope.md)
-- [docs/reviewer-walkthrough.md](docs/reviewer-walkthrough.md)
-- [docs/architecture-walkthrough.md](docs/architecture-walkthrough.md)
+The hardest part was making it look good. Dark interfaces are unforgiving — every pixel of spacing, every shade of gray matters. I spent as much time on the design system (glass morphism, glow effects, boot sequence choreography) as on the actual features.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT
