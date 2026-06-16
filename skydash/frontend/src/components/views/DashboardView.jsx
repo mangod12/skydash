@@ -20,6 +20,7 @@ import WidgetGrid from './WidgetGrid';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
+import { BACKEND_CONFIGURED } from '../../utils/runtimeConfig';
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -74,6 +75,21 @@ export default function DashboardView() {
   const activeMissions = missions.filter((m) => m.status === 'active');
   const linkedEntities = missions.reduce((s, m) => s + (m.entityIds?.length || 0), 0);
   const dataRate = fleet.length > 0 ? `${fleet.length * 2} msg/s` : '0 msg/s';
+  const systemHealth = BACKEND_CONFIGURED
+    ? {
+        value: isConnected ? 'ONLINE' : 'OFFLINE',
+        icon: isConnected ? Activity : WifiOff,
+        sub: isConnected ? `${latency}ms LATENCY \u00B7 ${dataRate}` : 'RECONNECTING...',
+        accent: isConnected ? 'cyan' : 'red',
+        freshness: isConnected ? 'Updated just now' : 'Connection lost',
+      }
+    : {
+        value: 'STATIC',
+        icon: Activity,
+        sub: 'BACKEND NOT CONFIGURED',
+        accent: 'indigo',
+        freshness: 'API/WS disabled',
+      };
 
   if (widgetMode) {
     return (
@@ -91,10 +107,10 @@ export default function DashboardView() {
 
   return (
     <PanelBoundary name="Dashboard">
-    <div className="h-full overflow-y-auto p-4">
+    <div className="h-full overflow-y-auto overflow-x-hidden p-4">
       <div className="max-w-7xl mx-auto space-y-3">
         {/* ── Data Freshness Bar + Widget Toggle ── */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <DataFreshnessBar />
           <button
             onClick={() => setWidgetMode(true)}
@@ -107,7 +123,7 @@ export default function DashboardView() {
         </div>
 
         {/* ── Top Row: 4 Stat Cards ── */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           <StatCard
             label="FLEET STATUS" value={droneCount} icon={Wifi}
             sub={allConnected ? `ALL CONNECTED \u00B7 ${avgBattery}% AVG BAT`
@@ -130,11 +146,11 @@ export default function DashboardView() {
               : null}
           />
           <StatCard
-            label="SYSTEM HEALTH" value={isConnected ? 'ONLINE' : 'OFFLINE'}
-            icon={isConnected ? Activity : WifiOff}
-            sub={isConnected ? `${latency}ms LATENCY \u00B7 ${dataRate}` : 'RECONNECTING...'}
-            accent={isConnected ? 'cyan' : 'red'} index={3}
-            freshness={isConnected ? 'Updated just now' : 'Connection lost'}
+            label="SYSTEM HEALTH" value={systemHealth.value}
+            icon={systemHealth.icon}
+            sub={systemHealth.sub}
+            accent={systemHealth.accent} index={3}
+            freshness={systemHealth.freshness}
           />
         </div>
 
@@ -145,8 +161,8 @@ export default function DashboardView() {
         </motion.div>
 
         {/* ── Threat Gauge + Mission Progress + Intel Summary ── */}
-        <div className="grid grid-cols-6 gap-3">
-          <motion.div className="col-span-2" initial={{ opacity: 0, y: 12 }}
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-3">
+          <motion.div className="lg:col-span-2" initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3, ease: EASE }}>
             <ThreatGaugeCard
               score={threatScore}
@@ -154,11 +170,11 @@ export default function DashboardView() {
               critCount={threatCounts.critical}
             />
           </motion.div>
-          <motion.div className="col-span-2" initial={{ opacity: 0, y: 12 }}
+          <motion.div className="lg:col-span-2" initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.33, ease: EASE }}>
             <MissionProgressCard mission={activeMissions[0] || null} />
           </motion.div>
-          <motion.div className="col-span-2" initial={{ opacity: 0, y: 12 }}
+          <motion.div className="lg:col-span-2" initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.35, ease: EASE }}>
             <DashboardIntelSummary
               entities={entities}
@@ -175,8 +191,8 @@ export default function DashboardView() {
         </motion.div>
 
         {/* ── Bottom Row: Map + Radar | Sparklines + Comms | Activity Feed ── */}
-        <div className="grid grid-cols-6 gap-3">
-          <div className="col-span-2 space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-3">
+          <div className="lg:col-span-2 space-y-3">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.45, ease: EASE }}>
               <GlassCard className="!p-3" animate={false}>
@@ -193,7 +209,7 @@ export default function DashboardView() {
             </motion.div>
           </div>
 
-          <div className="col-span-2 space-y-3">
+          <div className="lg:col-span-2 space-y-3">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.48, ease: EASE }}>
               <GlassCard className="!p-4" animate={false}>
@@ -210,7 +226,7 @@ export default function DashboardView() {
             </motion.div>
           </div>
 
-          <motion.div className="col-span-2" initial={{ opacity: 0, y: 12 }}
+          <motion.div className="lg:col-span-2" initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.5, ease: EASE }}>
             <DashboardActivityFeed />
           </motion.div>

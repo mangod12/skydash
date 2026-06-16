@@ -3,10 +3,10 @@ import { useTelemetryStore } from '../stores/telemetryStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import { apiFetch } from '../utils/api';
-import { API_BASE, WS_BASE } from '../utils/runtimeConfig';
+import { API_BASE, API_CONFIGURED, WS_BASE, WS_CONFIGURED } from '../utils/runtimeConfig';
 
-const WS_URL = `${WS_BASE}/ws/telemetry`;
-const HTTP_URL = `${API_BASE}/telemetry`;
+const WS_URL = WS_CONFIGURED ? `${WS_BASE}/ws/telemetry` : '';
+const HTTP_URL = API_CONFIGURED ? `${API_BASE}/telemetry` : '';
 const RECONNECT_BASE = 1000;
 const RECONNECT_MAX = 10000;
 
@@ -41,6 +41,7 @@ export function useTelemetry() {
   }, [updateTelemetry, updateDronePosition]);
 
   const startHttpFallback = useCallback(() => {
+    if (!API_CONFIGURED) return;
     if (fallbackRef.current) return;
 
     const fetchData = async () => {
@@ -75,6 +76,10 @@ export function useTelemetry() {
   useEffect(() => { fallbackFnRef.current = startHttpFallback; }, [startHttpFallback]);
 
   const connectWS = useCallback(() => {
+    if (!WS_CONFIGURED) {
+      fallbackFnRef.current?.();
+      return;
+    }
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     try {
@@ -119,6 +124,11 @@ export function useTelemetry() {
   useEffect(() => { connectRef.current = connectWS; }, [connectWS]);
 
   useEffect(() => {
+    if (!API_CONFIGURED && !WS_CONFIGURED) {
+      setDisconnected();
+      return undefined;
+    }
+
     connectWS();
 
     return () => {
@@ -130,5 +140,5 @@ export function useTelemetry() {
         clearInterval(fallbackRef.current);
       }
     };
-  }, [connectWS]);
+  }, [connectWS, setDisconnected]);
 }

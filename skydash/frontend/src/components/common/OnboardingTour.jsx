@@ -31,18 +31,36 @@ function clipPath(rect) {
 }
 
 function tooltipPos(rect) {
-  if (!rect) return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+  const margin = 12;
+  const width = Math.min(300, window.innerWidth - margin * 2);
+  const estimatedHeight = 220;
+
+  if (!rect) {
+    return {
+      left: Math.max(margin, (window.innerWidth - width) / 2),
+      top: Math.max(margin, (window.innerHeight - estimatedHeight) / 2),
+      width,
+    };
+  }
+
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
-  const style = {};
-  if (cx < window.innerWidth / 2) {
-    style.left = rect.left + rect.width + 16;
-  } else {
-    style.left = rect.left - 320 - 16;
-    if (style.left < 12) style.left = 12;
-  }
-  style.top = Math.max(12, Math.min(cy - 60, window.innerHeight - 220));
-  return style;
+  const preferredLeft = cx < window.innerWidth / 2
+    ? rect.left + rect.width + 16
+    : rect.left - width - 16;
+  const below = rect.top + rect.height + 16;
+  const above = rect.top - estimatedHeight - 16;
+  const preferredTop = below + estimatedHeight + margin <= window.innerHeight
+    ? below
+    : above >= margin
+      ? above
+      : cy - estimatedHeight / 2;
+
+  return {
+    left: Math.max(margin, Math.min(preferredLeft, window.innerWidth - width - margin)),
+    top: Math.max(margin, Math.min(preferredTop, window.innerHeight - estimatedHeight - margin)),
+    width,
+  };
 }
 
 export function startTour() {

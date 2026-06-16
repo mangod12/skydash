@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { API_BASE } from '../utils/runtimeConfig';
+import { API_BASE, API_CONFIGURED } from '../utils/runtimeConfig';
 
 const API = API_BASE;
 
@@ -11,6 +11,10 @@ export const useAuthStore = create((set, get) => ({
 
   login: async (username, password) => {
     set({ error: null });
+    if (!API_CONFIGURED) {
+      set({ error: 'Backend API not configured' });
+      return false;
+    }
     try {
       const res = await fetch(`${API}/api/auth/login`, {
         method: 'POST',
@@ -39,6 +43,10 @@ export const useAuthStore = create((set, get) => ({
   },
 
   checkAuth: async () => {
+    if (!API_CONFIGURED) {
+      set({ authEnabled: false });
+      return;
+    }
     try {
       const res = await fetch(`${API}/api/entities`);
       if (res.status === 401) {

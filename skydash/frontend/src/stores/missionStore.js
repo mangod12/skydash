@@ -1,9 +1,14 @@
 import { create } from 'zustand';
 import { toast } from '../components/common/Toast';
 import { apiFetch } from '../utils/api';
-import { API_BASE } from '../utils/runtimeConfig';
+import { API_BASE, API_CONFIGURED } from '../utils/runtimeConfig';
 
 const API = API_BASE;
+const requireApi = () => {
+  if (API_CONFIGURED) return true;
+  toast('Backend API not configured', 'warning');
+  return false;
+};
 
 export const useMissionStore = create((set, get) => ({
   missions: [],
@@ -12,6 +17,10 @@ export const useMissionStore = create((set, get) => ({
   visionStatus: null,
 
   fetchMissions: async () => {
+    if (!API_CONFIGURED) {
+      set({ loading: false });
+      return;
+    }
     set({ loading: true });
     try {
       const res = await apiFetch(`${API}/api/missions`);
@@ -25,6 +34,7 @@ export const useMissionStore = create((set, get) => ({
   },
 
   createMission: async (data) => {
+    if (!requireApi()) return null;
     try {
       const res = await apiFetch(`${API}/api/missions`, {
         method: 'POST',
@@ -44,6 +54,7 @@ export const useMissionStore = create((set, get) => ({
   },
 
   updateMission: async (id, data) => {
+    if (!requireApi()) return null;
     try {
       const res = await apiFetch(`${API}/api/missions/${id}`, {
         method: 'PUT',
@@ -65,6 +76,7 @@ export const useMissionStore = create((set, get) => ({
   },
 
   deleteMission: async (id) => {
+    if (!requireApi()) return false;
     try {
       const res = await apiFetch(`${API}/api/missions/${id}`, { method: 'DELETE' });
       const json = await res.json();
@@ -85,6 +97,7 @@ export const useMissionStore = create((set, get) => ({
   setActiveMission: (id) => set({ activeMissionId: id }),
 
   fetchMissionDetail: async (id) => {
+    if (!API_CONFIGURED) return null;
     try {
       const res = await apiFetch(`${API}/api/missions/${id}`);
       const json = await res.json();
@@ -110,6 +123,7 @@ export const useMissionStore = create((set, get) => ({
   },
 
   addEntityToMission: async (missionId, entityId) => {
+    if (!requireApi()) return false;
     try {
       const res = await apiFetch(`${API}/api/missions/${missionId}/entities`, {
         method: 'POST',
@@ -134,6 +148,7 @@ export const useMissionStore = create((set, get) => ({
   },
 
   removeEntityFromMission: async (missionId, entityId) => {
+    if (!requireApi()) return false;
     try {
       const res = await apiFetch(`${API}/api/missions/${missionId}/entities/${entityId}`, {
         method: 'DELETE',
@@ -156,6 +171,7 @@ export const useMissionStore = create((set, get) => ({
   },
 
   addNote: async (missionId, content) => {
+    if (!requireApi()) return null;
     try {
       const res = await apiFetch(`${API}/api/missions/${missionId}/notes`, {
         method: 'POST',
@@ -180,6 +196,7 @@ export const useMissionStore = create((set, get) => ({
   },
 
   deleteNote: async (missionId, noteId) => {
+    if (!requireApi()) return false;
     try {
       const res = await apiFetch(`${API}/api/missions/${missionId}/notes/${noteId}`, {
         method: 'DELETE',
@@ -202,6 +219,10 @@ export const useMissionStore = create((set, get) => ({
   },
 
   fetchVisionStatus: async () => {
+    if (!API_CONFIGURED) {
+      set({ visionStatus: null });
+      return null;
+    }
     try {
       const res = await apiFetch(`${API}/api/vision/status`);
       const json = await res.json();
@@ -216,6 +237,7 @@ export const useMissionStore = create((set, get) => ({
   },
 
   analyzeMissionImage: async (missionId, file) => {
+    if (!requireApi()) return null;
     try {
       const body = new FormData();
       body.append('image', file);
@@ -243,6 +265,7 @@ export const useMissionStore = create((set, get) => ({
   },
 
   monitorSampleVideo: async (missionId) => {
+    if (!requireApi()) return null;
     try {
       const res = await apiFetch(`${API}/api/missions/${missionId}/detections/sample-monitor`, {
         method: 'POST',
@@ -268,6 +291,7 @@ export const useMissionStore = create((set, get) => ({
   },
 
   deleteDetection: async (missionId, detectionId) => {
+    if (!requireApi()) return false;
     try {
       const res = await apiFetch(`${API}/api/missions/${missionId}/detections/${detectionId}`, {
         method: 'DELETE',

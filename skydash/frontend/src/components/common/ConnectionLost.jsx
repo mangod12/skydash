@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff, RefreshCw } from 'lucide-react';
 import { useTelemetryStore } from '../../stores/telemetryStore';
+import { BACKEND_CONFIGURED } from '../../utils/runtimeConfig';
 
 export default function ConnectionLost() {
   const isConnected = useTelemetryStore((s) => s.isConnected);
@@ -9,6 +10,8 @@ export default function ConnectionLost() {
 
   // Only show after 5s of continuous disconnection (avoids flash during reconnect)
   useEffect(() => {
+    if (!BACKEND_CONFIGURED) return undefined;
+
     if (!isConnected) {
       const timer = setTimeout(() => setShowOverlay(true), 5000);
       return () => clearTimeout(timer);
@@ -17,6 +20,8 @@ export default function ConnectionLost() {
     const id = setTimeout(() => setShowOverlay(false), 0);
     return () => clearTimeout(id);
   }, [isConnected]);
+
+  if (!BACKEND_CONFIGURED) return null;
 
   return (
     <AnimatePresence>

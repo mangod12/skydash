@@ -4,7 +4,7 @@ import { useIntelStore } from '../stores/intelStore';
 import { useAuditStore } from '../stores/auditStore';
 import useNotificationStore from '../stores/notificationStore';
 import { useMapStore } from '../stores/mapStore';
-import { API_BASE } from '../utils/runtimeConfig';
+import { API_BASE, API_CONFIGURED } from '../utils/runtimeConfig';
 
 const API = API_BASE;
 const N = 30;
@@ -49,6 +49,10 @@ export function useSystemHealth() {
   }, []);
 
   const fetchUp = useCallback(async () => {
+    if (!API_CONFIGURED) {
+      setBackendUp(null);
+      return;
+    }
     try {
       const r = await fetch(`${API}/health`);
       if (r.ok) setBackendUp((await r.json()).uptime ?? null);
