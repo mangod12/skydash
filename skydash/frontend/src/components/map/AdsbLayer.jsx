@@ -1,12 +1,26 @@
 import { useEffect, useState, useRef } from 'react';
 import { CircleMarker, Tooltip } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
+import { ADSB_CONFIGURED, ADSB_URL } from '../../utils/runtimeConfig';
 
-const ADSB_URL = 'https://opensky-network.org/api/states/all';
 const POLL_INTERVAL = 15000;
 const BOUNDS = { lamin: 37.6, lomin: -122.6, lamax: 37.9, lomax: -122.2 };
 
 function parseAircraftState(state) {
+  if (!Array.isArray(state)) {
+    return {
+      icao24: state.icao24,
+      callsign: (state.callsign || '').trim(),
+      country: state.origin_country || state.country,
+      longitude: state.longitude,
+      latitude: state.latitude,
+      altitude: state.altitude,
+      onGround: state.on_ground ?? state.onGround,
+      velocity: state.velocity,
+      heading: state.heading,
+    };
+  }
+
   return {
     icao24: state[0],
     callsign: (state[1] || '').trim(),
@@ -27,15 +41,33 @@ export default function AdsbLayer() {
   const intervalRef = useRef(null);
 
   useEffect(() => {
+    if (!layers.adsb) return undefined;
+
     const fetchAdsb = async () => {
+      if (!ADSB_CONFIGURED) {
+        setAircraft(generateSimulatedAircraft());
+        setIsLive(false);
+        return;
+      }
+
       try {
-        const url = `${ADSB_URL}?lamin=${BOUNDS.lamin}&lomin=${BOUNDS.lomin}&lamax=${BOUNDS.lamax}&lomax=${BOUNDS.lomax}`;
+        const params = new URLSearchParams({
+          lat_min: String(BOUNDS.lamin),
+          lon_min: String(BOUNDS.lomin),
+          lat_max: String(BOUNDS.lamax),
+          lon_max: String(BOUNDS.lomax),
+        });
+        const url = `${ADSB_URL}?${params.toString()}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (data.states) {
-          setAircraft(data.states.map(parseAircraftState).filter((a) => a.latitude && a.longitude && !a.onGround));
+        const states = data.data || data.states || [];
+        if (states.length) {
+          setAircraft(states.map(parseAircraftState).filter((a) => a.latitude && a.longitude && !a.onGround));
           setIsLive(true);
+        } else {
+          setAircraft(generateSimulatedAircraft());
+          setIsLive(false);
         }
       } catch {
         setAircraft(generateSimulatedAircraft());
@@ -46,7 +78,7 @@ export default function AdsbLayer() {
     fetchAdsb();
     intervalRef.current = setInterval(fetchAdsb, POLL_INTERVAL);
     return () => clearInterval(intervalRef.current);
-  }, []);
+  }, [layers.adsb]);
 
   if (!layers.adsb) return null;
 

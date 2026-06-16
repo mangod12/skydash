@@ -4,6 +4,12 @@ WORKDIR /app
 COPY skydash/frontend/package.json skydash/frontend/package-lock.json* ./
 RUN npm ci --ignore-scripts
 COPY skydash/frontend/ .
+ARG VITE_API_URL=
+ARG VITE_WS_URL=
+ARG VITE_ADSB_URL=
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+ENV VITE_ADSB_URL=$VITE_ADSB_URL
 RUN npm run build
 
 # Serve stage

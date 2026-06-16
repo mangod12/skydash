@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMapStore } from '../../stores/mapStore';
+import { ADSB_CONFIGURED } from '../../utils/runtimeConfig';
 
 const STATUS_STYLES = {
   connected: { dot: 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]', label: 'text-emerald-400', bar: 'bg-emerald-500' },
@@ -54,10 +55,12 @@ function useDataSources() {
       id: 'adsb',
       icon: Plane,
       name: 'ADS-B (OPENSKY)',
-      status: adsbActive ? 'connected' : 'available',
-      statusLabel: adsbActive ? 'CONNECTED' : 'AVAILABLE',
-      description: adsbActive ? '12 aircraft - 15s refresh' : 'Layer disabled in map settings',
-      health: adsbActive ? 85 : 0,
+      status: adsbActive ? (ADSB_CONFIGURED ? 'connected' : 'degraded') : 'available',
+      statusLabel: adsbActive ? (ADSB_CONFIGURED ? 'CONNECTED' : 'SIMULATED') : 'AVAILABLE',
+      description: adsbActive
+        ? ADSB_CONFIGURED ? 'Backend-proxied feed - 15s refresh' : 'Browser-safe simulated aircraft'
+        : 'Layer disabled in map settings',
+      health: adsbActive ? (ADSB_CONFIGURED ? 85 : 40) : 0,
       lastFetch: adsbActive ? now : null,
     },
     {

@@ -62,6 +62,7 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_WS_URL: ${{ vars.VITE_WS_URL }}
+          VITE_ADSB_URL: ${{ vars.VITE_ADSB_URL }}
         run: npm run build
 
       - name: Deploy

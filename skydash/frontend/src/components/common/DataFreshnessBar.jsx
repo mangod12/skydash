@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMapStore } from '../../stores/mapStore';
+import { ADSB_CONFIGURED } from '../../utils/runtimeConfig';
 
 const FRESHNESS_TIERS = [
   { max: 5000, label: 'LIVE', dot: 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]', text: 'text-emerald-400', pulse: true },
@@ -51,7 +52,7 @@ function useSourceTimestamps() {
     },
     {
       id: 'adsb',
-      name: 'ADS-B',
+      name: ADSB_CONFIGURED ? 'ADS-B' : 'ADS-B SIM',
       timestamp: adsbActive ? now - 5000 : null,
     },
     {

@@ -32,7 +32,7 @@ const CAPABILITIES = [
 ];
 
 const TECH = [
-  'React 18', 'Vite 7', 'Tailwind 3', 'Zustand',
+  'React 18', 'Vite 8', 'Tailwind 3', 'Zustand',
   'Leaflet', 'D3', 'Recharts', 'Framer Motion',
   'FastAPI', 'SQLite', 'WebSocket',
 ];
@@ -40,7 +40,7 @@ const TECH = [
 const BUILD = [
   ['Source Files', '127'],
   ['Lines', '13,518'],
-  ['Bundle', '335KB gzipped'],
+  ['Bundle', 'Code-split'],
   ['Dev Phases', '16'],
 ];
 
