@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
+import { useScenarioStore } from '../../stores/scenarioStore';
+import { buildScenarioFrame, formatScenarioTime } from '../../utils/scenarioEngine';
 import MapHUD from './MapHUD';
 import MapControls from './MapControls';
 import CompassRose from './CompassRose';
@@ -89,7 +91,33 @@ function GridOverlay() {
   );
 }
 
-export default function MapView() {
+function ScenarioMapBadge() {
+  const activeScenarioId = useScenarioStore((s) => s.activeScenarioId);
+  const selectedFleetPresetId = useScenarioStore((s) => s.selectedFleetPresetId);
+  const elapsedSeconds = useScenarioStore((s) => s.elapsedSeconds);
+  const injectedEvents = useScenarioStore((s) => s.injectedEvents);
+  const status = useScenarioStore((s) => s.status);
+
+  if (status === 'idle') return null;
+
+  const frame = buildScenarioFrame({ activeScenarioId, selectedFleetPresetId, elapsedSeconds, injectedEvents });
+
+  return (
+    <div className="absolute top-14 left-3 z-20 pointer-events-none rounded-xl border border-cyan-500/20 bg-zinc-950/85 backdrop-blur px-3 py-2 shadow-2xl">
+      <div className="flex items-center gap-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+        <span className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300">SCENARIO SIMULATION</span>
+        <span className="text-[9px] font-mono text-zinc-600">{status.toUpperCase()}</span>
+      </div>
+      <div className="mt-1 text-[11px] font-semibold text-zinc-200">{frame.scenario.name}</div>
+      <div className="mt-0.5 text-[9px] font-mono text-zinc-500">
+        T+{formatScenarioTime(elapsedSeconds)} | {frame.scorecard.coverage}% COV | {frame.scorecard.riskReduced}% RISK
+      </div>
+    </div>
+  );
+}
+
+export default function MapView({ variant = 'operations' }) {
   const { center, zoom, flightPath, layers, dronePosition, drawingGeofence, geofenceMode, stopDrawGeofence } = useMapStore();
   const data = useTelemetryStore((s) => s.data);
   const mapRef = useRef(null);
@@ -102,6 +130,7 @@ export default function MapView() {
     : [];
 
   const tileConfig = layers.satellite ? TILE_LAYERS.satellite : TILE_LAYERS.dark;
+  const isTelemetryVariant = variant === 'telemetry';
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-xl map-container">
@@ -149,7 +178,8 @@ export default function MapView() {
 
       <GridOverlay />
       <ProximityWarning />
-      <MapHUD data={data} />
+      <MapHUD data={data} compact={isTelemetryVariant} />
+      {!isTelemetryVariant && <ScenarioMapBadge />}
       <CompassRose />
       <BearingPanel active={interactions.bearingMode} />
 
@@ -165,8 +195,8 @@ export default function MapView() {
 
       <GeofenceManager />
       <MeasureOverlay active={interactions.measuring} points={interactions.measurePoints} />
-      <TimelineSlider />
-      <PlaybackController />
+      {!isTelemetryVariant && <TimelineSlider />}
+      {!isTelemetryVariant && <PlaybackController />}
 
       <SpatialSearchPanel
         active={interactions.spatialSearch}

@@ -17,6 +17,7 @@ import MissionProgressCard from './MissionProgressCard';
 import EntityRadar from './EntityRadar';
 import CommsLog from './CommsLog';
 import WidgetGrid from './WidgetGrid';
+import ScenarioSummaryCard from './ScenarioSummaryCard';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
@@ -121,6 +122,8 @@ export default function DashboardView() {
             <LayoutGrid size={12} /> WIDGETS
           </button>
         </div>
+
+        <ScenarioSummaryCard />
 
         {/* ── Top Row: 4 Stat Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">

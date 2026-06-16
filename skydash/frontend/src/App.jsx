@@ -10,6 +10,7 @@ import { useAuthStore } from './stores/authStore';
 const TelemetryView = lazy(() => import('./components/views/TelemetryView'));
 const AnalyticsView = lazy(() => import('./components/views/AnalyticsView'));
 const MissionView = lazy(() => import('./components/views/MissionView'));
+const ScenarioLabView = lazy(() => import('./components/views/ScenarioLabView'));
 const SettingsView = lazy(() => import('./components/views/SettingsView'));
 
 function ViewLoader() {
@@ -38,6 +39,7 @@ function ViewRouter() {
             return <IntelView />;
           case 'analytics': return <AnalyticsView />;
           case 'missions': return <MissionView />;
+          case 'scenario': return <ScenarioLabView />;
           case 'settings': return <SettingsView />;
           case 'dashboard':
           default:

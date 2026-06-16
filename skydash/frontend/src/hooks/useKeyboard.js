@@ -21,6 +21,7 @@ export function useKeyboard({ onHelp } = {}) {
         case 't': setActiveView('telemetry'); break;
         case 'i': setActiveView('intel'); break;
         case 'd': setActiveView('dashboard'); break;
+        case 'l': setActiveView('scenario'); break;
         case 'o': setActiveView('missions'); break;
         case 'a': setActiveView('analytics'); break;
         case 'n': useUIStore.getState().toggleNotifications(); break;

@@ -12,7 +12,7 @@ export default function TelemetryView() {
         {/* Map (smaller) */}
         <div className="flex-1 min-w-0 p-3 pr-0">
           <PanelBoundary name="Map">
-            <MapView />
+            <MapView variant="telemetry" />
           </PanelBoundary>
         </div>
 

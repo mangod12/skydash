@@ -7,6 +7,7 @@ import StatusBadge from '../common/StatusBadge';
 import SystemHealth from '../common/SystemHealth';
 import SystemPulse from '../common/SystemPulse';
 import FreshnessIndicator from '../common/FreshnessIndicator';
+import { BACKEND_CONFIGURED } from '../../utils/runtimeConfig';
 
 function ConnectionBars({ latency, connected }) {
   const bars = connected
@@ -49,6 +50,8 @@ export default function StatusBar() {
   const [healthOpen, setHealthOpen] = useState(false);
   const [elapsed, setElapsed] = useState('00:00:00');
   const popoverRef = useRef(null);
+  const staticMode = !BACKEND_CONFIGURED;
+  const liveTelemetry = BACKEND_CONFIGURED && isConnected;
 
   const lat = data?.gps?.latitude?.toFixed(6) ?? '--';
   const lng = data?.gps?.longitude?.toFixed(6) ?? '--';
@@ -76,18 +79,25 @@ export default function StatusBar() {
 
   const connectionArea = (
     <button
-      onClick={() => setHealthOpen((v) => !v)}
+      onClick={() => BACKEND_CONFIGURED && setHealthOpen((v) => !v)}
       className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+      disabled={staticMode}
     >
       <StatusBadge
-        status={isConnected ? 'connected' : 'disconnected'}
-        label={isConnected ? 'CONNECTED' : 'OFFLINE'}
-        pulse={isConnected}
+        status={liveTelemetry ? 'connected' : staticMode ? 'armed' : 'disconnected'}
+        label={liveTelemetry ? 'CONNECTED' : staticMode ? 'STATIC DEMO' : 'OFFLINE'}
+        pulse={liveTelemetry}
       />
       <div className="flex items-center gap-1.5">
-        <ConnectionBars latency={latency} connected={isConnected} />
-        {isConnected ? (
+        {staticMode ? (
+          <span className="text-cyan-500 text-[9px] font-bold tracking-wider">NO BACKEND</span>
+        ) : (
+          <ConnectionBars latency={latency} connected={liveTelemetry} />
+        )}
+        {liveTelemetry ? (
           <span className="text-zinc-600 tabular-nums">{latency}ms</span>
+        ) : staticMode ? (
+          <span className="text-zinc-600 text-[9px] font-bold tracking-wider">LOCAL</span>
         ) : (
           <span className="text-red-500 text-[9px] font-bold tracking-wider">OFFLINE</span>
         )}
@@ -143,13 +153,22 @@ export default function StatusBar() {
 
       {/* System pulse + WS Freshness */}
       <div className="flex items-center gap-3 text-zinc-600">
-        <SystemPulse />
-        <FreshnessIndicator
-          timestamp={isConnected ? Date.now() : null}
-          source="WS"
-          compact
-        />
-        <span>{data?.gps?.satellites ?? '--'} SATS</span>
+        {staticMode ? (
+          <>
+            <span className="text-cyan-500 text-[9px] font-bold tracking-wider">STATIC DEMO</span>
+            <span className="text-zinc-600">NO WS</span>
+          </>
+        ) : (
+          <>
+            <SystemPulse />
+            <FreshnessIndicator
+              timestamp={liveTelemetry ? Date.now() : null}
+              source="WS"
+              compact
+            />
+            <span>{data?.gps?.satellites ?? '--'} SATS</span>
+          </>
+        )}
       </div>
     </footer>
   );

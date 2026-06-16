@@ -2,19 +2,19 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Zap, Plus, Target, Camera, Maximize, Minimize,
-  FileDown, Terminal, MapPin, Search, X,
+  Terminal, MapPin, Search, X,
 } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useMapStore } from '../../stores/mapStore';
 import useNotificationStore from '../../stores/notificationStore';
 import QuickActionButton from './QuickActionButton';
+import { toast } from './Toast';
 
 const ACTIONS = [
   { id: 'create-entity', label: 'Create Entity', icon: Plus, color: 'text-violet-400' },
   { id: 'new-mission', label: 'New Mission', icon: Target, color: 'text-indigo-400' },
   { id: 'screenshot', label: 'Take Screenshot', icon: Camera, color: 'text-cyan-400' },
   { id: 'fullscreen', label: 'Toggle Fullscreen', icon: Maximize, color: 'text-zinc-300' },
-  { id: 'export', label: 'Export Report', icon: FileDown, color: 'text-emerald-400' },
   { id: 'console', label: 'Open Console', icon: Terminal, color: 'text-amber-400' },
   { id: 'drop-pin', label: 'Drop Pin', icon: MapPin, color: 'text-red-400' },
   { id: 'search', label: 'Quick Search', icon: Search, color: 'text-cyan-300' },
@@ -25,7 +25,9 @@ const ARC_END = -Math.PI;
 const RADIUS = 140;
 
 function getPosition(index, total) {
-  const angle = ARC_START + ((ARC_END - ARC_START) * index) / (total - 1);
+  const angle = total <= 1
+    ? ARC_START
+    : ARC_START + ((ARC_END - ARC_START) * index) / (total - 1);
   return {
     x: Math.cos(angle) * RADIUS,
     y: Math.sin(angle) * RADIUS,
@@ -33,16 +35,17 @@ function getPosition(index, total) {
 }
 
 function captureScreenshot() {
-  const canvas = document.querySelector('canvas');
+  const activeMap = document.querySelector('.map-container');
+  const canvas = activeMap?.querySelector('canvas') || document.querySelector('canvas');
   if (canvas) {
     const link = document.createElement('a');
     link.download = `skydash-screenshot-${Date.now()}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
+    toast('Screenshot saved', 'success');
     return;
   }
-  /* No canvas found — use SVG-based map or notify user */
-  const svg = document.querySelector('.leaflet-container svg');
+  const svg = activeMap?.querySelector('.leaflet-container svg') || document.querySelector('.leaflet-container svg');
   if (svg) {
     const data = new XMLSerializer().serializeToString(svg);
     const blob = new Blob([data], { type: 'image/svg+xml' });
@@ -51,7 +54,10 @@ function captureScreenshot() {
     link.href = URL.createObjectURL(blob);
     link.click();
     URL.revokeObjectURL(link.href);
+    toast('Map vector export saved', 'success');
+    return;
   }
+  toast('Open a map view before taking a screenshot', 'warning');
 }
 
 function toggleFullscreen() {
@@ -105,6 +111,7 @@ export default function QuickActions() {
         break;
       case 'new-mission':
         useUIStore.getState().setActiveView('missions');
+        useUIStore.getState().setMissionCreateOpen(true);
         break;
       case 'screenshot':
         captureScreenshot();
@@ -112,15 +119,13 @@ export default function QuickActions() {
       case 'fullscreen':
         toggleFullscreen();
         break;
-      case 'export':
-        useUIStore.getState().setActiveView('intel');
-        break;
       case 'console':
         useUIStore.getState().toggleConsole();
         break;
       case 'drop-pin':
         useUIStore.getState().setActiveView('map');
         useMapStore.getState().setAnnotationMode('pin');
+        toast('Pin tool armed - click the map to place it', 'info');
         break;
       case 'search':
         useUIStore.getState().toggleCommandPalette();
@@ -163,6 +168,7 @@ export default function QuickActions() {
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
         aria-label="Quick actions"
+        aria-expanded={open}
       >
         <motion.div
           animate={{ rotate: open ? 135 : 0 }}

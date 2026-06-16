@@ -25,7 +25,16 @@ export const useMissionStore = create((set, get) => ({
     try {
       const res = await apiFetch(`${API}/api/missions`);
       const json = await res.json();
-      if (json.success) set({ missions: json.data });
+      if (json.success) {
+        set((s) => {
+          const missions = json.data || [];
+          const activeMissionStillExists = missions.some((mission) => mission.id === s.activeMissionId);
+          const nextActiveMission = activeMissionStillExists
+            ? s.activeMissionId
+            : (missions.find((mission) => mission.status === 'active') || missions[0])?.id || null;
+          return { missions, activeMissionId: nextActiveMission };
+        });
+      }
     } catch (e) {
       console.error('Failed to fetch missions', e);
       toast('Failed to load missions', 'error');

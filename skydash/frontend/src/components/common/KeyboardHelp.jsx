@@ -5,6 +5,7 @@ import { Keyboard, Search, Copy, Check } from 'lucide-react';
 const SHORTCUTS = {
   NAVIGATION: [
     { keys: ['D'], desc: 'Dashboard', category: 'view' },
+    { keys: ['L'], desc: 'Scenario Lab', category: 'view' },
     { keys: ['M'], desc: 'Map view', category: 'view' },
     { keys: ['T'], desc: 'Telemetry', category: 'view' },
     { keys: ['I'], desc: 'Intel', category: 'view' },
@@ -87,8 +88,21 @@ export default function KeyboardHelp({ open, onClose, onOpen }) {
 
   // Reset search when opening/closing
   useEffect(() => {
-    if (!open) setSearch('');
+    if (!open) {
+      const id = requestAnimationFrame(() => setSearch(''));
+      return () => cancelAnimationFrame(id);
+    }
+    return undefined;
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') onClose?.();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose, open]);
 
   const allShortcuts = useMemo(() => {
     const all = [];
@@ -101,7 +115,7 @@ export default function KeyboardHelp({ open, onClose, onOpen }) {
   const handleCopyShortcuts = useCallback(async () => {
     const text = Object.entries(SHORTCUTS)
       .map(([group, items]) =>
-        `## ${group}\n${items.map((s) => `${s.keys.join(' + ')} — ${s.desc}`).join('\n')}`
+        `## ${group}\n${items.map((s) => `${s.keys.join(' + ')} - ${s.desc}`).join('\n')}`
       )
       .join('\n\n');
     try {
@@ -123,7 +137,8 @@ export default function KeyboardHelp({ open, onClose, onOpen }) {
             whileHover={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
             onClick={() => onOpen?.()}
-            className="fixed bottom-4 right-4 z-40 flex items-center gap-1.5 px-3 py-1.5
+            aria-label="Open keyboard shortcuts"
+            className="fixed bottom-6 right-24 z-40 hidden md:flex items-center gap-1.5 px-3 py-1.5
               bg-zinc-900/40 hover:bg-zinc-900/80 border border-white/[0.06]
               rounded-full cursor-pointer transition-colors"
           >
@@ -148,15 +163,19 @@ export default function KeyboardHelp({ open, onClose, onOpen }) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.93, y: 12 }}
               transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="keyboard-shortcuts-title"
               className="relative bg-zinc-900/95 border border-white/[0.1] rounded-2xl
                 p-6 max-w-lg w-full backdrop-blur-xl shadow-2xl"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[11px] font-semibold text-zinc-200 tracking-wider">
+                <h3 id="keyboard-shortcuts-title" className="text-[11px] font-semibold text-zinc-200 tracking-wider">
                   KEYBOARD SHORTCUTS
                 </h3>
                 <button
                   onClick={handleCopyShortcuts}
+                  aria-label="Copy all keyboard shortcuts"
                   className="flex items-center gap-1 px-2 py-1 text-[9px] font-mono text-zinc-500 
                     hover:text-zinc-300 bg-white/[0.03] hover:bg-white/[0.06] rounded transition-colors"
                 >
@@ -170,6 +189,7 @@ export default function KeyboardHelp({ open, onClose, onOpen }) {
                 <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-600" />
                 <input
                   type="text"
+                  aria-label="Search keyboard shortcuts"
                   placeholder="Search shortcuts..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

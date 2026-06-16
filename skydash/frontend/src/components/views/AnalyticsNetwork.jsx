@@ -14,7 +14,7 @@ export default function AnalyticsNetwork({ networkSummary, topEntities, fleet })
       {/* Network Intelligence */}
       <GlassCard>
         <SectionLabel>NETWORK INTELLIGENCE</SectionLabel>
-        <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
           <div className="text-center">
             <div className="text-[9px] text-zinc-600 tracking-wider mb-1">NODES</div>
             <div className="text-xl font-mono font-bold text-indigo-400 tabular-nums">{networkSummary.nodeCount}</div>
@@ -63,7 +63,7 @@ export default function AnalyticsNetwork({ networkSummary, topEntities, fleet })
       </GlassCard>
 
       {/* Top entities + Fleet status */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
         <GlassCard>
           <SectionLabel>TOP ENTITIES BY ACTIVITY</SectionLabel>
           {topEntities.length > 0 ? (
@@ -91,8 +91,9 @@ export default function AnalyticsNetwork({ networkSummary, topEntities, fleet })
 
         <GlassCard>
           <SectionLabel>FLEET STATUS</SectionLabel>
-          {(fleet.length > 0 ? fleet : [{ drone_id: 'DRONE-01', flight_mode: '--', altitude: 0, battery_voltage: 0, signal_strength: 0 }])
-            .map((drone) => (
+          {fleet.length === 0 ? (
+            <div className="text-zinc-700 text-[10px] text-center py-6">NO LIVE FLEET</div>
+          ) : fleet.map((drone) => (
               <div key={drone.drone_id} className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

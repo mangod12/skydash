@@ -22,6 +22,7 @@ import { useKeyboard } from '../../hooks/useKeyboard';
 import useAuditIntegration from '../../hooks/useAuditIntegration';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useUIStore } from '../../stores/uiStore';
+import { BACKEND_CONFIGURED } from '../../utils/runtimeConfig';
 
 export default function Shell({ children }) {
   const [showHelp, setShowHelp] = useState(false);
@@ -64,7 +65,11 @@ export default function Shell({ children }) {
   }, [workspace]);
 
   const handleBootComplete = useCallback(() => {
-    toast('System online — telemetry streaming', 'success');
+    if (!BACKEND_CONFIGURED) {
+      toast('Static demo ready - no backend connected', 'success');
+      return;
+    }
+    toast('System online - telemetry streaming', 'success');
   }, []);
 
   // Alert toasts
@@ -89,11 +94,11 @@ export default function Shell({ children }) {
         <div className="flex-1 flex flex-col min-w-0">
           <TopBar onInfoOpen={() => setShowInfo(true)} onNotificationToggle={toggleNotifications} />
 
-          <main className={`flex-1 min-h-0 overflow-hidden ${isMobile ? 'pb-14' : ''}`}>
+          <main className={`flex-1 min-h-0 overflow-hidden ${isMobile ? 'pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]' : ''}`}>
             {children}
           </main>
 
-          <StatusBar />
+          {!isMobile && <StatusBar />}
         </div>
 
         <CommandPalette />

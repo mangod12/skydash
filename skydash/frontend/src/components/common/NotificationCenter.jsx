@@ -45,9 +45,10 @@ function NotificationItem({ notification, onDismiss }) {
     >
       <button
         onClick={(e) => { e.stopPropagation(); onDismiss(notification.id); }}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-zinc-400 transition-opacity"
+        className="absolute top-1.5 right-1.5 min-h-8 min-w-8 flex items-center justify-center rounded-md text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.05] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity"
+        aria-label={`Dismiss ${notification.title}`}
       >
-        <X size={12} />
+        <X size={14} />
       </button>
 
       <div className="flex items-start gap-2.5 pr-5">
@@ -110,23 +111,31 @@ export default function NotificationCenter({ isOpen, onClose }) {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 384, opacity: 0 }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-          className="fixed top-0 right-0 bottom-0 z-50 w-96 bg-zinc-950/90 backdrop-blur-xl border-l border-white/10 flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="notifications-title"
+          className="fixed top-0 right-0 bottom-0 z-50 w-full sm:w-96 max-w-full bg-zinc-950/90 backdrop-blur-xl border-l border-white/10 flex flex-col"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
             <div className="flex items-center gap-2">
               <Bell size={14} className="text-indigo-400" />
-              <h2 className="text-xs font-semibold text-zinc-200 tracking-wider">NOTIFICATIONS</h2>
+              <h2 id="notifications-title" className="text-xs font-semibold text-zinc-200 tracking-wider">NOTIFICATIONS</h2>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={markAllRead}
+                aria-label="Mark all notifications read"
                 className="flex items-center gap-1 text-[10px] text-zinc-500 hover:text-indigo-400 transition-colors"
               >
                 <CheckCheck size={12} />
                 MARK ALL READ
               </button>
-              <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+              <button
+                onClick={onClose}
+                aria-label="Close notifications"
+                className="min-h-8 min-w-8 flex items-center justify-center rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.05] transition-colors"
+              >
                 <X size={16} />
               </button>
             </div>
@@ -138,6 +147,7 @@ export default function NotificationCenter({ isOpen, onClose }) {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
+                aria-pressed={activeTab === tab}
                 className={clsx(
                   'px-2.5 py-1 rounded text-[10px] font-semibold tracking-wider transition-colors',
                   activeTab === tab

@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { Play, Pause, Square, SkipBack, SkipForward } from 'lucide-react';
@@ -29,6 +29,8 @@ function ControlBtn({ icon: Icon, label, onClick, active, size = 14 }) {
     <button
       onClick={onClick}
       title={label}
+      aria-label={label}
+      aria-pressed={active ?? undefined}
       className={clsx(
         'w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150',
         active
@@ -44,12 +46,8 @@ function ControlBtn({ icon: Icon, label, onClick, active, size = 14 }) {
 export default function PlaybackController() {
   const {
     isPlaying, speed, currentTime, startTime, endTime,
-    active, play, pause, stop, setSpeed, seek, loadDemo,
+    active, play, pause, stop, setSpeed, seek,
   } = usePlaybackStore();
-
-  useEffect(() => {
-    if (!active) loadDemo();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const progress = endTime > startTime
     ? ((currentTime - startTime) / (endTime - startTime)) * 100
@@ -164,6 +162,7 @@ export default function PlaybackController() {
                   step={0.1}
                   value={progress}
                   onChange={handleSeek}
+                  aria-label="Playback timeline"
                   className="absolute inset-0 w-full opacity-0 cursor-pointer"
                 />
                 <div
@@ -180,6 +179,7 @@ export default function PlaybackController() {
               {/* Speed selector */}
               <button
                 onClick={cycleSpeed}
+                aria-label="Change playback speed"
                 className={clsx(
                   'px-2 py-1 rounded-md text-[10px] font-mono font-bold tracking-wider transition-all',
                   'border border-white/[0.06]',

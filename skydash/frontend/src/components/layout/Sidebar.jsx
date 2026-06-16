@@ -3,11 +3,13 @@ import { clsx } from 'clsx';
 import {
   Map, Radio, Brain, Users, Clock, Settings,
   ChevronLeft, ChevronRight, Crosshair, BarChart3, Target,
+  Radar,
 } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 
 const NAV_ITEMS = [
   { id: 'dashboard', icon: Crosshair, label: 'Dashboard' },
+  { id: 'scenario', icon: Radar, label: 'Scenario Lab' },
   { id: 'map', icon: Map, label: 'Map' },
   { id: 'telemetry', icon: Radio, label: 'Telemetry' },
   { id: 'intel', icon: Brain, label: 'Intel' },
@@ -24,6 +26,9 @@ function NavButton({ item, active, expanded }) {
     <button
       data-tour={item.id}
       onClick={() => setActiveView(item.id)}
+      aria-label={item.label}
+      aria-current={active ? 'page' : undefined}
+      title={expanded ? undefined : item.label}
       className={clsx(
         'group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl',
         'transition-all duration-200',
@@ -92,6 +97,8 @@ export default function Sidebar() {
         {!isTablet && (
           <button
             onClick={toggleSidebar}
+            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             className="flex items-center justify-center w-full py-2 text-zinc-600 hover:text-zinc-400 transition-colors"
           >
             {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}

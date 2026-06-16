@@ -15,6 +15,7 @@ import ReportExport from '../intel/ReportExport';
 import TagCloud from '../intel/TagCloud';
 import ConnectionMatrix from '../intel/ConnectionMatrix';
 import { useIntelStore } from '../../stores/intelStore';
+import { useUIStore } from '../../stores/uiStore';
 
 const CENTER_TABS = [
   { id: 'timeline', label: 'Timeline', icon: Clock },
@@ -28,6 +29,7 @@ export default function IntelView() {
   const selectedEntityId = useIntelStore((s) => s.selectedEntityId);
   const comparedEntities = useIntelStore((s) => s.comparedEntities);
   const setFilterTag = useIntelStore((s) => s.setFilterTag);
+  const activeView = useUIStore((s) => s.activeView);
   const [centerTab, setCenterTab] = useState('timeline');
 
   const handleTagClick = useCallback((tag) => {
@@ -35,8 +37,20 @@ export default function IntelView() {
   }, [setFilterTag]);
 
   useEffect(() => {
-    if (comparedEntities[0] || comparedEntities[1]) setCenterTab('compare');
+    if (comparedEntities[0] || comparedEntities[1]) {
+      const id = requestAnimationFrame(() => setCenterTab('compare'));
+      return () => cancelAnimationFrame(id);
+    }
+    return undefined;
   }, [comparedEntities]);
+
+  useEffect(() => {
+    if (activeView === 'timeline') {
+      const id = requestAnimationFrame(() => setCenterTab('timeline'));
+      return () => cancelAnimationFrame(id);
+    }
+    return undefined;
+  }, [activeView]);
 
   return (
     <div className="h-full flex">
@@ -50,10 +64,14 @@ export default function IntelView() {
       {/* Center: Timeline/Graph + NLQ + Anomaly */}
       <div className="flex-1 min-w-0 border-r border-white/[0.06] flex flex-col">
         {/* Tab switcher */}
-        <div className="flex border-b border-white/[0.06] shrink-0">
+        <div className="flex border-b border-white/[0.06] shrink-0" role="tablist" aria-label="Intel analysis views">
           {CENTER_TABS.map((tab) => (
             <button
               key={tab.id}
+              id={`intel-tab-${tab.id}`}
+              role="tab"
+              aria-selected={centerTab === tab.id}
+              aria-controls={`intel-panel-${tab.id}`}
               onClick={() => setCenterTab(tab.id)}
               className={clsx(
                 'flex items-center gap-2 px-4 py-2.5 text-[10px] font-semibold tracking-[0.1em] transition-colors',
@@ -69,7 +87,12 @@ export default function IntelView() {
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div
+          id={`intel-panel-${centerTab}`}
+          role="tabpanel"
+          aria-labelledby={`intel-tab-${centerTab}`}
+          className="flex-1 min-h-0 overflow-hidden"
+        >
           <PanelBoundary name={centerTab}>
             {centerTab === 'timeline' && <TimelineView />}
             {centerTab === 'graph' && <LinkGraph />}

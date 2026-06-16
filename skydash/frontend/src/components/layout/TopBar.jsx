@@ -49,6 +49,7 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
         <button
           data-tour="command-palette"
           onClick={toggleCommandPalette}
+          aria-label="Open command palette"
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
         >
           <Search size={14} className="text-zinc-500" />
@@ -61,10 +62,21 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
 
       {/* Right: Info + Notifications + Clock */}
       <div className="flex items-center gap-3">
+        {isMobile && (
+          <button
+            data-tour="command-palette"
+            onClick={toggleCommandPalette}
+            className="text-zinc-500 hover:text-zinc-300 transition-colors"
+            aria-label="Open command palette"
+          >
+            <Search size={18} strokeWidth={1.5} />
+          </button>
+        )}
         <button
           onClick={onInfoOpen}
           className="text-zinc-600 hover:text-indigo-400 transition-colors"
           title="Platform Guide"
+          aria-label="Open platform guide"
         >
           <Info size={17} strokeWidth={1.5} />
         </button>

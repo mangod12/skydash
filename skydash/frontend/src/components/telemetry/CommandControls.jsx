@@ -11,13 +11,15 @@ export function SectionLabel({ children }) {
   );
 }
 
-export function ModeChip({ label, active, onClick }) {
+export function ModeChip({ label, active, onClick, disabled = false }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
       className={clsx(
         'rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wider border transition-all duration-150',
-        active ? CHIP_ACTIVE : CHIP_IDLE,
+        disabled ? 'border-white/[0.04] text-zinc-700 cursor-not-allowed' : active ? CHIP_ACTIVE : CHIP_IDLE,
         active && 'scale-[1.02]',
       )}
     >
@@ -26,13 +28,16 @@ export function ModeChip({ label, active, onClick }) {
   );
 }
 
-export function QuickBtn({ icon: Icon, label, danger, onClick }) {
+export function QuickBtn({ icon: Icon, label, danger, onClick, disabled = false }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={clsx(
         'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold tracking-wider border transition-all duration-150',
-        danger
+        disabled
+          ? 'border-white/[0.04] text-zinc-700 cursor-not-allowed'
+          : danger
           ? 'border-red-500/40 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse'
           : 'border-white/[0.06] text-zinc-400 hover:bg-white/[0.04]',
       )}
@@ -43,7 +48,7 @@ export function QuickBtn({ icon: Icon, label, danger, onClick }) {
   );
 }
 
-export function Slider({ label, value, min, max, step, unit, onChange }) {
+export function Slider({ label, value, min, max, step, unit, onChange, disabled = false }) {
   return (
     <div className="flex items-center gap-3">
       <span className="text-[8px] font-semibold tracking-[0.15em] text-zinc-600 uppercase w-16 shrink-0">
@@ -55,6 +60,8 @@ export function Slider({ label, value, min, max, step, unit, onChange }) {
         max={max}
         step={step}
         value={value}
+        disabled={disabled}
+        aria-label={label}
         onChange={(e) => onChange(Number(e.target.value))}
         className="flex-1 h-1 appearance-none bg-zinc-800 rounded-full outline-none
           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3

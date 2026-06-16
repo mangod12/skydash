@@ -10,6 +10,12 @@ export default function MissionView() {
 
   useEffect(() => { fetchMissions(); }, [fetchMissions]);
   useEffect(() => { if (activeMissionId) fetchMissionDetail(activeMissionId); }, [activeMissionId, fetchMissionDetail]);
+  useEffect(() => {
+    if (!loading && !activeMissionId && missions.length > 0) {
+      const activeMission = missions.find((mission) => mission.status === 'active') || missions[0];
+      setActiveMission(activeMission.id);
+    }
+  }, [activeMissionId, loading, missions, setActiveMission]);
 
   const active = missions.find((m) => m.id === activeMissionId) || null;
 

@@ -85,7 +85,7 @@ export default function SettingsView() {
             </div>
             <div className="flex justify-between">
               <span className="text-zinc-500">Active Drones</span>
-              <span className="font-mono text-zinc-300">{fleet.length || 1}</span>
+              <span className="font-mono text-zinc-300">{fleet.length}</span>
             </div>
           </div>
         </GlassCard>

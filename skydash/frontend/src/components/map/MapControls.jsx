@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Minus, Layers, Locate, Ruler,
   Camera, Maximize2, Circle, Pentagon, Search,
-  Type, MapPin, MoveRight, Shield, Compass,
+  Type, MapPin, MoveRight, Shield, Compass, PlayCircle,
 } from 'lucide-react';
 import { useMapStore } from '../../stores/mapStore';
+import { usePlaybackStore } from '../../stores/playbackStore';
 import { toast } from '../common/Toast';
 
 const LAYER_LIST = [
@@ -36,7 +37,11 @@ const TACTICAL_LAYER_LIST = [
 
 function ToggleSwitch({ on, onChange, label }) {
   return (
-    <button onClick={onChange} className="flex items-center justify-between w-full py-1.5 group">
+    <button
+      onClick={onChange}
+      aria-pressed={on}
+      className="flex items-center justify-between w-full py-1.5 group"
+    >
       <span className="text-[11px] text-zinc-300 group-hover:text-zinc-100 transition-colors">
         {label}
       </span>
@@ -53,15 +58,20 @@ function ToggleSwitch({ on, onChange, label }) {
   );
 }
 
-function ControlButton({ icon: Icon, label, active, onClick }) {
+function ControlButton({ icon: Icon, label, active, onClick, disabled = false }) {
   return (
     <button
       onClick={onClick}
       title={label}
+      aria-label={label}
+      aria-pressed={active ?? undefined}
+      disabled={disabled}
       className={clsx(
         'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150',
         'border border-white/[0.06]',
-        active
+        disabled
+          ? 'bg-zinc-950/70 text-zinc-700 cursor-not-allowed'
+          : active
           ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
           : 'bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80',
         'backdrop-blur-sm',
@@ -151,6 +161,8 @@ function LayerPanel({ layers, toggleLayer, onClose }) {
 export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpatialSearchToggle, spatialSearch, onBearingToggle, bearingActive }) {
   const [showLayers, setShowLayers] = useState(false);
   const { layers, toggleLayer, dronePosition, drawingGeofence, startDrawGeofence, stopDrawGeofence, annotationMode, setAnnotationMode, geofenceManagerOpen, setGeofenceManagerOpen } = useMapStore();
+  const playbackActive = usePlaybackStore((s) => s.active);
+  const loadDemoPlayback = usePlaybackStore((s) => s.loadDemo);
 
   const handleClosePanel = useCallback(() => setShowLayers(false), []);
 
@@ -160,11 +172,13 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpat
   const handleFlyToDrone = () => {
     if (dronePosition && mapRef?.current) {
       mapRef.current.flyTo([dronePosition.lat, dronePosition.lng], 17, { duration: 1 });
+    } else {
+      toast('No live drone position available', 'warning');
     }
   };
 
   const handleScreenshot = () => {
-    const mapEl = document.querySelector('.map-container');
+    const mapEl = mapRef?.current?.getContainer?.()?.closest('.map-container');
     if (!mapEl) return;
     const canvas = mapEl.querySelector('canvas');
     if (canvas) {
@@ -176,6 +190,15 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpat
     } else {
       toast('Screenshot requires canvas renderer', 'warning');
     }
+  };
+
+  const handleFullscreen = () => {
+    const mapEl = mapRef?.current?.getContainer?.()?.closest('.map-container');
+    if (!mapEl?.requestFullscreen) {
+      toast('Fullscreen is not available for this map', 'warning');
+      return;
+    }
+    mapEl.requestFullscreen();
   };
 
   return (
@@ -211,6 +234,19 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpat
           label="Spatial Search"
           active={spatialSearch}
           onClick={onSpatialSearchToggle}
+        />
+        <ControlButton
+          icon={PlayCircle}
+          label="Load Demo Playback"
+          active={playbackActive}
+          onClick={() => {
+            if (playbackActive) {
+              toast('Demo playback is already loaded', 'info');
+              return;
+            }
+            loadDemoPlayback();
+            toast('Demo playback loaded', 'success');
+          }}
         />
 
         <div className="h-px bg-white/[0.06] my-1" />
@@ -258,9 +294,7 @@ export default function MapControls({ mapRef, onMeasureToggle, measuring, onSpat
         <div className="h-px bg-white/[0.06] my-1" />
 
         <ControlButton icon={Camera} label="Screenshot" onClick={handleScreenshot} />
-        <ControlButton icon={Maximize2} label="Fullscreen" onClick={() => {
-          document.querySelector('.map-container')?.requestFullscreen?.();
-        }} />
+        <ControlButton icon={Maximize2} label="Fullscreen" onClick={handleFullscreen} />
       </div>
 
       {/* Layer panel */}

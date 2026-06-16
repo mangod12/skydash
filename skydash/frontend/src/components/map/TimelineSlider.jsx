@@ -18,11 +18,14 @@ export default function TimelineSlider() {
             <button
               className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors"
               onClick={() => setPosition(Math.max(0, position - 10))}
+              aria-label="Rewind timeline"
             >
               <Rewind size={12} />
             </button>
             <button
               onClick={() => setPlaying(!playing)}
+              aria-label={playing ? 'Pause timeline' : 'Play timeline'}
+              aria-pressed={playing}
               className={clsx(
                 'w-7 h-7 flex items-center justify-center rounded-lg transition-colors',
                 playing
@@ -35,6 +38,7 @@ export default function TimelineSlider() {
             <button
               className="w-6 h-6 flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors"
               onClick={() => setPosition(Math.min(100, position + 10))}
+              aria-label="Advance timeline"
             >
               <SkipForward size={12} />
             </button>
@@ -59,6 +63,7 @@ export default function TimelineSlider() {
               max={100}
               value={position}
               onChange={(e) => setPosition(Number(e.target.value))}
+              aria-label="Operational timeline"
               className="absolute inset-0 w-full opacity-0 cursor-pointer"
             />
             <div
@@ -73,6 +78,7 @@ export default function TimelineSlider() {
           {/* Speed */}
           <button
             onClick={() => setSpeed((s) => (s + 1) % SPEEDS.length)}
+            aria-label="Change timeline speed"
             className="text-[9px] font-mono font-bold text-zinc-500 hover:text-zinc-300 w-8 text-center transition-colors"
           >
             {SPEEDS[speed]}x

@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMapStore } from '../../stores/mapStore';
-import { ADSB_CONFIGURED } from '../../utils/runtimeConfig';
+import { ADSB_CONFIGURED, BACKEND_CONFIGURED } from '../../utils/runtimeConfig';
 
 const FRESHNESS_TIERS = [
   { max: 5000, label: 'LIVE', dot: 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]', text: 'text-emerald-400', pulse: true },
@@ -11,6 +11,13 @@ const FRESHNESS_TIERS = [
   { max: 600000, label: 'STALE', dot: 'bg-amber-500', text: 'text-amber-400', pulse: false },
   { max: Infinity, label: 'OFFLINE', dot: 'bg-red-500', text: 'text-red-400', pulse: false },
 ];
+
+const STATIC_TIER = {
+  label: 'STATIC',
+  dot: 'bg-cyan-500 shadow-[0_0_6px_rgba(6,182,212,0.35)]',
+  text: 'text-cyan-400',
+  pulse: false,
+};
 
 function getTier(ageMs) {
   if (ageMs == null) return FRESHNESS_TIERS[FRESHNESS_TIERS.length - 1];
@@ -42,8 +49,9 @@ function useSourceTimestamps() {
   return [
     {
       id: 'telemetry',
-      name: 'TELEMETRY WS',
-      timestamp: isConnected ? now : null,
+      name: BACKEND_CONFIGURED ? 'TELEMETRY WS' : 'LOCAL DEMO',
+      timestamp: BACKEND_CONFIGURED ? (isConnected ? now : null) : now,
+      tier: BACKEND_CONFIGURED ? null : STATIC_TIER,
     },
     {
       id: 'entities',
@@ -65,7 +73,7 @@ function useSourceTimestamps() {
 
 function SourceDot({ source, now, expanded }) {
   const ageMs = source.timestamp != null ? Math.max(0, now - source.timestamp) : null;
-  const tier = getTier(ageMs);
+  const tier = source.tier || getTier(ageMs);
 
   return (
     <div
@@ -112,7 +120,7 @@ export default function DataFreshnessBar({ className }) {
         DATA SOURCES
       </span>
 
-      <div className="flex items-center gap-4 overflow-hidden">
+      <div className="hidden min-[641px]:flex items-center gap-4 overflow-hidden">
         {sources.map((src) => (
           <SourceDot key={src.id} source={src} now={now} expanded />
         ))}

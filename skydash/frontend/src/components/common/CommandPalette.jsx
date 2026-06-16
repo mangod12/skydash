@@ -8,16 +8,16 @@ import { useMapStore } from '../../stores/mapStore';
 import { useAuditStore } from '../../stores/auditStore';
 import { useBookmarkStore } from '../../stores/bookmarkStore';
 import {
-  Map, Radio, Brain, Users, Clock, Crosshair, Layers, Camera, Target,
+  Map, Radio, Brain, Users, Clock, Crosshair, Target,
   RotateCcw, BarChart3, Bell, Settings, ScrollText, Car, User, Building2,
-  Wifi, Calendar, MapPin, Compass, Star, Columns,
+  Wifi, Calendar, MapPin, Compass, Star, Columns, Radar,
 } from 'lucide-react';
 import { startTour } from './OnboardingTour';
-import { apiFetch } from '../../utils/api';
-import { API_BASE } from '../../utils/runtimeConfig';
+import { useScenarioStore } from '../../stores/scenarioStore';
 
 const COMMANDS = [
   { id: 'dashboard', label: 'Go to Dashboard', icon: Crosshair, group: 'NAVIGATION', action: 'dashboard' },
+  { id: 'scenario', label: 'Go to Scenario Lab', icon: Radar, group: 'NAVIGATION', action: 'scenario' },
   { id: 'map', label: 'Go to Map', icon: Map, group: 'NAVIGATION', action: 'map' },
   { id: 'telemetry', label: 'Go to Telemetry', icon: Radio, group: 'NAVIGATION', action: 'telemetry' },
   { id: 'intel', label: 'Go to Intel', icon: Brain, group: 'NAVIGATION', action: 'intel' },
@@ -28,13 +28,11 @@ const COMMANDS = [
   { id: 'settings', label: 'Go to Settings', icon: Settings, group: 'NAVIGATION', action: 'settings' },
   { id: 'audit', label: 'View Audit Log', icon: ScrollText, group: 'NAVIGATION', action: 'settings' },
   { id: 'notifications', label: 'Toggle Notifications', icon: Bell, group: 'ACTIONS', handler: 'notifications' },
-  { id: 'layers', label: 'Toggle Map Layers', icon: Layers, group: 'MAP' },
-  { id: 'screenshot', label: 'Export Screenshot', icon: Camera, group: 'ACTIONS' },
-  { id: 'fly-drone', label: 'Fly to Drone', icon: Target, group: 'MAP' },
   { id: 'reset', label: 'Reset Simulation', icon: RotateCcw, group: 'ACTIONS' },
   { id: 'tour', label: 'Start Tour', icon: Compass, group: 'ACTIONS', handler: 'tour' },
-  { id: 'compare', label: 'Compare Entities', icon: Columns, group: 'ACTIONS', action: 'intel', handler: 'compare' },
+  { id: 'compare', label: 'Open Entity Compare', icon: Columns, group: 'ACTIONS', action: 'intel', handler: 'compare' },
   { id: 'create-entity', label: 'Create Entity', icon: Target, group: 'ACTIONS', action: 'intel', handler: 'create-entity' },
+  { id: 'create-mission', label: 'Create Mission', icon: Target, group: 'ACTIONS', action: 'missions', handler: 'create-mission' },
 ];
 
 const ENTITY_ICONS = { vehicle: Car, person: User, building: Building2, device: Wifi, event: Calendar };
@@ -89,7 +87,8 @@ export default function CommandPalette() {
     if (cmd.handler === 'tour') startTour();
     if (cmd.handler === 'compare') useIntelStore.getState().clearComparison();
     if (cmd.handler === 'create-entity') useUIStore.getState().setEntityCreateOpen(true);
-    if (cmd.id === 'reset') apiFetch(`${API_BASE}/reset`, { method: 'POST' });
+    if (cmd.handler === 'create-mission') useUIStore.getState().setMissionCreateOpen(true);
+    if (cmd.id === 'reset') useScenarioStore.getState().reset();
     close();
   };
 
@@ -98,10 +97,12 @@ export default function CommandPalette() {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
       <Command
         className="relative w-full max-w-lg bg-zinc-900/95 border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl"
+        label="Command palette"
         onKeyDown={(e) => { if (e.key === 'Escape') close(); }}
         shouldFilter={false}
       >
         <Command.Input
+          aria-label="Search commands, entities, missions, and events"
           placeholder="Search everything..."
           className="w-full px-4 py-3.5 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 outline-none border-b border-white/[0.06]"
           autoFocus

@@ -14,6 +14,7 @@ import ThreatZones from './ThreatZones';
 import DroneFootprint from './DroneFootprint';
 import TacticalLabels from './TacticalLabels';
 import SectorGrid from './SectorGrid';
+import ScenarioOverlay from './ScenarioOverlay';
 import { SpatialSearchMapHandler, SpatialSearchOverlay } from './SpatialSearch';
 
 /**
@@ -105,6 +106,9 @@ export default function MapOverlays({
 
       {/* Fleet secondary drones */}
       {layers.fleet && <FleetMarkers />}
+
+      {/* Scenario Lab deterministic mission layer */}
+      <ScenarioOverlay />
 
       {/* Activity heatmap layer */}
       <HeatmapLayer visible={layers.heatmap} />

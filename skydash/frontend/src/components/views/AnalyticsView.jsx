@@ -66,7 +66,7 @@ export default function AnalyticsView() {
     <div className="h-full overflow-y-auto p-4">
       <div className="max-w-6xl mx-auto space-y-4">
         {/* Top stats row */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           <GlassCard className="!p-4">
             <StatCard label="TOTAL ENTITIES" value={entities.length} color="text-indigo-400" />
           </GlassCard>
@@ -77,12 +77,12 @@ export default function AnalyticsView() {
             <StatCard label="HIGH THREAT" value={highThreatCount} color={highThreatCount > 0 ? 'text-red-400' : 'text-emerald-400'} />
           </GlassCard>
           <GlassCard className="!p-4">
-            <StatCard label="ACTIVE DRONES" value={fleet.length || 1} color="text-violet-400" />
+            <StatCard label="ACTIVE DRONES" value={fleet.length} color={fleet.length > 0 ? 'text-violet-400' : 'text-zinc-500'} />
           </GlassCard>
         </div>
 
         {/* Threat timeline + heatmap */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
           <ThreatTrendChart events={events} />
           <TemporalHeatmap events={events} />
         </div>
@@ -91,7 +91,7 @@ export default function AnalyticsView() {
         <EntityTypeCards entities={entities} />
 
         {/* Charts row */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
           <EntityDistributionChart typeData={typeData} />
           <ThreatBreakdownChart threatData={threatData} />
           <AltitudeTrendChart history={history} />

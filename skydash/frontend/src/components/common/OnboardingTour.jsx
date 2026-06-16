@@ -6,10 +6,10 @@ const TOUR_KEY = 'skydash_tour_completed';
 const STEPS = [
   { selector: '[data-tour="dashboard"]', title: 'DASHBOARD', desc: 'Your operational command center. Fleet status, threat overview, and activity feed at a glance.' },
   { selector: '[data-tour="map"]', title: 'MAP VIEW', desc: "God's eye view. Real-time drone positions, entity markers, heatmaps, and spatial search." },
-  { selector: '[data-tour="telemetry"]', title: 'TELEMETRY', desc: 'Flight deck instruments. Attitude, altitude, battery, signal — all real-time.' },
+  { selector: '[data-tour="telemetry"]', title: 'TELEMETRY', desc: 'Flight deck instruments. Attitude, altitude, battery, signal - all real-time.' },
   { selector: '[data-tour="intel"]', title: 'INTEL PANEL', desc: 'Intelligence center. Entities, relationships, link analysis, and threat assessment.' },
   { selector: '[data-tour="missions"]', title: 'MISSIONS', desc: 'Investigation workspace. Create missions, link entities, take analyst notes.' },
-  { selector: '[data-tour="command-palette"]', title: 'COMMAND PALETTE', desc: 'Press Ctrl+K to search everything — entities, missions, commands.' },
+  { selector: '[data-tour="command-palette"]', title: 'COMMAND PALETTE', desc: 'Press Ctrl+K to search everything - entities, missions, commands.' },
   { selector: '[data-tour="notifications"]', title: 'NOTIFICATIONS', desc: 'Real-time alerts from configurable rules. Click the bell to see all.' },
   { selector: null, title: 'THEME', desc: 'Switch between Midnight, Tactical, and Arctic themes in Settings.' },
 ];
@@ -20,6 +20,17 @@ function getRect(selector) {
   if (!el) return null;
   const r = el.getBoundingClientRect();
   return { top: r.top - 6, left: r.left - 6, width: r.width + 12, height: r.height + 12 };
+}
+
+function hasTourTarget(step) {
+  return !step?.selector || !!document.querySelector(step.selector);
+}
+
+function nextAvailableStep(fromIndex) {
+  for (let i = fromIndex; i < STEPS.length; i += 1) {
+    if (hasTourTarget(STEPS[i])) return i;
+  }
+  return -1;
 }
 
 function clipPath(rect) {
@@ -81,14 +92,26 @@ export default function OnboardingTour() {
 
   // First-run detection + manual trigger
   useEffect(() => {
-    const handleStart = () => { setStep(0); setActive(true); };
+    const handleStart = () => {
+      const first = nextAvailableStep(0);
+      if (first >= 0) {
+        setStep(first);
+        setActive(true);
+      }
+    };
     window.addEventListener('skydash-start-tour', handleStart);
     return () => window.removeEventListener('skydash-start-tour', handleStart);
   }, []);
 
   useEffect(() => {
     if (!localStorage.getItem(TOUR_KEY)) {
-      const timer = setTimeout(() => setActive(true), 2800);
+      const timer = setTimeout(() => {
+        const first = nextAvailableStep(0);
+        if (first >= 0) {
+          setStep(first);
+          setActive(true);
+        }
+      }, 2800);
       return () => clearTimeout(timer);
     }
   }, []);
@@ -96,13 +119,26 @@ export default function OnboardingTour() {
   // Recompute rect on step change or resize
   useEffect(() => {
     if (!active) return;
-    const update = () => setRect(getRect(STEPS[step]?.selector));
+    const update = () => {
+      const currentStep = STEPS[step];
+      if (!hasTourTarget(currentStep)) {
+        const nextStep = nextAvailableStep(step + 1);
+        if (nextStep >= 0) setStep(nextStep);
+        else finish();
+        return;
+      }
+      setRect(getRect(currentStep?.selector));
+    };
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-  }, [active, step]);
+  }, [active, finish, step]);
 
-  const next = () => step < STEPS.length - 1 ? setStep(step + 1) : finish();
+  const next = () => {
+    const nextStep = nextAvailableStep(step + 1);
+    if (nextStep >= 0) setStep(nextStep);
+    else finish();
+  };
   const current = STEPS[step];
   const pos = tooltipPos(rect);
 

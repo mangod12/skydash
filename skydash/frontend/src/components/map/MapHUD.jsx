@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 
-export default function MapHUD({ data }) {
+export default function MapHUD({ data, compact = false }) {
   if (!data) {
     return (
       <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
@@ -72,27 +72,28 @@ export default function MapHUD({ data }) {
         </svg>
       </div>
 
-      {/* Bottom metrics bar */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-        {[
-          { label: 'ALT', value: `${data.altitude?.toFixed(1)}`, unit: 'm', color: 'text-emerald-400' },
-          { label: 'SPD', value: `${data.ground_speed?.toFixed(1)}`, unit: 'm/s', color: 'text-blue-400' },
-          { label: 'HDG', value: `${Math.round(data.attitude?.yaw ?? 0).toString().padStart(3, '0')}`, unit: '\u00B0', color: 'text-cyan-400' },
-          { label: 'BAT', value: `${data.battery_voltage?.toFixed(1)}`, unit: 'V', color: batColor },
-          { label: 'SIG', value: `${data.signal_strength}`, unit: '%', color: 'text-violet-400' },
-        ].map((m) => (
-          <div
-            key={m.label}
-            className="bg-zinc-900/80 backdrop-blur-sm border border-white/[0.06] rounded-lg px-2.5 py-1.5 min-w-[72px] text-center"
-          >
-            <div className="text-[8px] text-zinc-600 tracking-[0.15em] leading-none mb-1">{m.label}</div>
-            <div className={clsx('text-[13px] font-mono font-bold tabular-nums leading-none', m.color)}>
-              {m.value}
-              <span className="text-[9px] text-zinc-500 font-normal ml-0.5">{m.unit}</span>
+      {!compact && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          {[
+            { label: 'ALT', value: `${data.altitude?.toFixed(1)}`, unit: 'm', color: 'text-emerald-400' },
+            { label: 'SPD', value: `${data.ground_speed?.toFixed(1)}`, unit: 'm/s', color: 'text-blue-400' },
+            { label: 'HDG', value: `${Math.round(data.attitude?.yaw ?? 0).toString().padStart(3, '0')}`, unit: '\u00B0', color: 'text-cyan-400' },
+            { label: 'BAT', value: `${data.battery_voltage?.toFixed(1)}`, unit: 'V', color: batColor },
+            { label: 'SIG', value: `${data.signal_strength}`, unit: '%', color: 'text-violet-400' },
+          ].map((m) => (
+            <div
+              key={m.label}
+              className="bg-zinc-900/80 backdrop-blur-sm border border-white/[0.06] rounded-lg px-2.5 py-1.5 min-w-[72px] text-center"
+            >
+              <div className="text-[8px] text-zinc-600 tracking-[0.15em] leading-none mb-1">{m.label}</div>
+              <div className={clsx('text-[13px] font-mono font-bold tabular-nums leading-none', m.color)}>
+                {m.value}
+                <span className="text-[9px] text-zinc-500 font-normal ml-0.5">{m.unit}</span>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Vignette edges */}
       <div className="absolute inset-0 pointer-events-none"

@@ -46,7 +46,7 @@ export default function ToastContainer() {
   const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   return (
-    <div className="fixed bottom-10 right-4 z-[90] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px)+0.75rem)] right-3 left-3 z-[90] flex flex-col items-end gap-2 pointer-events-none md:bottom-10 md:left-auto md:right-4">
       <AnimatePresence>
         {toasts.map((t) => {
           const Icon = ICONS[t.type] || Info;
@@ -58,7 +58,7 @@ export default function ToastContainer() {
               exit={{ opacity: 0, x: 40, scale: 0.95 }}
               className={clsx(
                 'pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-lg border',
-                'bg-zinc-900/90 backdrop-blur-md shadow-lg max-w-xs',
+                'bg-zinc-900/90 backdrop-blur-md shadow-lg w-full max-w-sm md:max-w-xs',
                 COLORS[t.type],
               )}
             >
@@ -66,9 +66,10 @@ export default function ToastContainer() {
               <span className="text-xs text-zinc-300 flex-1">{t.message}</span>
               <button
                 onClick={() => removeToast(t.id)}
-                className="text-zinc-600 hover:text-zinc-400 shrink-0"
+                className="min-h-8 min-w-8 flex items-center justify-center rounded-md text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.05] shrink-0"
+                aria-label="Dismiss notification"
               >
-                <X size={12} />
+                <X size={14} />
               </button>
             </motion.div>
           );

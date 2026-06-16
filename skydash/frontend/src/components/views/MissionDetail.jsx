@@ -45,9 +45,17 @@ function MissionHeader({ mission }) {
 
 function TabBar({ tab, onTab }) {
   return (
-    <div className="flex border-b border-white/[0.06] shrink-0">
+    <div className="flex border-b border-white/[0.06] shrink-0" role="tablist" aria-label="Mission detail sections">
       {TABS.map((t) => (
-        <button key={t.id} onClick={() => onTab(t.id)} className={clsx('flex items-center gap-2 px-4 py-2.5 text-[10px] font-semibold tracking-[0.1em] transition-colors', tab === t.id ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-zinc-600 hover:text-zinc-400')}>
+        <button
+          key={t.id}
+          id={`mission-tab-${t.id}`}
+          role="tab"
+          aria-selected={tab === t.id}
+          aria-controls={`mission-panel-${t.id}`}
+          onClick={() => onTab(t.id)}
+          className={clsx('flex items-center gap-2 px-4 py-2.5 text-[10px] font-semibold tracking-[0.1em] transition-colors', tab === t.id ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-zinc-600 hover:text-zinc-400')}
+        >
           <t.icon size={12} /> {t.label}
         </button>
       ))}
@@ -83,7 +91,13 @@ function EntitiesTab({ mission }) {
         {linked.map((e) => (
           <div key={e.id} className="relative group">
             <EntityCard entity={e} selected={false} onClick={() => selectEntity(e.id)} />
-            <button onClick={() => removeEntityFromMission(mission.id, e.id)} className="absolute top-2 right-2 p-1 rounded bg-red-500/10 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><X size={10} /></button>
+            <button
+              onClick={() => removeEntityFromMission(mission.id, e.id)}
+              aria-label={`Remove ${e.name} from mission`}
+              className="absolute top-2 right-2 p-1 rounded bg-red-500/10 text-red-400 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+            >
+              <X size={10} />
+            </button>
           </div>
         ))}
         {linked.length === 0 && <div className="text-zinc-700 text-[10px] tracking-wider text-center py-6">NO ENTITIES LINKED</div>}
@@ -101,7 +115,7 @@ function NotesTab({ mission }) {
   return (
     <div>
       <div className="flex gap-2 mb-4">
-        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdd()} placeholder="Add analyst note..." className="flex-1 px-3 py-2 text-[11px] bg-white/[0.03] border border-white/[0.06] rounded-lg text-zinc-300 placeholder:text-zinc-700 outline-none focus:border-indigo-500/30" />
+        <input aria-label="Add analyst note" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdd()} placeholder="Add analyst note..." className="flex-1 px-3 py-2 text-[11px] bg-white/[0.03] border border-white/[0.06] rounded-lg text-zinc-300 placeholder:text-zinc-700 outline-none focus:border-indigo-500/30" />
         <button onClick={handleAdd} className="px-3 py-2 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[10px] font-semibold tracking-wider hover:bg-indigo-500/25 transition-colors">ADD</button>
       </div>
       <div className="space-y-2">
@@ -109,7 +123,13 @@ function NotesTab({ mission }) {
           <div key={n.id} className="p-3 rounded-lg border border-white/[0.04] bg-white/[0.02] group">
             <div className="flex items-start justify-between gap-2">
               <p className="text-[11px] text-zinc-300 leading-relaxed">{n.content}</p>
-              <button onClick={() => deleteNote(mission.id, n.id)} className="p-1 rounded text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={10} /></button>
+              <button
+                onClick={() => deleteNote(mission.id, n.id)}
+                aria-label="Delete mission note"
+                className="p-1 rounded text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all"
+              >
+                <Trash2 size={10} />
+              </button>
             </div>
             <div className="text-[9px] text-zinc-600 font-mono tabular-nums mt-1.5">{n.created_at ? formatDistanceToNow(new Date(n.created_at), { addSuffix: true }) : ''}</div>
           </div>
@@ -168,7 +188,16 @@ export default function MissionDetail({ mission, tab, onTab }) {
       <TabBar tab={tab} onTab={onTab} />
       <div className="flex-1 min-h-0 overflow-y-auto p-4">
         <AnimatePresence mode="wait">
-          <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <motion.div
+            key={tab}
+            id={`mission-panel-${tab}`}
+            role="tabpanel"
+            aria-labelledby={`mission-tab-${tab}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
             {tab === 'entities' && <EntitiesTab mission={mission} />}
             {tab === 'notes' && <NotesTab mission={mission} />}
             {tab === 'debrief' && <DetectionDebriefTab mission={mission} />}
