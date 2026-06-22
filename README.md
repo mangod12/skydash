@@ -2,6 +2,9 @@
 
 A spatial intelligence and OSINT platform for real-time drone fleet operations. Built to handle multi-drone telemetry streaming, geospatial entity tracking, threat assessment, and intelligence analysis — all from a single dark-themed operations interface.
 
+**Live demo:** [wonderful-cliff-0325f3800.7.azurestaticapps.net](https://wonderful-cliff-0325f3800.7.azurestaticapps.net)  
+Deployed on Microsoft Azure Static Web Apps.
+
 ![Dashboard](docs/screenshots/dashboard.png)
 
 ## Why I Built This
