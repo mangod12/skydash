@@ -54,7 +54,8 @@ npm run dev
 
 Open `http://localhost` for Docker or `http://localhost:5173` for Vite.
 
-For a quick review path, see `docs/reviewer-walkthrough.md`.
+For current live status and run commands, see `README.md`,
+`docs/current-status.md`, and `docs/skydash-operations-runbook.md`.
 
 ## Before Opening A PR
 

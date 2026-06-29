@@ -204,9 +204,10 @@ $token = az staticwebapp secrets list -n skydash -g rg-skydash-prod --query "pro
 npx -y @azure/static-web-apps-cli@latest deploy .\skydash\frontend\dist --env production --deployment-token $token
 ```
 
-## CrewAI Company Operating Plan
+## Optional CrewAI Company Operating Plan
 
-The CrewAI readiness tool lives in `skydash_intel_crew`.
+The CrewAI readiness tool lives in `skydash_intel_crew`. It is optional local
+operator tooling, not part of the live Azure frontend/backend runtime.
 
 Docker profile:
 
@@ -229,13 +230,9 @@ Report output:
 skydash_intel_crew/reports/skydash_company_ops_plan.md
 ```
 
-LLM providers:
-
-- OpenAI: set `OPENAI_API_KEY`.
-- OpenRouter: set `OPENROUTER_API_KEY` and a model such as
-  `openrouter/openai/gpt-4o-mini`.
-- Mimo/OpenAI-compatible: set `OPENAI_API_KEY`, `OPENAI_API_BASE`,
-  `OPENAI_BASE_URL`, and a compatible `MODEL`.
+LLM providers are configured in `.env` only when running the optional crew
+manually. No CrewAI or LLM provider keys are configured in the Azure production
+App Service.
 
 On Windows, CrewAI may print console encoding warnings for emoji log events.
 Treat exit code 0 and report creation as the success signal.

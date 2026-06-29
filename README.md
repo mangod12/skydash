@@ -65,9 +65,9 @@ Known live limits:
 - Backend: FastAPI, Uvicorn, Pydantic, WebSockets, SQLite with lightweight
   migrations.
 - Connectors: OpenSky/ADS-B and Shodan routes with ingest endpoints.
-- Agent workflow: CrewAI-based SkyDash Intel Crew in
-  `skydash_intel_crew/`.
-- Testing: Vitest, Playwright, pytest, and CrewAI smoke tests.
+- Optional local analysis runner: SkyDash Intel Crew in `skydash_intel_crew/`.
+  It is not part of the production Azure runtime.
+- Testing: Vitest, Playwright, pytest, and optional CrewAI smoke tests.
 - Deployment: Azure Static Web Apps, Azure App Service, Docker Compose for
   local operation.
 
@@ -102,9 +102,7 @@ skydash_intel_crew/
 docs/
   current-status.md        live release status and verification baseline
   skydash-operations-runbook.md
-  skydash-brand-system.md
   safety-and-scope.md
-  architecture-walkthrough.md
 ```
 
 Current tree facts:
@@ -151,10 +149,10 @@ Open http://localhost:5173.
 
 ## CrewAI Stack
 
-The CrewAI operating-readiness stack lives in
+The optional CrewAI operating-readiness runner lives in
 [skydash_intel_crew](skydash_intel_crew/README.md). It can read the local
-SkyDash docs/source snapshot, inspect live readiness URLs, fetch CrewAI
-reference material, and produce a company operating plan.
+SkyDash docs/source snapshot and inspect live readiness URLs. It is not running
+in the Azure frontend or backend.
 
 Docker profile:
 
@@ -169,8 +167,8 @@ cd skydash_intel_crew
 uv run pytest
 ```
 
-LLM provider options are configured through `.env`. OpenAI, OpenRouter, and
-OpenAI-compatible Mimo endpoints are documented in the CrewAI README.
+LLM provider options are configured through `.env` only when running the
+optional crew manually.
 
 ## API
 
@@ -230,18 +228,8 @@ npx playwright test e2e/skydash.spec.js e2e/interactions.spec.js -g "app boots|b
   verification baseline, and open production gaps.
 - [docs/skydash-operations-runbook.md](docs/skydash-operations-runbook.md):
   local, Azure, CI, and release commands.
-- [docs/architecture-walkthrough.md](docs/architecture-walkthrough.md):
-  reviewer-level architecture and tradeoffs.
-- [docs/reviewer-walkthrough.md](docs/reviewer-walkthrough.md):
-  shortest path to evaluate the app.
-- [docs/mission-debrief-workflow.md](docs/mission-debrief-workflow.md):
-  optional vision and mission debrief workflow.
-- [docs/skydash-brand-system.md](docs/skydash-brand-system.md):
-  brand positioning and naming rules.
 - [docs/safety-and-scope.md](docs/safety-and-scope.md):
   misuse boundaries and real-drone limits.
-- [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md):
-  future real-drone integration notes.
 
 ## License
 

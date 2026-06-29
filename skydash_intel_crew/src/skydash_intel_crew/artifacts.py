@@ -240,7 +240,6 @@ def build_subteam_model() -> dict:
                 "docs/current-status.md",
                 "docs/skydash-operations-runbook.md",
                 "docs/safety-and-scope.md",
-                "docs/skydash-brand-system.md",
                 "skydash_intel_crew/README.md",
             ]
         )

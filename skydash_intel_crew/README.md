@@ -5,15 +5,17 @@ a three-agent crew that gathers CrewAI/GitHub/package references, reads local
 SkyDash source docs, checks live app readiness signals, and produces a
 founder-ready operating plan.
 
+This is optional local operator tooling. It is not active in the live Azure
+frontend or backend.
+
 ## What It Reads
 
 The source researcher is tool-grounded. By default it checks:
 
 - CrewAI changelog, tools docs, knowledge docs, flows docs, GitHub repository
   metadata, GitHub README, and PyPI package metadata.
-- Local SkyDash root README, current status doc, operations runbook, brand
-  system, safety/scope doc, architecture walkthrough, CrewAI README, and CrewAI
-  AGENTS reference.
+- Local SkyDash root README, current status doc, operations runbook,
+  safety/scope doc, and CrewAI README.
 - Local or live app readiness signals from `SKYDASH_API_URL`,
   `SKYDASH_FRONTEND_URL`, Docker Compose artifacts, and optional git status.
 
@@ -31,8 +33,8 @@ From this directory, install dependencies:
 crewai install
 ```
 
-Create a local `.env` file from `.env.example` and add an LLM API key. OpenAI,
-OpenRouter, and OpenAI-compatible Mimo endpoints are supported.
+Create a local `.env` file from `.env.example` and add an LLM API key only when
+you want to run a full LLM-backed crew.
 
 ```powershell
 Copy-Item .env.example .env
@@ -96,11 +98,10 @@ uv run skydash_intel_crew 'SkyDash production demo operating readiness'
 Relevant environment variables:
 
 - `OPENAI_API_KEY`: required for the default OpenAI model provider.
-- `OPENROUTER_API_KEY`: required when using an OpenRouter model.
-- `OPENAI_API_BASE` / `OPENAI_BASE_URL`: required when routing
-  OpenAI-compatible calls to Mimo or another compatible endpoint.
-- `MODEL`: optional model override, for example `gpt-4o-mini`,
-  `openrouter/openai/gpt-4o-mini`, or `openai/mimo-v2.5-pro`.
+- `OPENROUTER_API_KEY`: optional when using an OpenRouter model.
+- `OPENAI_API_BASE` / `OPENAI_BASE_URL`: optional when routing
+  OpenAI-compatible calls to another endpoint.
+- `MODEL`: optional model override.
 - `SKYDASH_API_URL`: optional SkyDash backend URL, defaults to
   `http://localhost:8001`.
 - `SKYDASH_FRONTEND_URL`: optional SkyDash frontend URL, defaults to
@@ -118,15 +119,6 @@ OpenRouter example:
 ```env
 OPENROUTER_API_KEY=your_openrouter_key
 MODEL=openrouter/openai/gpt-4o-mini
-```
-
-Mimo example:
-
-```env
-OPENAI_API_KEY=your_mimo_key
-OPENAI_API_BASE=https://token-plan-sgp.xiaomimimo.com/v1
-OPENAI_BASE_URL=https://token-plan-sgp.xiaomimimo.com/v1
-MODEL=openai/mimo-v2.5-pro
 ```
 
 ## Development

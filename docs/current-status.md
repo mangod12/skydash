@@ -32,8 +32,9 @@ Azure resources:
 - Telemetry CSV, entities CSV, and GeoJSON export routes are present.
 - Optional mission detection routes are present and report unavailable when
   RT-DETR dependencies are not installed.
-- CrewAI stack has smoke tests and can be run through Docker Compose profile
-  or local `uv` commands.
+- The optional CrewAI runner has smoke tests and can be run manually through a
+  Docker Compose profile or local `uv` commands. It is not part of the live
+  Azure frontend/backend runtime.
 
 ## Verification Baseline
 
@@ -92,6 +93,7 @@ SkyDash is not production surveillance software.
 - SQLite is the current persistence layer.
 - Shodan is mock/unavailable until credentials are configured.
 - Optional RT-DETR vision is not installed in the base Azure App Service.
+- CrewAI and LLM provider keys are not configured in Azure production.
 - Backend deploy is manual zip deploy; frontend deploy is automated through
   GitHub Actions.
 

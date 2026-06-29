@@ -27,11 +27,8 @@ DEFAULT_DOC_PATHS = (
     "README.md",
     "docs/current-status.md",
     "docs/skydash-operations-runbook.md",
-    "docs/skydash-brand-system.md",
     "docs/safety-and-scope.md",
-    "docs/architecture-walkthrough.md",
     "skydash_intel_crew/README.md",
-    "skydash_intel_crew/AGENTS.md",
 )
 
 
@@ -193,7 +190,6 @@ class SkyDashCompanyReadinessTool(BaseTool):
                 "docker_compose": compose_file.exists(),
                 "root_readme": (root / "README.md").exists(),
                 "current_status": (root / "docs" / "current-status.md").exists(),
-                "brand_system": (root / "docs" / "skydash-brand-system.md").exists(),
                 "operations_runbook": (root / "docs" / "skydash-operations-runbook.md").exists(),
             },
         }
@@ -236,7 +232,7 @@ class SkyDashProjectDocsInput(BaseModel):
 class SkyDashProjectDocsTool(BaseTool):
     name: str = "skydash_project_docs"
     description: str = (
-        "Reads SkyDash README, runbook, safety, architecture, brand, and CrewAI "
+        "Reads SkyDash README, status, runbook, safety, and CrewAI "
         "project docs so company plans are grounded in local source material."
     )
     args_schema: Type[BaseModel] = SkyDashProjectDocsInput

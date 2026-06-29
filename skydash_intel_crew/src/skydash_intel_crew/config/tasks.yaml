@@ -3,8 +3,8 @@ source_intake_task:
     Build a source register for {focus_area}. Use the CrewAI reference source
     tool to fetch current CrewAI docs, changelog, GitHub repository metadata,
     README, and package metadata. Use the SkyDash project docs tool to read the
-    local root README, operations runbook, brand system, safety/scope document,
-    architecture walkthrough, CrewAI README, and CrewAI AGENTS reference.
+    local root README, current status doc, operations runbook, safety/scope
+    document, and CrewAI README.
     Clearly mark unavailable sources and do not infer missing facts.
   expected_output: >
     A markdown source register with sections for CrewAI implementation sources,
