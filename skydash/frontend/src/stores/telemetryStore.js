@@ -71,6 +71,8 @@ export const useTelemetryStore = create((set, get) => ({
 
   setLatency: (latency) => set({ latency }),
 
+  setActiveDroneId: (activeDroneId) => set({ activeDroneId }),
+
   setDisconnected: () => set({ isConnected: false }),
 
   clearAlerts: () => set({ alerts: [] }),

@@ -1,0 +1,6 @@
+.env
+.venv/
+report.md
+reports/
+__pycache__/
+.DS_Store

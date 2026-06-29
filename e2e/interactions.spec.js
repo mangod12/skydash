@@ -1,7 +1,8 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-const BASE = 'http://localhost:5173';
+const BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
+const API = process.env.PLAYWRIGHT_API_URL || 'http://localhost:8001';
 
 const getIntelCards = (page) => page
   .locator('h3:text-is("INTELLIGENCE")')
@@ -185,6 +186,105 @@ test.describe('SkyDash Interaction Tests', () => {
     await expect(chart.first()).toBeVisible();
 
     console.log('MultiChart: ALT -> SPD -> BAT -> SIG tab switching works');
+  });
+
+  test('drone command panel uses backend ACK before confirming mode changes', async ({ page, request }) => {
+    test.setTimeout(120000);
+    await page.keyboard.press('t');
+    await expect(page.locator('text=PRIMARY FLIGHT DISPLAY')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=DRONE COMMAND')).toBeVisible({ timeout: 5000 });
+
+    await page.locator('button:text-is("GRID")').click({ force: true });
+    await expect(page.locator('text=CONFIRMED')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Simulator state updated')).toBeVisible();
+
+    const telemetryRes = await request.get(`${API}/telemetry/ALPHA-1`);
+    expect(telemetryRes.ok()).toBeTruthy();
+    const telemetry = (await telemetryRes.json()).data;
+    expect(telemetry.flight_mode).toBe('GRID');
+    expect(telemetry.pattern).toBe('grid');
+    console.log('Drone command panel: GRID waits for backend ACK and confirms real simulator state');
+  });
+
+  test('drone command panel shows FAILED when backend rejects command', async ({ page }) => {
+    await page.route('**/api/drone/**/command', async (route) => {
+      if (route.request().method() === 'OPTIONS') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 400,
+        headers: {
+          'access-control-allow-origin': '*',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ detail: 'Unsupported mode: ATTACK' }),
+      });
+    });
+    await page.keyboard.press('t');
+    await expect(page.locator('text=DRONE COMMAND')).toBeVisible({ timeout: 5000 });
+
+    const responsePromise = page.waitForResponse((res) => (
+      res.url().includes('/api/drone/ALPHA-1/command')
+      && res.request().method() === 'POST'
+    ));
+    await page.locator('button:text-is("LAND")').click({ force: true });
+    const response = await responsePromise;
+    expect(response.status()).toBe(400);
+    await expect(page.locator('text=FAILED')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Unsupported mode: ATTACK')).toBeVisible();
+    console.log('Drone command panel: rejected commands surface FAILED state');
+  });
+
+  test('OSINT ingest panel previews and imports connector entities', async ({ page }) => {
+    let importCalled = false;
+    const candidate = {
+      id: 'shodan-203_0_113_24',
+      type: 'device',
+      name: 'Webcam @ 203.0.113.24',
+      coordinates: [37.78, -122.41],
+      properties: { ip: '203.0.113.24', port: 8080, mode: 'mock' },
+      confidence: 70,
+      source: 'Shodan (Mock)',
+      tags: ['iot', 'shodan'],
+      threatLevel: 'medium',
+      firstSeen: Date.now(),
+      lastSeen: Date.now(),
+    };
+
+    await page.route('**/api/connectors/shodan/ingest?**', async (route) => {
+      const isDryRun = route.request().url().includes('dry_run=true');
+      if (!isDryRun) importCalled = true;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: [candidate],
+          metadata: {
+            source: 'Shodan (Mock)',
+            mode: isDryRun ? 'preview' : 'import',
+            query: 'webcam',
+            count: 1,
+            created: isDryRun ? 0 : 1,
+            updated: 0,
+          },
+        }),
+      });
+    });
+
+    await page.keyboard.press('i');
+    await expect(page.locator('text=OSINT INGEST')).toBeVisible({ timeout: 5000 });
+
+    await page.locator('button:text-is("PREVIEW")').click();
+    await expect(page.locator('text=Webcam @ 203.0.113.24')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=PREVIEW / 1')).toBeVisible();
+
+    await page.locator('button:text-is("IMPORT")').click();
+    await expect(page.locator('text=IMPORT / 1')).toBeVisible({ timeout: 5000 });
+    expect(importCalled).toBe(true);
+
+    console.log('OSINT ingest: preview and import controls call connector contract');
   });
 
   // ─── KEYBOARD HELP ───────────────────────────────────────

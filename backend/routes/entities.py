@@ -25,6 +25,23 @@ async def list_entities(
         return {"success": False, "error": "Internal server error"}
 
 
+@router.get("/api/entities/graph")
+async def get_intel_graph():
+    try:
+        graph = entity_store.get_graph()
+        return {
+            "success": True,
+            "data": graph,
+            "metadata": {
+                "nodes": len(graph["nodes"]),
+                "edges": len(graph["edges"]),
+            },
+        }
+    except Exception as exc:
+        log.error(f"Error fetching intel graph: {exc}", exc_info=True)
+        return {"success": False, "error": "Internal server error"}
+
+
 @router.get("/api/entities/{entity_id}")
 async def get_entity(entity_id: str):
     entity = entity_store.get_entity(entity_id)

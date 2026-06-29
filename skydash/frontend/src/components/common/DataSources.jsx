@@ -39,6 +39,13 @@ function useDataSources() {
   const entitiesLastSeen = entities.length > 0
     ? Math.max(...entities.map((e) => e.lastSeen || 0))
     : null;
+  const osintEntities = entities.filter((entity) => (
+    String(entity.source || '').toLowerCase().includes('shodan')
+    || entity.tags?.some((tag) => ['shodan', 'censys', 'virustotal', 'osint'].includes(String(tag).toLowerCase()))
+  ));
+  const osintLastSeen = osintEntities.length > 0
+    ? Math.max(...osintEntities.map((e) => e.lastSeen || 0))
+    : null;
 
   return [
     {
@@ -89,12 +96,14 @@ function useDataSources() {
       id: 'osint',
       icon: Globe,
       name: 'OSINT FEEDS',
-      status: 'planned',
-      statusLabel: 'PLANNED',
-      description: 'Shodan - VirusTotal - Censys',
-      health: 0,
-      note: 'Coming soon',
-      lastFetch: null,
+      status: osintEntities.length > 0 ? 'connected' : 'available',
+      statusLabel: osintEntities.length > 0 ? 'CONNECTED' : 'AVAILABLE',
+      description: osintEntities.length > 0
+        ? `Connector imports - ${osintEntities.length} entities`
+        : 'Shodan - ADS-B ingest - mock-safe previews',
+      health: osintEntities.length > 0 ? 80 : 0,
+      note: osintEntities.length > 0 ? null : 'Ready',
+      lastFetch: osintLastSeen,
     },
     {
       id: 'entities',

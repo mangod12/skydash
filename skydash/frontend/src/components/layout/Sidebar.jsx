@@ -6,6 +6,7 @@ import {
   Radar,
 } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
+import { BRAND } from '../../brand';
 
 const NAV_ITEMS = [
   { id: 'dashboard', icon: Crosshair, label: 'Dashboard' },
@@ -68,10 +69,10 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="h-12 flex items-center justify-center border-b border-white/[0.06] shrink-0">
         <span className={clsx(
-          'font-bold tracking-wider text-indigo-400',
+          'font-bold tracking-wider text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.35)]',
           expanded ? 'text-sm' : 'text-xs',
         )}>
-          {expanded ? 'SKYDASH' : 'SD'}
+          {expanded ? BRAND.wordmark : BRAND.shortName}
         </span>
       </div>
 

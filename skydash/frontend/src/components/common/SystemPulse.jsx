@@ -7,17 +7,22 @@ export default function SystemPulse() {
   const [msgCount, setMsgCount] = useState(0);
   const [rate, setRate] = useState(0);
   const countRef = useRef(0);
+  const totalRef = useRef(0);
 
   // Count messages per second
   useEffect(() => {
-    if (!isConnected) { setRate(0); return; }
+    if (!isConnected) {
+      countRef.current = 0;
+      return;
+    }
     countRef.current++;
-    setMsgCount((c) => c + 1);
+    totalRef.current++;
   }, [fleet, isConnected]);
 
   useEffect(() => {
     const id = setInterval(() => {
       setRate(countRef.current);
+      setMsgCount(totalRef.current);
       countRef.current = 0;
     }, 1000);
     return () => clearInterval(id);

@@ -52,11 +52,10 @@ export default function FleetSparklines() {
   const fleet = useTelemetryStore((s) => s.fleet);
   const history = useTelemetryStore((s) => s.history);
 
-  const drones = fleet.length > 0
-    ? fleet
-    : [{ drone_id: 'AWAITING', altitude: 0, battery_percentage: 0 }];
-
   const sparkData = useMemo(() => {
+    const drones = fleet.length > 0
+      ? fleet
+      : [{ drone_id: 'AWAITING', altitude: 0, battery_percentage: 0 }];
     return drones.map((drone) => ({
       id: drone.drone_id,
       history: history.length >= SPARK_POINTS
@@ -64,7 +63,7 @@ export default function FleetSparklines() {
         : generateHistory(drone),
       batPct: drone.battery_percentage ?? 50,
     }));
-  }, [drones, history]);
+  }, [fleet, history]);
 
   return (
     <div className="space-y-3">

@@ -7,10 +7,32 @@ import random
 import time
 from typing import Dict, List
 
+SUPPORTED_MODES = {"ORBIT", "GRID", "WAYPOINT", "HOLD", "RTL", "LAND"}
+SUPPORTED_COMMANDS = {
+    "set_mode",
+    "adjust_altitude",
+    "set_altitude",
+    "adjust_yaw",
+    "set_speed",
+    "set_orbit_radius",
+    "emergency_stop",
+}
+MIN_ALTITUDE_M = 0
+MAX_ALTITUDE_M = 400
+MIN_SPEED_SCALE = 0.1
+MAX_SPEED_SCALE = 3.0
+MIN_RADIUS_M = 100
+MAX_RADIUS_M = 3000
+
+
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
 
 class DroneSimulator:
     def __init__(self, drone_id: str, pattern: str = "orbit", base_lat: float = 37.7749, base_lng: float = -122.4194):
         self.drone_id = drone_id
+        self.initial_pattern = pattern
         self.pattern = pattern
         self.start_time = time.time()
         self.initial_battery = 16.8
@@ -23,6 +45,13 @@ class DroneSimulator:
         self.orbit_radius = 0.006  # ~600m - very visible on map
         self.orbit_speed = 0.15    # slower, smoother
         self.waypoints = self._generate_waypoints()
+        self.mode = pattern.upper()
+        self.commanded_altitude = None
+        self.yaw_offset = 0.0
+        self.speed_scale = 1.0
+        self.hold_position = None
+        self.emergency_stopped = False
+        self.last_command = None
 
         self.wind_speed = random.uniform(1, 4)
         self.wind_direction = random.uniform(0, 360)
@@ -50,15 +79,23 @@ class DroneSimulator:
         battery_voltage = max(14.0, self.initial_battery - (0.0002 * elapsed))
         battery_pct = int(((battery_voltage - 14.0) / 2.8) * 100)
 
-        status = "ARMED" if battery_voltage > 14.2 else "RTL"
+        if self.emergency_stopped:
+            status = "EMERGENCY_STOP"
+        elif self.mode == "LAND":
+            status = "LANDING"
+        elif battery_voltage > 14.2:
+            status = "ARMED"
+        else:
+            status = "RTL"
         wind_effect = self.wind_speed * math.sin(elapsed * 0.1)
 
         roll = round(random.gauss(0, 0.5) + wind_effect * 0.3, 2)
         pitch = round(random.gauss(0, 0.5) + wind_effect * 0.2, 2)
-        yaw = round(heading % 360, 2)
+        yaw = round((heading + self.yaw_offset) % 360, 2)
 
         gps_noise = 0.000001
         signal = max(0, min(100, 92 + random.randint(-8, 8) - int(altitude / 25)))
+        ground_speed = 0.0 if self.mode in {"HOLD", "LAND"} or self.emergency_stopped else random.uniform(3.0, 12.0) * self.speed_scale
 
         return {
             "drone_id": self.drone_id,
@@ -75,10 +112,11 @@ class DroneSimulator:
                 "altitude": round(altitude, 2),
             },
             "signal_strength": signal,
-            "ground_speed": round(random.uniform(3.0, 12.0), 2),
+            "ground_speed": round(ground_speed, 2),
             "armed": status == "ARMED",
-            "flight_mode": self.pattern.upper() if status == "ARMED" else "RTL",
+            "flight_mode": self.mode if status != "RTL" else "RTL",
             "pattern": self.pattern,
+            "command_state": self.get_command_state(),
             "wind": {
                 "speed": round(self.wind_speed + random.gauss(0, 0.3), 1),
                 "direction": round(self.wind_direction, 0),
@@ -86,6 +124,24 @@ class DroneSimulator:
         }
 
     def _compute_position(self, t: float):
+        if self.emergency_stopped or self.mode == "HOLD":
+            if not self.hold_position:
+                lat, lng, heading = self._pattern_position(t)
+                self.hold_position = (lat, lng, heading)
+            return self.hold_position
+
+        if self.mode == "RTL":
+            lat, lng, heading = self._pattern_position(t)
+            frac = min(1.0, (time.time() - (self.last_command or self.start_time)) / 20)
+            return (
+                lat + (self.base_lat - lat) * frac,
+                lng + (self.base_lng - lng) * frac,
+                heading,
+            )
+
+        return self._pattern_position(t * self.speed_scale)
+
+    def _pattern_position(self, t: float):
         if self.pattern == "orbit":
             angle = t * self.orbit_speed
             lat = self.base_lat + self.orbit_radius * math.cos(angle)
@@ -147,7 +203,82 @@ class DroneSimulator:
             wp = self.waypoints[idx]
             next_wp = self.waypoints[(idx + 1) % len(self.waypoints)]
             base = wp["alt"] + (next_wp["alt"] - wp["alt"]) * frac
-        return base + 3 * math.sin(t * 0.4) + random.gauss(0, 0.2)
+        natural = base + 3 * math.sin(t * 0.4) + random.gauss(0, 0.2)
+        if self.mode == "LAND" or self.emergency_stopped:
+            return round(_clamp(natural * 0.25, MIN_ALTITUDE_M, MAX_ALTITUDE_M), 2)
+        if self.commanded_altitude is not None:
+            return round(_clamp(self.commanded_altitude, MIN_ALTITUDE_M, MAX_ALTITUDE_M), 2)
+        return natural
+
+    def get_command_state(self) -> Dict:
+        return {
+            "mode": self.mode,
+            "altitude_target": self.commanded_altitude,
+            "yaw_offset": round(self.yaw_offset, 2),
+            "speed_scale": round(self.speed_scale, 2),
+            "orbit_radius_m": round(self.orbit_radius * 111_000),
+            "emergency_stopped": self.emergency_stopped,
+            "last_command_at": self.last_command,
+        }
+
+    def apply_command(self, command: str, params: Dict | None = None) -> Dict:
+        params = params or {}
+        command = command.lower().strip()
+        if command not in SUPPORTED_COMMANDS:
+            raise ValueError(f"Unsupported command: {command}")
+
+        now = time.time()
+        if command == "set_mode":
+            mode = str(params.get("mode", "")).upper()
+            if mode not in SUPPORTED_MODES:
+                raise ValueError(f"Unsupported mode: {mode}")
+            self.mode = mode
+            self.emergency_stopped = False
+            self.hold_position = None
+            if mode in {"ORBIT", "GRID", "WAYPOINT"}:
+                self.pattern = mode.lower()
+            if mode == "LAND":
+                self.commanded_altitude = MIN_ALTITUDE_M
+
+        elif command == "adjust_altitude":
+            current = self._compute_altitude(time.time() - self.start_time)
+            delta = float(params.get("delta", 0))
+            self.commanded_altitude = round(
+                _clamp(current + delta, MIN_ALTITUDE_M, MAX_ALTITUDE_M),
+                2,
+            )
+
+        elif command == "set_altitude":
+            value = float(params.get("value", params.get("altitude", 0)))
+            self.commanded_altitude = round(
+                _clamp(value, MIN_ALTITUDE_M, MAX_ALTITUDE_M),
+                2,
+            )
+
+        elif command == "adjust_yaw":
+            delta = float(params.get("delta", 0))
+            self.yaw_offset = (self.yaw_offset + delta) % 360
+
+        elif command == "set_speed":
+            value = float(params.get("value", params.get("speed", 5.0)))
+            self.speed_scale = round(
+                _clamp(value / 5.0, MIN_SPEED_SCALE, MAX_SPEED_SCALE),
+                2,
+            )
+
+        elif command == "set_orbit_radius":
+            value = float(params.get("value", params.get("radius", 600)))
+            radius_m = _clamp(value, MIN_RADIUS_M, MAX_RADIUS_M)
+            self.orbit_radius = radius_m / 111_000
+
+        elif command == "emergency_stop":
+            self.mode = "HOLD"
+            self.emergency_stopped = True
+            self.hold_position = None
+            self.speed_scale = MIN_SPEED_SCALE
+
+        self.last_command = now
+        return self.get_command_state()
 
 
 class FleetSimulator:
@@ -166,8 +297,21 @@ class FleetSimulator:
             return self.drones[drone_id].get_telemetry()
         return {}
 
+    def send_command(self, drone_id: str, command: str, params: Dict | None = None) -> Dict:
+        if drone_id not in self.drones:
+            raise KeyError(drone_id)
+        state = self.drones[drone_id].apply_command(command, params)
+        return {
+            "drone_id": drone_id,
+            "command": command,
+            "params": params or {},
+            "ack": "confirmed",
+            "simulated": True,
+            "state": state,
+        }
+
     def reset(self):
         for drone_id, drone in list(self.drones.items()):
             self.drones[drone_id] = DroneSimulator(
-                drone_id, drone.pattern, drone.base_lat, drone.base_lng
+                drone_id, drone.initial_pattern, drone.base_lat, drone.base_lng
             )

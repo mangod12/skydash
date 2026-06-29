@@ -1,21 +1,63 @@
 import { create } from 'zustand';
 import { logProvenance } from './provenanceStore';
+import { apiFetch } from '../utils/api';
+
+const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
+
+function normalizeEpoch(value) {
+  if (value == null) return value;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return value;
+  return numeric < 1000000000000 ? numeric * 1000 : numeric;
+}
+
+export function normalizeIntelEntity(entity) {
+  return {
+    threatLevel: 'none',
+    confidence: 50,
+    tags: [],
+    properties: {},
+    ...entity,
+    firstSeen: normalizeEpoch(entity.firstSeen) ?? Date.now(),
+    lastSeen: normalizeEpoch(entity.lastSeen) ?? Date.now(),
+  };
+}
+
+export function normalizeIntelEvent(event) {
+  return {
+    severity: 'info',
+    ...event,
+    time: normalizeEpoch(event.time) ?? Date.now(),
+  };
+}
+
+async function readJson(path) {
+  const res = await apiFetch(`${API}${path}`);
+  if (!res.ok) throw new Error(`Request failed: ${path}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || `Request failed: ${path}`);
+  return json.data;
+}
+
+function canPersistIntelChanges() {
+  return typeof window !== 'undefined' && import.meta.env.MODE !== 'test';
+}
 
 // Demo entities — spread across San Francisco for visual impact
 const SEED_ENTITIES = [
   {
     id: 'ent-001', type: 'vehicle', name: 'SUV-Black-4892',
     coordinates: [37.7780, -122.4160],
-    properties: { plate: '4XBC892', color: 'Black', make: 'Toyota Land Cruiser', speed: '0 km/h' },
+    properties: { vehicle_id: 'VH-4892', color: 'Black', make: 'Toyota Land Cruiser', speed: '0 km/h' },
     confidence: 82, source: 'ALPHA-1 Camera', firstSeen: Date.now() - 3600000, lastSeen: Date.now() - 120000,
     tags: ['suspicious', 'repeat-visitor'], threatLevel: 'medium',
   },
   {
     id: 'ent-002', type: 'person', name: 'TANGO-7',
     coordinates: [37.7730, -122.4220],
-    properties: { description: 'Male, dark jacket, carrying duffel bag', height: '~182cm', gait: 'purposeful' },
+    properties: { description: 'Adult in dark jacket carrying a bag', height: '~182cm', movement: 'purposeful' },
     confidence: 65, source: 'CHARLIE-3 Camera', firstSeen: Date.now() - 1800000, lastSeen: Date.now() - 60000,
-    tags: ['poi', 'under-surveillance'], threatLevel: 'high',
+    tags: ['poi', 'needs-verification'], threatLevel: 'high',
   },
   {
     id: 'ent-003', type: 'building', name: 'Compound ECHO',
@@ -41,14 +83,14 @@ const SEED_ENTITIES = [
   {
     id: 'ent-006', type: 'vehicle', name: 'Sedan-White-7721',
     coordinates: [37.7710, -122.4240],
-    properties: { plate: '7ABX721', color: 'White', make: 'Honda Civic', occupants: '2' },
-    confidence: 77, source: 'CHARLIE-3 ANPR', firstSeen: Date.now() - 2400000, lastSeen: Date.now() - 900000,
+    properties: { vehicle_id: 'VH-7721', color: 'White', make: 'Honda Civic', occupants: '2' },
+    confidence: 77, source: 'CHARLIE-3 Camera', firstSeen: Date.now() - 2400000, lastSeen: Date.now() - 900000,
     tags: ['tracked'], threatLevel: 'low',
   },
   {
     id: 'ent-007', type: 'person', name: 'FOXTROT-3',
     coordinates: [37.7800, -122.4130],
-    properties: { description: 'Female, red coat, phone in hand', behavior: 'loitering near gate' },
+    properties: { description: 'Adult in red coat using a phone', behavior: 'loitering near gate' },
     confidence: 58, source: 'ALPHA-1 Camera', firstSeen: Date.now() - 900000, lastSeen: Date.now() - 180000,
     tags: ['poi'], threatLevel: 'low',
   },
@@ -76,8 +118,8 @@ const SEED_RELATIONSHIPS = [
 const SEED_EVENTS = [
   { id: 'evt-001', time: Date.now() - 7200000, type: 'detection', description: 'ALPHA-1 deployed — orbit pattern established around Compound ECHO', entityId: 'ent-003', severity: 'info' },
   { id: 'evt-002', time: Date.now() - 5400000, type: 'detection', description: 'BRAVO-2 initiated grid search of northern sector', entityId: null, severity: 'info' },
-  { id: 'evt-003', time: Date.now() - 3600000, type: 'detection', description: 'Vehicle SUV-Black-4892 detected entering surveillance zone', entityId: 'ent-001', severity: 'info' },
-  { id: 'evt-004', time: Date.now() - 2700000, type: 'detection', description: 'ANPR match: plate 4XBC892 flagged in watch database', entityId: 'ent-001', severity: 'warning' },
+  { id: 'evt-003', time: Date.now() - 3600000, type: 'detection', description: 'Vehicle SUV-Black-4892 detected entering operational zone', entityId: 'ent-001', severity: 'info' },
+  { id: 'evt-004', time: Date.now() - 2700000, type: 'detection', description: 'Vehicle ID VH-4892 matched an internal scenario watchlist', entityId: 'ent-001', severity: 'warning' },
   { id: 'evt-005', time: Date.now() - 1800000, type: 'detection', description: 'Person TANGO-7 observed approaching Compound ECHO on foot', entityId: 'ent-002', severity: 'info' },
   { id: 'evt-006', time: Date.now() - 1200000, type: 'alert', description: 'RF anomaly detected — unknown 5.8GHz transmitter near compound', entityId: 'ent-004', severity: 'warning' },
   { id: 'evt-007', time: Date.now() - 600000, type: 'alert', description: 'CRITICAL: Perimeter breach Sector 4 — LIDAR array triggered', entityId: 'ent-005', severity: 'critical' },
@@ -96,9 +138,66 @@ export const useIntelStore = create((set, get) => ({
   filterThreat: null,
   filterType: null,
   filterTag: null,
+  loading: false,
+  lastSyncedAt: null,
+  syncError: null,
 
   selectEntity: (id) => set({ selectedEntityId: id }),
   clearSelection: () => set({ selectedEntityId: null }),
+
+  hydrateIntel: ({ entities, relationships, events }) => set((s) => {
+    const normalizedEntities = Array.isArray(entities)
+      ? entities.map(normalizeIntelEntity)
+      : s.entities;
+    const normalizedEvents = Array.isArray(events)
+      ? events.map(normalizeIntelEvent)
+      : s.events;
+
+    return {
+      entities: normalizedEntities,
+      relationships: Array.isArray(relationships) ? relationships : s.relationships,
+      events: normalizedEvents,
+      selectedEntityId: normalizedEntities.some((entity) => entity.id === s.selectedEntityId)
+        ? s.selectedEntityId
+        : null,
+      comparedEntities: s.comparedEntities.map((id) =>
+        normalizedEntities.some((entity) => entity.id === id) ? id : null,
+      ),
+      lastSyncedAt: Date.now(),
+      syncError: null,
+    };
+  }),
+
+  fetchIntel: async () => {
+    set({ loading: true, syncError: null });
+    try {
+      const [entitiesResult, graphResult, timelineResult] = await Promise.allSettled([
+        readJson('/api/entities'),
+        readJson('/api/entities/graph'),
+        readJson('/api/timeline?limit=200'),
+      ]);
+
+      const entities = entitiesResult.status === 'fulfilled' ? entitiesResult.value : null;
+      const graph = graphResult.status === 'fulfilled' ? graphResult.value : null;
+      const events = timelineResult.status === 'fulfilled' ? timelineResult.value : null;
+
+      if (!entities && !graph && !events) {
+        throw new Error('Intel API unavailable');
+      }
+
+      get().hydrateIntel({
+        entities: graph?.nodes || entities,
+        relationships: graph?.edges,
+        events,
+      });
+      return true;
+    } catch (error) {
+      set({ syncError: error.message || 'Intel sync failed' });
+      return false;
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   setComparedEntity: (slot, id) => set((s) => {
     const next = [...s.comparedEntities];
@@ -141,21 +240,49 @@ export const useIntelStore = create((set, get) => ({
     set((s) => ({
       entities: s.entities.map((e) => (e.id === id ? { ...e, ...updates } : e)),
     }));
+    if (!canPersistIntelChanges()) return;
+    apiFetch(`${API}/api/entities/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.success && json.data) {
+          set((s) => ({
+            entities: s.entities.map((e) =>
+              e.id === id ? normalizeIntelEntity(json.data) : e,
+            ),
+            syncError: null,
+          }));
+        }
+      })
+      .catch((error) => set({ syncError: error.message || 'Entity update failed' }));
   },
 
-  deleteEntity: (id) => set((s) => ({
-    entities: s.entities.filter((e) => e.id !== id),
-    relationships: s.relationships.filter((r) => r.from !== id && r.to !== id),
-    events: s.events.filter((e) => e.entityId !== id),
-    selectedEntityId: s.selectedEntityId === id ? null : s.selectedEntityId,
-  })),
+  deleteEntity: (id) => {
+    set((s) => ({
+      entities: s.entities.filter((e) => e.id !== id),
+      relationships: s.relationships.filter((r) => r.from !== id && r.to !== id),
+      events: s.events.filter((e) => e.entityId !== id),
+      selectedEntityId: s.selectedEntityId === id ? null : s.selectedEntityId,
+    }));
+    if (!canPersistIntelChanges()) return;
+    apiFetch(`${API}/api/entities/${id}`, { method: 'DELETE' })
+      .then((res) => {
+        if (!res.ok && res.status !== 404) throw new Error('Entity delete failed');
+      })
+      .catch((error) => set({ syncError: error.message || 'Entity delete failed' }));
+  },
 
   addEntity: (entity) => {
-    const newId = `ent-${Date.now()}`;
-    logProvenance(newId, 'created', `Entity ${entity.name || newId} created`, 'analyst');
+    const newId = entity.id || `ent-${Date.now()}`;
+    const newEntity = normalizeIntelEntity({ ...entity, id: newId });
+    logProvenance(newId, 'created', `Entity ${newEntity.name || newId} created`, 'analyst');
     set((s) => ({
-      entities: [...s.entities, { ...entity, id: newId }],
+      entities: [...s.entities.filter((e) => e.id !== newId), newEntity],
     }));
+    return newEntity;
   },
 
   addRelationship: (rel) => set((s) => ({
@@ -163,6 +290,6 @@ export const useIntelStore = create((set, get) => ({
   })),
 
   addEvent: (event) => set((s) => ({
-    events: [...s.events, { ...event, id: `evt-${Date.now()}`, time: Date.now() }],
+    events: [...s.events, normalizeIntelEvent({ ...event, id: `evt-${Date.now()}`, time: Date.now() })],
   })),
 }));

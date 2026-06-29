@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useAuthStore } from '../../stores/authStore';
+import { BRAND } from '../../brand';
+import BrandMark from './BrandMark';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -26,8 +28,8 @@ export default function LoginScreen() {
         className="relative w-full max-w-sm mx-4 bg-zinc-900/80 backdrop-blur-2xl border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="px-8 pt-10 pb-6 text-center">
-          <h1 className="text-2xl font-bold tracking-[0.2em] text-indigo-400">SKYDASH</h1>
-          <p className="mt-1.5 text-[10px] tracking-[0.2em] text-zinc-600">SPATIAL INTELLIGENCE PLATFORM</p>
+          <BrandMark centered className="[&>div:first-child]:text-2xl [&>div:first-child]:tracking-[0.2em]" />
+          <p className="mt-3 text-[10px] tracking-[0.12em] text-zinc-600 uppercase">{BRAND.tagline}</p>
         </div>
 
         {/* Fields */}

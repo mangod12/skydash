@@ -48,7 +48,7 @@ export function QuickBtn({ icon: Icon, label, danger, onClick, disabled = false 
   );
 }
 
-export function Slider({ label, value, min, max, step, unit, onChange, disabled = false }) {
+export function Slider({ label, value, min, max, step, unit, onChange, onCommit, disabled = false }) {
   return (
     <div className="flex items-center gap-3">
       <span className="text-[8px] font-semibold tracking-[0.15em] text-zinc-600 uppercase w-16 shrink-0">
@@ -63,6 +63,11 @@ export function Slider({ label, value, min, max, step, unit, onChange, disabled 
         disabled={disabled}
         aria-label={label}
         onChange={(e) => onChange(Number(e.target.value))}
+        onMouseUp={(e) => onCommit?.(Number(e.currentTarget.value))}
+        onTouchEnd={(e) => onCommit?.(Number(e.currentTarget.value))}
+        onKeyUp={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') onCommit?.(Number(e.currentTarget.value));
+        }}
         className="flex-1 h-1 appearance-none bg-zinc-800 rounded-full outline-none
           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3
           [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full

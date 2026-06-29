@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="SkyDash">
+  <rect width="64" height="64" rx="14" fill="#09090b"/>
+  <path d="M12 34 32 10l20 24-20-8-20 8Z" fill="#6366f1"/>
+  <path d="M16 40h32l-6 14H22l-6-14Z" fill="#22d3ee" opacity=".85"/>
+  <path d="M32 10v44" stroke="#f5f7fa" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+  <circle cx="32" cy="32" r="6" fill="#09090b" stroke="#f5f7fa" stroke-width="2"/>
+</svg>

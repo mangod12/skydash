@@ -81,7 +81,7 @@ function EntitiesTab({ mission }) {
       {picking && available.length > 0 && (
         <div className="mb-3 p-2 rounded-lg border border-white/[0.06] bg-white/[0.02] max-h-40 overflow-y-auto space-y-1">
           {available.map((e) => (
-            <button key={e.id} onClick={() => { addEntityToMission(mission.id, e.id); setPicking(false); }} className="w-full text-left px-2 py-1.5 text-[11px] text-zinc-300 hover:bg-white/[0.04] rounded flex items-center gap-2">
+            <button key={e.id} onClick={async () => { if (await addEntityToMission(mission.id, e.id)) setPicking(false); }} className="w-full text-left px-2 py-1.5 text-[11px] text-zinc-300 hover:bg-white/[0.04] rounded flex items-center gap-2">
               <ChevronRight size={10} className="text-zinc-600" /> {e.name} <span className="text-zinc-600 text-[9px]">{e.type}</span>
             </button>
           ))}

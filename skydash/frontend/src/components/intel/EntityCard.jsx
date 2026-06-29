@@ -1,5 +1,6 @@
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import {
   Car, User, Building2, Wifi, AlertTriangle, ChevronRight, Check,
 } from 'lucide-react';
@@ -36,7 +37,13 @@ const BIN_DURATION = 2 * 60 * 60 * 1000; // 2 hours
 
 function ActivitySparkline({ entityId, threatLevel }) {
   const events = useIntelStore((s) => s.events);
-  const now = Date.now();
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    tick();
+    const id = setInterval(tick, 60000);
+    return () => clearInterval(id);
+  }, []);
   const cutoff = now - BIN_COUNT * BIN_DURATION;
 
   const bins = Array(BIN_COUNT).fill(0);

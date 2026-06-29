@@ -1,0 +1,43 @@
+source_intake_task:
+  description: >
+    Build a source register for {focus_area}. Use the CrewAI reference source
+    tool to fetch current CrewAI docs, changelog, GitHub repository metadata,
+    README, and package metadata. Use the SkyDash project docs tool to read the
+    local root README, operations runbook, brand system, safety/scope document,
+    architecture walkthrough, CrewAI README, and CrewAI AGENTS reference.
+    Clearly mark unavailable sources and do not infer missing facts.
+  expected_output: >
+    A markdown source register with sections for CrewAI implementation sources,
+    SkyDash local product sources, current version/package facts, source gaps,
+    and the exact assumptions that later tasks may safely use.
+  agent: source_researcher
+
+mission_context_task:
+  description: >
+    Analyze the SkyDash context for {focus_area}. Use the local API health
+    check and company readiness tool when available, then reason from the source
+    register and supplied platform scope: {platform_scope}
+  expected_output: >
+    A detailed markdown analysis with sections for current system signal,
+    CrewAI operating-layer fit, product and engineering operating model,
+    drone/surveillance safety boundaries, enterprise readiness gaps, brand
+    credibility, risks or missing context, and recommended next data to collect.
+  agent: mission_context_analyst
+
+briefing_task:
+  description: >
+    Transform the source register and operating analysis into a company-ready
+    CrewAI operating plan. Use {generated_date} as the report date. Do not invent
+    any other date. The plan must explain how CrewAI should help run SkyDash as
+    a company: source monitoring, engineering planning, QA, security, drone
+    safety, compliance, product management, brand, outreach, and executive
+    reporting. Keep recommendations scoped to the verified SkyDash prototype
+    state, label assumptions explicitly, and avoid production or surveillance
+    claims that are not backed by evidence.
+  expected_output: >
+    A markdown operating plan with an executive summary, CrewAI integration
+    architecture, company operating crews, evidence schema, daily/weekly/monthly
+    run cadence, QA and safety gates, brand/outreach workflow, production
+    readiness roadmap, blocked claims, and follow-up checks. Do not wrap the
+    report in code fences.
+  agent: briefing_writer

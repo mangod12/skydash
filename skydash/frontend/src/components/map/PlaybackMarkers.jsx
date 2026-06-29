@@ -44,7 +44,8 @@ export default function PlaybackMarkers() {
 
   const snapshot = useMemo(() => {
     if (!active) return null;
-    return getCurrentSnapshot();
+    const current = getCurrentSnapshot();
+    return current ? { ...current, currentTime } : null;
   }, [active, currentTime, getCurrentSnapshot]);
 
   if (!active || !snapshot) return null;

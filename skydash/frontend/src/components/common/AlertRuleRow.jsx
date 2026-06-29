@@ -28,7 +28,12 @@ const CONFIG_FIELDS = {
 
 function ToggleSwitch({ on, onChange }) {
   return (
-    <button onClick={onChange} className="shrink-0">
+    <button
+      onClick={onChange}
+      className="shrink-0"
+      aria-label={on ? 'Disable alert rule' : 'Enable alert rule'}
+      title={on ? 'Disable alert rule' : 'Enable alert rule'}
+    >
       <div className={clsx(
         'w-8 h-4 rounded-full relative transition-colors',
         on ? 'bg-indigo-500' : 'bg-zinc-700',
@@ -98,6 +103,8 @@ export default function AlertRuleRow({ rule, onToggle, onUpdate, onRemove }) {
       {canDelete && (
         <button
           onClick={() => onRemove(rule.id)}
+          aria-label={`Remove alert rule ${rule.name}`}
+          title={`Remove alert rule ${rule.name}`}
           className="text-zinc-600 hover:text-red-400 transition-colors"
         >
           <Trash2 size={14} />

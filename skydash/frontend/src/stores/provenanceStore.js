@@ -8,7 +8,7 @@ const SEED_PROVENANCE = [
   { id: 'prov-003', entityId: 'ent-001', action: 'confirmed', actor: 'analyst', detail: 'Visual confirmation from drone feed ALPHA-1', timestamp: new Date(Date.now() - 2400000).toISOString() },
   { id: 'prov-004', entityId: 'ent-001', action: 'classified', actor: 'analyst', detail: 'Threat level assessed as MEDIUM', timestamp: new Date(Date.now() - 1800000).toISOString() },
 
-  { id: 'prov-005', entityId: 'ent-002', action: 'created', actor: 'sensor', detail: 'Identified by CHARLIE-3 camera facial recognition', timestamp: new Date(Date.now() - 1800000).toISOString() },
+  { id: 'prov-005', entityId: 'ent-002', action: 'created', actor: 'sensor', detail: 'Observed by CHARLIE-3 camera and marked for analyst verification', timestamp: new Date(Date.now() - 1800000).toISOString() },
   { id: 'prov-006', entityId: 'ent-002', action: 'sourced', actor: 'system', detail: 'Cross-referenced with SIGINT report SR-4412', timestamp: new Date(Date.now() - 1500000).toISOString() },
   { id: 'prov-007', entityId: 'ent-002', action: 'classified', actor: 'analyst', detail: 'Threat level elevated to HIGH', timestamp: new Date(Date.now() - 900000).toISOString() },
   { id: 'prov-008', entityId: 'ent-002', action: 'confirmed', actor: 'osint', detail: 'Location confirmed via satellite imagery', timestamp: new Date(Date.now() - 600000).toISOString() },

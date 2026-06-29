@@ -6,6 +6,7 @@ import IntelView from './components/views/IntelView';
 import LoginScreen from './components/common/LoginScreen';
 import { useUIStore } from './stores/uiStore';
 import { useAuthStore } from './stores/authStore';
+import { useIntelStore } from './stores/intelStore';
 
 const TelemetryView = lazy(() => import('./components/views/TelemetryView'));
 const AnalyticsView = lazy(() => import('./components/views/AnalyticsView'));
@@ -54,8 +55,12 @@ export default function App() {
   const token = useAuthStore((s) => s.token);
   const authEnabled = useAuthStore((s) => s.authEnabled);
   const checkAuth = useAuthStore((s) => s.checkAuth);
+  const fetchIntel = useIntelStore((s) => s.fetchIntel);
 
   useEffect(() => { checkAuth(); }, [checkAuth]);
+  useEffect(() => {
+    if (authEnabled === false || token) fetchIntel();
+  }, [authEnabled, fetchIntel, token]);
 
   if (authEnabled && !token) return <LoginScreen />;
 

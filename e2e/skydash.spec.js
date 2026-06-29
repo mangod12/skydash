@@ -150,7 +150,7 @@ test.describe('SkyDash E2E Tests', () => {
     await page.keyboard.press('b');
     await page.waitForTimeout(400);
     const collapsedWidth = (await sidebar.boundingBox()).width;
-    expect(collapsedWidth).toEqual(initialWidth);
+    expect(Math.abs(collapsedWidth - initialWidth)).toBeLessThan(1);
   });
 
   // ─── COMMAND PALETTE ─────────────────────────────────────

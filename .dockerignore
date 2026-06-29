@@ -1,6 +1,9 @@
 node_modules
+**/node_modules
 dist
+**/dist
 __pycache__
+**/__pycache__
 *.pyc
 .git
 .vscode
@@ -10,3 +13,17 @@ __pycache__
 *.db-shm
 *.db-wal
 .env
+skydash_intel_crew/.venv
+skydash_intel_crew/.venv/**
+skydash_intel_crew/.pytest_cache
+skydash_intel_crew/reports
+test-results
+playwright-report
+skydash/frontend/dist
+skydash/frontend/.vite
+e2e/screenshots
+.playwright-mcp
+.playwright-mcp/**
+social media
+social media/**
+node_modules/**

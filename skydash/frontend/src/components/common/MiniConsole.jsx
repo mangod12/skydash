@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal, X, ChevronRight } from 'lucide-react';
 import { useConsoleCommands } from '../../hooks/useConsoleCommands';
@@ -26,22 +26,20 @@ export default function MiniConsole({ open, onClose }) {
   const [output, setOutput] = useState(['  SKYDASH CONSOLE v1.0 -- Type "help" for commands']);
   const [history, setHistory] = useState([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
-  const [suggestion, setSuggestion] = useState('');
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
   const { execute, getSuggestions } = useConsoleCommands();
+  const suggestion = useMemo(() => {
+    if (!input.trim()) return '';
+    const matches = getSuggestions(input);
+    return matches.length === 1 ? matches[0] : '';
+  }, [input, getSuggestions]);
 
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 100); }, [open]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [output]);
-
-  useEffect(() => {
-    if (!input.trim()) { setSuggestion(''); return; }
-    const matches = getSuggestions(input);
-    setSuggestion(matches.length === 1 ? matches[0] : '');
-  }, [input, getSuggestions]);
 
   const appendOutput = useCallback((lines) => {
     setOutput((prev) => [...prev, ...lines].slice(-MAX_OUTPUT));
@@ -57,13 +55,12 @@ export default function MiniConsole({ open, onClose }) {
     if (result === '__CLEAR__') setOutput([]);
     else if (Array.isArray(result)) appendOutput(result);
     setInput('');
-    setSuggestion('');
   }, [input, execute, appendOutput]);
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
-      if (suggestion) { setInput(suggestion + ' '); setSuggestion(''); }
+      if (suggestion) { setInput(suggestion + ' '); }
       else {
         const matches = getSuggestions(input);
         if (matches.length === 1) setInput(matches[0] + ' ');

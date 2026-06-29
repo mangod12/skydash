@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useMemo } from 'react';
 import { Shield, Wifi, WifiOff, Crosshair, Activity } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';

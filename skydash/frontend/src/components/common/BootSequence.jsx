@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BRAND } from '../../brand';
+import BrandMark from './BrandMark';
 
 const BOOT_LINES = [
-  { text: 'SKYDASH SPATIAL INTELLIGENCE v2.0', delay: 0, color: 'text-indigo-400' },
+  { text: `${BRAND.wordmark} ${BRAND.category.toUpperCase()} v2.0`, delay: 0, color: 'text-indigo-400' },
   { text: 'Initializing telemetry subsystem...', delay: 200 },
   { text: 'Connecting to drone network...', delay: 400 },
   { text: 'Loading geospatial layers...', delay: 600 },
@@ -45,12 +47,7 @@ export default function BootSequence({ onComplete }) {
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               className="text-center mb-8"
             >
-              <div className="text-3xl font-bold tracking-[0.3em] text-indigo-400 drop-shadow-[0_0_20px_rgba(99,102,241,0.4)]">
-                SKYDASH
-              </div>
-              <div className="text-[10px] tracking-[0.4em] text-zinc-600 mt-2">
-                SPATIAL INTELLIGENCE PLATFORM
-              </div>
+              <BrandMark centered />
             </motion.div>
 
             {/* Boot log */}

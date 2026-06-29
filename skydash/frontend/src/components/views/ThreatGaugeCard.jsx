@@ -4,7 +4,6 @@ import GlassCard from '../common/GlassCard';
 const SIZE = 120;
 const STROKE = 10;
 const RADIUS = (SIZE - STROKE) / 2;
-const CIRCUMFERENCE = Math.PI * RADIUS;
 const START_ANGLE = Math.PI;
 
 function polarToCartesian(cx, cy, r, angle) {

@@ -25,6 +25,7 @@ export default function TimelineCorrelation() {
   const [panOffset, setPanOffset] = useState(0);
   const [tooltip, setTooltip] = useState(null);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(800);
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const dragRef = useRef(null);
@@ -56,7 +57,6 @@ export default function TimelineCorrelation() {
     [events, selectedIds],
   );
 
-  const containerWidth = containerRef.current?.clientWidth ?? 800;
   const scaledWidth = containerWidth * zoom;
 
   const scale = useMemo(
@@ -91,6 +91,16 @@ export default function TimelineCorrelation() {
       window.removeEventListener('mousemove', handleMouseMove);
     };
   }, [handleMouseUp, handleMouseMove]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return undefined;
+    const update = () => setContainerWidth(el.clientWidth || 800);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handleHover = useCallback((evt, entity, e) => {
     const rect = containerRef.current?.getBoundingClientRect();

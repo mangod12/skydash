@@ -61,7 +61,7 @@ function buildSituation(entities, threats, maxThreat, mission) {
     : 'No active threats identified within area of operations.';
 
   const entitySummary = entities.length > 0
-    ? `${entities.length} entities under surveillance. Types: ${[...new Set(entities.map((e) => e.type))].join(', ')}. Average confidence: ${Math.round(entities.reduce((s, e) => s + (e.confidence || 0), 0) / entities.length)}%.`
+    ? `${entities.length} entities linked for operational monitoring. Types: ${[...new Set(entities.map((e) => e.type))].join(', ')}. Average confidence: ${Math.round(entities.reduce((s, e) => s + (e.confidence || 0), 0) / entities.length)}%.`
     : 'No entities currently linked to this mission.';
 
   const areaOfOps = mission.center_lat != null
@@ -74,7 +74,7 @@ function buildSituation(entities, threats, maxThreat, mission) {
 function buildMission(mission, entities) {
   const objective = mission.description
     ? mission.description
-    : `Conduct surveillance and intelligence gathering operations for mission ${mission.name}.`;
+    : `Conduct lawful situational-awareness and intelligence review for mission ${mission.name}.`;
 
   const parameters = [
     `Mission ID: ${mission.id}`,

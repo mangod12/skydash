@@ -16,6 +16,7 @@ export function useSystemHealth() {
   const [latHist, setLatHist] = useState([]);
   const [rateHist, setRateHist] = useState([]);
   const [backendUp, setBackendUp] = useState(null);
+  const [now, setNow] = useState(0);
   const [start] = useState(() => Date.now());
   const msgRef = useRef(0);
   const prevLenRef = useRef(0);
@@ -39,6 +40,7 @@ export function useSystemHealth() {
 
   useEffect(() => {
     const id = setInterval(() => {
+      setNow(Date.now());
       setLatHist((p) => [...p, { v: useTelemetryStore.getState().latency }].slice(-N));
       setRateHist((p) => {
         const r = msgRef.current; msgRef.current = 0;
@@ -60,9 +62,12 @@ export function useSystemHealth() {
   }, []);
 
   useEffect(() => {
-    fetchUp();
+    const first = setTimeout(fetchUp, 0);
     const id = setInterval(fetchUp, 15000);
-    return () => clearInterval(id);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
   }, [fetchUp]);
 
   const active = fleet.filter((d) => d.is_armed !== false).length || (isConnected ? 1 : 0);
@@ -78,7 +83,7 @@ export function useSystemHealth() {
       audit: audit.length, auditMax: 500,
       annotations: anns.length,
     },
-    uptime: { session: Date.now() - start, backend: backendUp },
+    uptime: { session: Math.max(0, now - start), backend: backendUp },
     latencyHistory: latHist,
     rateHistory: rateHist,
   };

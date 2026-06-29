@@ -51,14 +51,15 @@ export default function EntityCreateForm({ open, onClose }) {
       const json = await res.json();
       if (json.success && json.data) {
         const entity = { ...json.data, firstSeen: Date.now(), lastSeen: Date.now() };
-        useIntelStore.getState().addEntity(entity);
-        useIntelStore.getState().selectEntity(entity.id);
+        const stored = useIntelStore.getState().addEntity(entity);
+        useIntelStore.getState().selectEntity(stored.id);
         toast('Entity created successfully', 'success');
         setForm(INITIAL); onClose();
       } else { toast(json.error || 'Failed to create entity', 'error'); }
     } catch {
       const entity = { ...payload, firstSeen: Date.now(), lastSeen: Date.now() };
-      useIntelStore.getState().addEntity(entity);
+      const stored = useIntelStore.getState().addEntity(entity);
+      useIntelStore.getState().selectEntity(stored.id);
       toast('Entity created locally (offline)', 'warning');
       setForm(INITIAL); onClose();
     } finally { setSubmitting(false); }

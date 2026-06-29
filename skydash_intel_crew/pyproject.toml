@@ -1,0 +1,37 @@
+[project]
+name = "skydash_intel_crew"
+version = "0.1.0"
+description = "CrewAI operations and brand readiness runner for SkyDash"
+authors = [{ name = "SkyDash Maintainers" }]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai[tools]>=1.15.1,<2.0.0",
+    "litellm>=1.90.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0,<9.0.0"
+]
+
+[project.scripts]
+skydash_intel_crew = "skydash_intel_crew.main:run"
+run_crew = "skydash_intel_crew.main:run"
+train = "skydash_intel_crew.main:train"
+replay = "skydash_intel_crew.main:replay"
+test = "skydash_intel_crew.main:test"
+run_with_trigger = "skydash_intel_crew.main:run_with_trigger"
+source_snapshot = "skydash_intel_crew.main:source_snapshot"
+command_inventory = "skydash_intel_crew.main:command_inventory"
+ui_control_audit = "skydash_intel_crew.main:ui_control_audit"
+runtime_readiness = "skydash_intel_crew.main:runtime_readiness"
+verification_gate = "skydash_intel_crew.main:verification_gate"
+subteam_model = "skydash_intel_crew.main:subteam_model"
+crew_subprocesses = "skydash_intel_crew.main:crew_subprocesses"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.crewai]
+type = "crew"

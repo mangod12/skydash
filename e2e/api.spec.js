@@ -1,7 +1,7 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-const API = 'http://localhost:8001';
+const API = process.env.PLAYWRIGHT_API_URL || 'http://localhost:8001';
 
 test.describe('Backend API Deep Tests', () => {
 
@@ -26,6 +26,14 @@ test.describe('Backend API Deep Tests', () => {
   });
 
   test('each drone has correct flight pattern', async ({ request }) => {
+    const mutateRes = await request.post(`${API}/api/drone/ALPHA-1/command`, {
+      data: { command: 'set_mode', params: { mode: 'grid' } },
+    });
+    expect(mutateRes.ok()).toBeTruthy();
+
+    const resetRes = await request.post(`${API}/reset`);
+    expect(resetRes.ok()).toBeTruthy();
+
     const res = await request.get(`${API}/telemetry`);
     const drones = (await res.json()).data;
 
@@ -74,6 +82,75 @@ test.describe('Backend API Deep Tests', () => {
     console.log('Wind data: present for all drones');
   });
 
+  test('drone command endpoint mutates simulated flight mode', async ({ request }) => {
+    const commandRes = await request.post(`${API}/api/drone/ALPHA-1/command`, {
+      data: { command: 'set_mode', params: { mode: 'grid' } },
+    });
+    expect(commandRes.ok()).toBeTruthy();
+    const commandBody = await commandRes.json();
+    expect(commandBody.success).toBe(true);
+    expect(commandBody.data.ack).toBe('confirmed');
+    expect(commandBody.data.simulated).toBe(true);
+    expect(commandBody.data.state.mode).toBe('GRID');
+
+    const telemetryRes = await request.get(`${API}/telemetry/ALPHA-1`);
+    const telemetry = (await telemetryRes.json()).data;
+    expect(telemetry.flight_mode).toBe('GRID');
+    expect(telemetry.pattern).toBe('grid');
+
+    await request.post(`${API}/api/drone/ALPHA-1/command`, {
+      data: { command: 'set_mode', params: { mode: 'orbit' } },
+    });
+    console.log('Drone command: set_mode grid mutates simulator telemetry');
+  });
+
+  test('drone altitude and emergency commands return authoritative state', async ({ request }) => {
+    const altitudeRes = await request.post(`${API}/api/drone/BRAVO-2/command`, {
+      data: { command: 'set_altitude', params: { value: 120 } },
+    });
+    expect(altitudeRes.ok()).toBeTruthy();
+    const altitudeBody = await altitudeRes.json();
+    expect(altitudeBody.data.state.altitude_target).toBe(120);
+
+    const telemetryRes = await request.get(`${API}/telemetry/BRAVO-2`);
+    const telemetry = (await telemetryRes.json()).data;
+    expect(Math.round(telemetry.altitude)).toBe(120);
+
+    const stopRes = await request.post(`${API}/api/drone/BRAVO-2/command`, {
+      data: { command: 'emergency_stop', params: {} },
+    });
+    expect(stopRes.ok()).toBeTruthy();
+    const stopBody = await stopRes.json();
+    expect(stopBody.data.state.emergency_stopped).toBe(true);
+
+    const stoppedTelemetry = (await (await request.get(`${API}/telemetry/BRAVO-2`)).json()).data;
+    expect(stoppedTelemetry.command_state.emergency_stopped).toBe(true);
+    expect(stoppedTelemetry.ground_speed).toBe(0);
+
+    await request.post(`${API}/api/drone/BRAVO-2/command`, {
+      data: { command: 'set_mode', params: { mode: 'grid' } },
+    });
+    console.log('Drone command: altitude target and emergency stop are reflected in telemetry');
+  });
+
+  test('drone command endpoint rejects fake drones and unsupported commands', async ({ request }) => {
+    const fakeDrone = await request.post(`${API}/api/drone/FAKE-99/command`, {
+      data: { command: 'set_mode', params: { mode: 'grid' } },
+    });
+    expect(fakeDrone.status()).toBe(404);
+
+    const badCommand = await request.post(`${API}/api/drone/ALPHA-1/command`, {
+      data: { command: 'launch_missile', params: {} },
+    });
+    expect(badCommand.status()).toBe(400);
+
+    const badMode = await request.post(`${API}/api/drone/ALPHA-1/command`, {
+      data: { command: 'set_mode', params: { mode: 'attack' } },
+    });
+    expect(badMode.status()).toBe(400);
+    console.log('Drone command: invalid drone, command, and mode are rejected');
+  });
+
   // ─── SIMULATION RESET ────────────────────────────────────
 
   test('POST /reset resets simulation state', async ({ request }) => {
@@ -119,12 +196,59 @@ test.describe('Backend API Deep Tests', () => {
     console.log(`Threat filter: high=${highData.length}`);
   });
 
+  test('entity graph endpoint returns the authoritative OSINT snapshot', async ({ request }) => {
+    const res = await request.get(`${API}/api/entities/graph`);
+    expect(res.ok()).toBeTruthy();
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.data.nodes.length).toBeGreaterThanOrEqual(8);
+    expect(body.data.edges.length).toBeGreaterThanOrEqual(9);
+    expect(body.data.nodes.map(e => e.id)).toContain('ent-001');
+    expect(body.data.edges.some(edge => edge.from === 'ent-001' && edge.to === 'ent-003')).toBe(true);
+    expect(body.metadata.nodes).toBe(body.data.nodes.length);
+    expect(body.metadata.edges).toBe(body.data.edges.length);
+
+    console.log(`Entity graph: ${body.data.nodes.length} nodes, ${body.data.edges.length} edges`);
+  });
+
+  test('Shodan OSINT ingest dry-run previews entities without mutating the graph', async ({ request }) => {
+    const before = await request.get(`${API}/api/entities/graph`);
+    const beforeBody = await before.json();
+    const beforeCount = beforeBody.data.nodes.length;
+
+    const previewRes = await request.post(`${API}/api/connectors/shodan/ingest?query=webcam&limit=3&dry_run=true`);
+    expect(previewRes.ok()).toBeTruthy();
+    const preview = await previewRes.json();
+    expect(preview.success).toBe(true);
+    expect(preview.metadata.mode).toBe('preview');
+    expect(preview.metadata.count).toBe(3);
+    expect(preview.metadata.created).toBe(0);
+    expect(preview.metadata.updated).toBe(0);
+    expect(preview.data).toHaveLength(3);
+    preview.data.forEach((entity) => {
+      expect(entity.id).toMatch(/^shodan-/);
+      expect(entity.source).toMatch(/Shodan/);
+      expect(entity.properties.mode).toMatch(/live|mock/);
+    });
+
+    const after = await request.get(`${API}/api/entities/graph`);
+    const afterBody = await after.json();
+    expect(afterBody.data.nodes.length).toBe(beforeCount);
+
+    console.log(`Shodan dry-run: previewed ${preview.data.length}, graph remained ${beforeCount}`);
+  });
+
   test('entity update modifies fields', async ({ request }) => {
     // Create
     const createRes = await request.post(`${API}/api/entities`, {
       data: { type: 'device', name: 'TEST-UPDATE', confidence: 50, threatLevel: 'low' },
     });
-    const entity = (await createRes.json()).data;
+    expect(createRes.ok()).toBeTruthy();
+    const createBody = await createRes.json();
+    expect(createBody.success).toBe(true);
+    const entity = createBody.data;
+    expect(entity.id).toBeTruthy();
+    expect(entity.id).not.toBe('None');
 
     // Update
     const updateRes = await request.put(`${API}/api/entities/${entity.id}`, {
@@ -152,12 +276,26 @@ test.describe('Backend API Deep Tests', () => {
 
   test('create relationship between entities', async ({ request }) => {
     // Create two entities
-    const e1 = (await (await request.post(`${API}/api/entities`, {
+    const createA = await request.post(`${API}/api/entities`, {
       data: { type: 'person', name: 'REL-TEST-A' },
-    })).json()).data;
-    const e2 = (await (await request.post(`${API}/api/entities`, {
+    });
+    expect(createA.ok()).toBeTruthy();
+    const e1Body = await createA.json();
+    expect(e1Body.success).toBe(true);
+    const e1 = e1Body.data;
+    expect(e1.id).toBeTruthy();
+    expect(e1.id).not.toBe('None');
+
+    const createB = await request.post(`${API}/api/entities`, {
       data: { type: 'building', name: 'REL-TEST-B' },
-    })).json()).data;
+    });
+    expect(createB.ok()).toBeTruthy();
+    const e2Body = await createB.json();
+    expect(e2Body.success).toBe(true);
+    const e2 = e2Body.data;
+    expect(e2.id).toBeTruthy();
+    expect(e2.id).not.toBe('None');
+    expect(e2.id).not.toBe(e1.id);
 
     // Create relationship
     const relRes = await request.post(`${API}/api/entities/${e1.id}/relate`, {
@@ -230,6 +368,52 @@ test.describe('Backend API Deep Tests', () => {
     expect(evt.description).toBe('E2E test event');
     expect(evt.time).toBeGreaterThan(0);
     console.log(`Event created: ${evt.id}`);
+  });
+
+  // ─── MISSIONS ────────────────────────────────────────────
+
+  test('seeded entities use stable IDs for mission linking', async ({ request }) => {
+    const entityRes = await request.get(`${API}/api/entities/ent-001`);
+    expect(entityRes.ok()).toBeTruthy();
+    const entityBody = await entityRes.json();
+    expect(entityBody.success).toBe(true);
+    expect(entityBody.data.id).toBe('ent-001');
+
+    const missionRes = await request.post(`${API}/api/missions`, {
+      data: { name: `E2E Mission ${Date.now()}`, description: 'Mission link contract test' },
+    });
+    expect(missionRes.ok()).toBeTruthy();
+    const mission = (await missionRes.json()).data;
+
+    const linkRes = await request.post(`${API}/api/missions/${mission.id}/entities`, {
+      data: { entity_id: 'ent-001' },
+    });
+    expect(linkRes.ok()).toBeTruthy();
+    const linkBody = await linkRes.json();
+    expect(linkBody.success).toBe(true);
+
+    const detailRes = await request.get(`${API}/api/missions/${mission.id}`);
+    const detail = (await detailRes.json()).data;
+    expect(detail.entities).toContain('ent-001');
+
+    await request.delete(`${API}/api/missions/${mission.id}`);
+    console.log('Missions: stable seeded entity ent-001 links and persists on mission detail');
+  });
+
+  test('mission entity link rejects nonexistent entities', async ({ request }) => {
+    const mission = (await (await request.post(`${API}/api/missions`, {
+      data: { name: `E2E Invalid Link ${Date.now()}` },
+    })).json()).data;
+
+    const linkRes = await request.post(`${API}/api/missions/${mission.id}/entities`, {
+      data: { entity_id: 'missing-entity' },
+    });
+    expect(linkRes.status()).toBe(404);
+    const body = await linkRes.json();
+    expect(body.detail).toBe('Entity not found');
+
+    await request.delete(`${API}/api/missions/${mission.id}`);
+    console.log('Missions: nonexistent entity links return explicit 404');
   });
 
   // ─── GEOJSON EXPORT ──────────────────────────────────────

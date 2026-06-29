@@ -15,6 +15,7 @@ from deps import (
     fleet,
     telemetry_history,
 )
+from models import DroneCommand
 
 log = logging.getLogger("skydash")
 router = APIRouter()
@@ -38,12 +39,16 @@ async def get_drone_telemetry(drone_id: str):
 
 
 @router.post("/api/drone/{drone_id}/command")
-async def send_drone_command(drone_id: str, body: Dict):
-    log.info(f"Command received for {drone_id}: {body}")
-    return {
-        "success": True,
-        "data": {"drone_id": drone_id, "command": body, "ack": "confirmed"},
-    }
+async def send_drone_command(drone_id: str, body: DroneCommand):
+    try:
+        result = fleet.send_command(drone_id, body.command, body.params)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Drone {drone_id} not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    log.info(f"Command confirmed for {drone_id}: {body.model_dump()}")
+    return {"success": True, "data": result}
 
 
 @router.post("/reset")

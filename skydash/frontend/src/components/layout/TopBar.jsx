@@ -4,6 +4,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import useNotificationStore from '../../stores/notificationStore';
 import WorkspaceSwitcher from './WorkspaceSwitcher';
+import { BRAND } from '../../brand';
 
 function UtcClock() {
   const [time, setTime] = useState('');
@@ -35,7 +36,7 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
       {/* Left: Breadcrumb + Workspace */}
       <div className="flex items-center gap-3 text-sm">
         <div className="flex items-center gap-2">
-          <span className="text-zinc-500 font-medium">SKYDASH</span>
+          <span className="text-zinc-500 font-medium">{BRAND.wordmark}</span>
           <span className="text-zinc-700">/</span>
           <span className="text-zinc-300 font-semibold uppercase tracking-wider text-xs">
             {activeView}

@@ -5,7 +5,7 @@ from typing import Dict, Optional
 
 from fastapi import APIRouter, Query, HTTPException
 
-from deps import mission_store
+from deps import entity_store, mission_store
 from models import MissionCreate, MissionEntityAdd, MissionNoteAdd
 
 log = logging.getLogger("skydash")
@@ -61,9 +61,13 @@ async def delete_mission(mission_id: str):
 
 @router.post("/api/missions/{mission_id}/entities")
 async def add_entity_to_mission(mission_id: str, body: MissionEntityAdd):
+    if not mission_store.get_mission(mission_id):
+        raise HTTPException(status_code=404, detail="Mission not found")
+    if not entity_store.get_entity(body.entity_id):
+        raise HTTPException(status_code=404, detail="Entity not found")
     if not mission_store.add_entity_to_mission(mission_id, body.entity_id):
         raise HTTPException(
-            status_code=404, detail="Mission not found or entity already linked"
+            status_code=409, detail="Entity already linked"
         )
     return {
         "success": True,

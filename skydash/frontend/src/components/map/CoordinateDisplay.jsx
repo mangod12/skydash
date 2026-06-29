@@ -18,17 +18,21 @@ export default function CoordinateDisplay({ lat, lng }) {
     }
   };
 
+  const formatted = getFormatted();
+
   return (
-    <div className="absolute bottom-3 left-3 z-20 pointer-events-auto">
+    <div className="absolute bottom-32 left-3 z-30 pointer-events-auto">
       <button
         onClick={() => setFormat((f) => (f + 1) % FORMATS.length)}
+        title="Cycle coordinate format"
+        aria-label={`Coordinate format ${FORMATS[format]}: ${formatted}`}
         className="bg-zinc-900/80 backdrop-blur-sm border border-white/[0.08] rounded-lg px-3 py-1.5 flex items-center gap-2 hover:bg-zinc-800/80 transition-colors group"
       >
         <span className="text-[9px] font-semibold tracking-wider text-zinc-600 group-hover:text-zinc-400 transition-colors w-8">
           {FORMATS[format]}
         </span>
         <span className="text-[11px] font-mono tabular-nums text-zinc-300 tracking-wide">
-          {getFormatted()}
+          {formatted}
         </span>
       </button>
     </div>

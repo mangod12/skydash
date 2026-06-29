@@ -7,7 +7,7 @@ const ENTITY_IDS = ['ent-001', 'ent-002', 'ent-003', 'ent-004', 'ent-005', 'ent-
 const LOCATIONS = [
   'Sector 4 North Perimeter', 'Compound ECHO vicinity', 'Logistics Hub DELTA',
   'Grid Ref 37.778N 122.416W', 'Cargo Way overwatch zone', 'Northern gate approach',
-  'Industrial Blvd corridor', 'Waterfront surveillance arc',
+  'Industrial Blvd corridor', 'Waterfront observation arc',
 ];
 
 const TEMPLATES = [
@@ -29,9 +29,9 @@ const TEMPLATES = [
   { category: 'GEOINT', severity: 'info', title: 'Thermal anomaly mapped', summary: 'IR overpass detected heat signature cluster at logistics hub — consistent with vehicle engines.' },
   { category: 'GEOINT', severity: 'critical', title: 'Structure modification confirmed', summary: 'Compound ECHO rooftop altered since last pass — new antenna array installed, est. 3m height.' },
   // OSINT
-  { category: 'OSINT', severity: 'info', title: 'Social media mention flagged', summary: 'Geotagged post within 500m of surveillance zone — keyword match on monitored terms.' },
+  { category: 'OSINT', severity: 'info', title: 'Social media mention flagged', summary: 'Geotagged public post within 500m of the operating area — keyword match on scenario terms.' },
   { category: 'OSINT', severity: 'warning', title: 'ADS-B track anomaly', summary: 'Aircraft squawking 7600 entered 20nm radius — transponder code indicates communications failure.' },
-  { category: 'OSINT', severity: 'info', title: 'Public records match', summary: 'Vehicle plate 4XBC892 linked to registered owner — corporate fleet, logistics company.' },
+  { category: 'OSINT', severity: 'info', title: 'Public records match', summary: 'Scenario vehicle ID VH-4892 linked to a corporate fleet record in demo data.' },
   { category: 'OSINT', severity: 'warning', title: 'Maritime AIS gap detected', summary: 'Vessel MMSI 338892100 dark for 47 minutes within harbor approach — last position 37.78N.' },
   // CYBER
   { category: 'CYBER', severity: 'critical', title: 'Intrusion attempt blocked', summary: 'Brute force SSH attempt on sensor node CHARLIE-3 — 2,400 attempts from 3 source IPs.' },

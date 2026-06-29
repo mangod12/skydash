@@ -39,9 +39,11 @@ export default function DashboardView() {
   useEffect(() => { fetchMissions(); }, [fetchMissions]);
 
   // ── Data freshness ticker ──
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    const tick = () => setNow(Date.now());
+    tick();
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
 

@@ -40,6 +40,15 @@ const HEX_COLOR_RANGE = [
   [153, 27, 27, 210],
 ];
 
+function deterministicUnit(seed) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+function seedFromId(id) {
+  return String(id).split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+}
+
 // --- Individual layer hooks ---
 
 function useEntityScatterLayer(visible) {
@@ -180,9 +189,11 @@ function useActivityHexLayer(visible) {
 
       // Scatter points for density spread
       const count = w * 2 + evtBoost;
+      const baseSeed = seedFromId(entity.id);
       for (let i = 0; i < count; i++) {
-        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
-        const dist = 0.0008 + Math.random() * 0.0015;
+        const seed = baseSeed + i * 31;
+        const angle = (Math.PI * 2 * i) / count + deterministicUnit(seed) * 0.4;
+        const dist = 0.0008 + deterministicUnit(seed + 17) * 0.0015;
         data.push({
           position: [lng + Math.sin(angle) * dist, lat + Math.cos(angle) * dist],
           weight: Math.ceil(w * 0.5),

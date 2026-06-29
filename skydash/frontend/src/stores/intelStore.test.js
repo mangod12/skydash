@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { useIntelStore } from './intelStore';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { normalizeIntelEntity, normalizeIntelEvent, useIntelStore } from './intelStore';
 
 const store = useIntelStore;
 
@@ -7,6 +7,7 @@ const store = useIntelStore;
 const initialState = { ...store.getState() };
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   store.setState({
     entities: initialState.entities.map((e) => ({ ...e })),
     relationships: initialState.relationships.map((r) => ({ ...r })),
@@ -15,7 +16,15 @@ beforeEach(() => {
     comparedEntities: [null, null],
     filterThreat: null,
     filterType: null,
+    filterTag: null,
+    loading: false,
+    lastSyncedAt: null,
+    syncError: null,
   });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('intelStore', () => {
@@ -47,21 +56,75 @@ describe('intelStore', () => {
 
   it('addEntity creates entity with generated id', () => {
     const before = store.getState().entities.length;
-    store.getState().addEntity({ name: 'Test Entity', type: 'vehicle' });
+    const stored = store.getState().addEntity({ name: 'Test Entity', type: 'vehicle' });
     const after = store.getState().entities;
     expect(after.length).toBe(before + 1);
     const added = after[after.length - 1];
     expect(added.id).toMatch(/^ent-/);
+    expect(stored.id).toBe(added.id);
     expect(added.name).toBe('Test Entity');
   });
 
+  it('addEntity preserves backend ids for persisted entities', () => {
+    const before = store.getState().entities.length;
+    const stored = store.getState().addEntity({ id: 'api-123', name: 'API Entity', type: 'device' });
+    const after = store.getState().entities;
+    expect(after.length).toBe(before + 1);
+    expect(stored.id).toBe('api-123');
+    expect(after.find((e) => e.id === 'api-123')?.name).toBe('API Entity');
+  });
+
+  it('normalizes backend epoch seconds into UI milliseconds', () => {
+    const entity = normalizeIntelEntity({
+      id: 'api-entity',
+      name: 'Backend Entity',
+      type: 'vehicle',
+      firstSeen: 1760000000,
+      lastSeen: 1760000100,
+    });
+    const event = normalizeIntelEvent({
+      id: 'api-event',
+      time: 1760000200,
+    });
+
+    expect(entity.firstSeen).toBe(1760000000000);
+    expect(entity.lastSeen).toBe(1760000100000);
+    expect(event.time).toBe(1760000200000);
+  });
+
+  it('hydrates entities, relationships, and timeline from backend snapshots', () => {
+    store.getState().selectEntity('ent-001');
+    store.getState().setComparedEntity(0, 'ent-002');
+    store.getState().hydrateIntel({
+      entities: [
+        { id: 'api-001', name: 'API Vehicle', type: 'vehicle', firstSeen: 1760000000, lastSeen: 1760000100 },
+        { id: 'api-002', name: 'API Facility', type: 'building', firstSeen: 1760000001, lastSeen: 1760000200 },
+      ],
+      relationships: [{ from: 'api-001', to: 'api-002', type: 'located_at', confidence: 80 }],
+      events: [{ id: 'evt-api', entityId: 'api-001', time: 1760000300, type: 'detection' }],
+    });
+
+    const state = store.getState();
+    expect(state.entities.map((e) => e.id)).toEqual(['api-001', 'api-002']);
+    expect(state.relationships).toHaveLength(1);
+    expect(state.events[0].time).toBe(1760000300000);
+    expect(state.selectedEntityId).toBeNull();
+    expect(state.comparedEntities).toEqual([null, null]);
+    expect(state.lastSyncedAt).toBeGreaterThan(0);
+  });
+
   it('updateEntity modifies entity fields', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
     store.getState().updateEntity('ent-001', { name: 'Updated Name' });
+
     const entity = store.getState().entities.find((e) => e.id === 'ent-001');
     expect(entity.name).toBe('Updated Name');
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('deleteEntity removes entity and related relationships and events', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const entityId = 'ent-001';
     const relsBefore = store.getState().relationships.filter(
       (r) => r.from === entityId || r.to === entityId,
@@ -74,6 +137,7 @@ describe('intelStore', () => {
     expect(state.entities.find((e) => e.id === entityId)).toBeUndefined();
     expect(state.relationships.filter((r) => r.from === entityId || r.to === entityId)).toHaveLength(0);
     expect(state.events.filter((e) => e.entityId === entityId)).toHaveLength(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('deleteEntity clears selectedEntityId if it matches', () => {

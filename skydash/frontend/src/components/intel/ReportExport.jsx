@@ -5,6 +5,7 @@ import { clsx } from 'clsx';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
 import { audit } from '../../stores/auditStore';
+import { useUIStore } from '../../stores/uiStore';
 import {
   generateGeoJSON, generateKML, generateCSV,
   generateDossier, generateMissionBrief, downloadFile,
@@ -82,7 +83,8 @@ export default function ReportExport() {
   const [activeFormat, setActiveFormat] = useState('geojson');
   const [scope, setScope] = useState('all');
   const [copied, setCopied] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
+  const reportOpen = useUIStore((s) => s.reportOpen);
+  const setReportOpen = useUIStore((s) => s.setReportOpen);
 
   const selectedEntity = useMemo(
     () => entities.find((e) => e.id === selectedEntityId) || null,

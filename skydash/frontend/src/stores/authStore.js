@@ -2,10 +2,20 @@ import { create } from 'zustand';
 import { API_BASE, API_CONFIGURED } from '../utils/runtimeConfig';
 
 const API = API_BASE;
+const storage = typeof localStorage === 'undefined' ? null : localStorage;
+
+function readUser() {
+  if (!storage) return null;
+  try {
+    return JSON.parse(storage.getItem('skydash_user') || 'null');
+  } catch {
+    return null;
+  }
+}
 
 export const useAuthStore = create((set, get) => ({
-  token: localStorage.getItem('skydash_token'),
-  user: JSON.parse(localStorage.getItem('skydash_user') || 'null'),
+  token: storage?.getItem('skydash_token') || null,
+  user: readUser(),
   authEnabled: null,
   error: null,
 
@@ -23,8 +33,8 @@ export const useAuthStore = create((set, get) => ({
       });
       const data = await res.json();
       if (data.success) {
-        localStorage.setItem('skydash_token', data.data.token);
-        localStorage.setItem('skydash_user', JSON.stringify(data.data.user));
+        storage?.setItem('skydash_token', data.data.token);
+        storage?.setItem('skydash_user', JSON.stringify(data.data.user));
         set({ token: data.data.token, user: data.data.user, error: null });
         return true;
       }
@@ -37,8 +47,8 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: () => {
-    localStorage.removeItem('skydash_token');
-    localStorage.removeItem('skydash_user');
+    storage?.removeItem('skydash_token');
+    storage?.removeItem('skydash_user');
     set({ token: null, user: null });
   },
 

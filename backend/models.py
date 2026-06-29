@@ -1,6 +1,6 @@
 """Pydantic models for SkyDash API request bodies."""
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -17,6 +17,7 @@ class AuthRegister(BaseModel):
 
 
 class EntityCreate(BaseModel):
+    id: Optional[str] = None
     type: str = "event"
     name: str
     coordinates: Optional[List[float]] = None
@@ -49,3 +50,8 @@ class MissionEntityAdd(BaseModel):
 
 class MissionNoteAdd(BaseModel):
     content: str
+
+
+class DroneCommand(BaseModel):
+    command: str
+    params: Dict[str, Any] = {}

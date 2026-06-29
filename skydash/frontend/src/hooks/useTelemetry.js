@@ -21,7 +21,10 @@ export function useTelemetry() {
   const fallbackFnRef = useRef(null);
 
   const processData = useCallback((droneData) => {
-    const data = Array.isArray(droneData) ? droneData[0] : droneData;
+    const telemetryState = useTelemetryStore.getState();
+    const data = Array.isArray(droneData)
+      ? droneData.find((d) => d.drone_id === telemetryState.activeDroneId) || droneData[0]
+      : droneData;
     if (!data) return;
 
     updateTelemetry(data, 0);
@@ -35,9 +38,7 @@ export function useTelemetry() {
       );
     }
 
-    if (Array.isArray(droneData) && droneData.length > 1) {
-      useTelemetryStore.getState().updateFleet(droneData);
-    }
+    if (Array.isArray(droneData) && droneData.length > 1) telemetryState.updateFleet(droneData);
   }, [updateTelemetry, updateDronePosition]);
 
   const startHttpFallback = useCallback(() => {

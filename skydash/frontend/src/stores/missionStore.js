@@ -110,6 +110,11 @@ export const useMissionStore = create((set, get) => ({
     try {
       const res = await apiFetch(`${API}/api/missions/${id}`);
       const json = await res.json();
+      if (!res.ok || !json.success) {
+        const message = json.detail || json.error || 'Failed to add entity to mission';
+        toast(message, 'error');
+        return false;
+      }
       if (json.success) {
         set((s) => ({
           missions: s.missions.map((m) =>

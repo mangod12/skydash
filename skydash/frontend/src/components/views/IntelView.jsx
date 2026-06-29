@@ -12,6 +12,7 @@ import IntelFeed from '../intel/IntelFeed';
 import NaturalLanguageQuery from '../intel/NaturalLanguageQuery';
 import AnomalyDetector from '../intel/AnomalyDetector';
 import ReportExport from '../intel/ReportExport';
+import OsintIngestPanel from '../intel/OsintIngestPanel';
 import TagCloud from '../intel/TagCloud';
 import ConnectionMatrix from '../intel/ConnectionMatrix';
 import { useIntelStore } from '../../stores/intelStore';
@@ -108,6 +109,7 @@ export default function IntelView() {
           <TagCloud onTagClick={handleTagClick} />
           <NaturalLanguageQuery />
           <AnomalyDetector />
+          <OsintIngestPanel />
           <ReportExport />
         </div>
       </div>

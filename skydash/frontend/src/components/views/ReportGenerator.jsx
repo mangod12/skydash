@@ -65,13 +65,13 @@ function useReportData(missionId) {
 
 export default function ReportGenerator({ open, onClose, missionId }) {
   const { mission, entities, relationships, events, fleet } = useReportData(missionId);
-  const now = useMemo(() => new Date(), [open]);
+  const now = useMemo(() => new Date(), []);
   const title = mission?.name || 'General Intelligence Report';
   const status = mission?.status?.toUpperCase() || 'ACTIVE';
   const created = mission?.created_at ? format(new Date(mission.created_at), 'yyyy-MM-dd HH:mm') + 'Z' : format(now, 'yyyy-MM-dd HH:mm') + 'Z';
   const tc = threatCounts(entities);
   const high = entities.filter((e) => e.threatLevel === 'high' || e.threatLevel === 'critical').length;
-  const notes = mission?.notes || [];
+  const notes = useMemo(() => mission?.notes || [], [mission]);
 
   const plainText = useMemo(() => buildPlainText(mission, entities, relationships, events, fleet, now), [mission, entities, relationships, events, fleet, now]);
 

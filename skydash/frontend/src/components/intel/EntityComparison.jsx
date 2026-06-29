@@ -103,10 +103,9 @@ export default function EntityComparison() {
   const relsB = b ? getEntityRelationships(b.id) : [];
   const getName = (id) => entities.find((e) => e.id === id)?.name ?? id;
 
-  const allPropKeys = useMemo(() => {
-    const keys = new Set([...Object.keys(a?.properties || {}), ...Object.keys(b?.properties || {})]);
-    return [...keys];
-  }, [a, b]);
+  const allPropKeys = [
+    ...new Set([...Object.keys(a?.properties || {}), ...Object.keys(b?.properties || {})]),
+  ];
 
   const renderColumn = (ent, rels, other) => {
     if (!ent) return <div className="flex-1 flex items-center justify-center text-zinc-700 text-[10px] tracking-wider">NO ENTITY SELECTED</div>;

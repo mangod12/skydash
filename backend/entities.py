@@ -1,6 +1,7 @@
 """SQLite-backed entity store for OSINT intelligence data.
 Entities, relationships, and events persist across restarts."""
 import json
+import re
 import time
 import uuid
 from typing import Dict, List, Optional
@@ -11,8 +12,7 @@ import database as db
 class EntityStore:
     def __init__(self):
         self._init_tables()
-        if self._count("entities") == 0:
-            self._seed()
+        self._seed()
 
     def _init_tables(self):
         conn = db.get_connection()
@@ -76,25 +76,77 @@ class EntityStore:
 
     def _seed(self):
         seeds = [
-            {"type": "vehicle", "name": "SUV-Black-4892", "coordinates": [37.7755, -122.4190],
-             "properties": {"plate": "4XBC892", "color": "Black", "make": "Toyota Land Cruiser"},
-             "confidence": 82, "source": "Visual Detection", "tags": ["suspicious"], "threatLevel": "medium"},
-            {"type": "person", "name": "Alpha-7", "coordinates": [37.7745, -122.4200],
-             "properties": {"description": "Male, dark jacket", "height": "~180cm"},
-             "confidence": 65, "source": "Drone Camera", "tags": ["poi"], "threatLevel": "low"},
-            {"type": "building", "name": "Warehouse District B", "coordinates": [37.7760, -122.4185],
-             "properties": {"address": "451 Industrial Blvd", "floors": 2, "status": "Abandoned"},
-             "confidence": 95, "source": "GIS Database", "tags": ["location-of-interest"], "threatLevel": "high"},
+            {"id": "ent-001", "type": "vehicle", "name": "SUV-Black-4892", "coordinates": [37.7780, -122.4160],
+             "properties": {"vehicle_id": "VH-4892", "color": "Black", "make": "Toyota Land Cruiser", "speed": "0 km/h"},
+             "confidence": 82, "source": "ALPHA-1 camera", "tags": ["suspicious", "repeat-visitor"], "threatLevel": "medium"},
+            {"id": "ent-002", "type": "person", "name": "TANGO-7", "coordinates": [37.7730, -122.4220],
+             "properties": {"description": "Adult in dark jacket carrying a bag", "height": "~182cm", "movement": "purposeful"},
+             "confidence": 65, "source": "CHARLIE-3 camera", "tags": ["poi", "needs-verification"], "threatLevel": "high"},
+            {"id": "ent-003", "type": "building", "name": "Compound ECHO", "coordinates": [37.7765, -122.4175],
+             "properties": {"address": "451 Industrial Blvd", "floors": 3, "status": "Restricted access", "area": "2,400 sqm"},
+             "confidence": 95, "source": "GIS + satellite", "tags": ["high-value-target", "restricted"], "threatLevel": "critical"},
+            {"id": "ent-004", "type": "device", "name": "RF-ANOMALY-5G", "coordinates": [37.7758, -122.4168],
+             "properties": {"frequency": "5.8 GHz", "type": "Unknown transmitter", "power": "+23 dBm", "modulation": "OFDM"},
+             "confidence": 71, "source": "BRAVO-2 signal survey", "tags": ["electronic-warfare", "anomalous"], "threatLevel": "medium"},
+            {"id": "ent-005", "type": "event", "name": "Perimeter Breach - Sector 4", "coordinates": [37.7795, -122.4140],
+             "properties": {"zone": "North perimeter", "sensor": "LIDAR-Array-A3", "duration": "14s"},
+             "confidence": 94, "source": "Perimeter sensor grid", "tags": ["alert", "security-breach", "active"], "threatLevel": "critical"},
+            {"id": "ent-006", "type": "vehicle", "name": "Sedan-White-7721", "coordinates": [37.7710, -122.4240],
+             "properties": {"vehicle_id": "VH-7721", "color": "White", "make": "Honda Civic", "occupants": "2"},
+             "confidence": 77, "source": "CHARLIE-3 camera", "tags": ["tracked"], "threatLevel": "low"},
+            {"id": "ent-007", "type": "person", "name": "FOXTROT-3", "coordinates": [37.7800, -122.4130],
+             "properties": {"description": "Adult in red coat using a phone", "behavior": "loitering near gate"},
+             "confidence": 58, "source": "ALPHA-1 camera", "tags": ["poi"], "threatLevel": "low"},
+            {"id": "ent-008", "type": "building", "name": "Logistics Hub DELTA", "coordinates": [37.7720, -122.4190],
+             "properties": {"address": "280 Cargo Way", "floors": 1, "status": "Operational", "vehicles_present": 4},
+             "confidence": 88, "source": "GIS + drone overwatch", "tags": ["logistics", "vehicle-depot"], "threatLevel": "medium"},
         ]
         now = time.time()
         ids = []
         for s in seeds:
-            e = self.create_entity({**s, "firstSeen": now - 3600, "lastSeen": now})
+            if not self.get_entity(s["id"]):
+                e = self.create_entity({**s, "firstSeen": now - 3600, "lastSeen": now})
+            else:
+                e = self.get_entity(s["id"])
             ids.append(e["id"])
 
-        if len(ids) >= 3:
-            self.add_relationship(ids[0], ids[2], "located_at", 88)
-            self.add_relationship(ids[1], ids[0], "associated_with", 55)
+        for from_id, to_id, rel_type, confidence in [
+            ("ent-001", "ent-003", "located_at", 88),
+            ("ent-002", "ent-003", "traveled_to", 72),
+            ("ent-002", "ent-001", "associated_with", 55),
+            ("ent-004", "ent-003", "located_at", 80),
+            ("ent-005", "ent-003", "located_at", 95),
+            ("ent-006", "ent-008", "located_at", 70),
+            ("ent-007", "ent-005", "associated_with", 40),
+            ("ent-001", "ent-008", "traveled_to", 65),
+            ("ent-002", "ent-008", "traveled_to", 48),
+        ]:
+            self.add_relationship(from_id, to_id, rel_type, confidence)
+        self._remove_legacy_demo_rows()
+
+    def _remove_legacy_demo_rows(self):
+        legacy_rows = db.get_connection().execute(
+            """
+            SELECT id FROM entities
+            WHERE (
+                name = 'SUV-Black-4892'
+                AND source = 'Visual Detection'
+                AND id <> 'ent-001'
+            ) OR (
+                name = 'Alpha-7'
+                AND source = 'Drone Camera'
+            ) OR (
+                name = 'Warehouse District B'
+                AND source = 'GIS Database'
+            ) OR (
+                id = 'None'
+                AND source = 'Manual'
+                AND name LIKE 'REL-TEST-%'
+            )
+            """
+        ).fetchall()
+        for row in legacy_rows:
+            self.delete_entity(row["id"])
 
     # ─── CRUD ────────────────────────────────────────────────
 
@@ -115,6 +167,12 @@ class EntityStore:
             params.append(threat)
         return [self._row_to_entity(r) for r in db.get_connection().execute(q, params).fetchall()]
 
+    def get_graph(self) -> Dict:
+        return {
+            "nodes": self.list_entities(),
+            "edges": self.relationships,
+        }
+
     def get_entity(self, entity_id: str) -> Optional[Dict]:
         row = db.get_connection().execute(
             "SELECT * FROM entities WHERE id = ?", (entity_id,)
@@ -122,7 +180,9 @@ class EntityStore:
         return self._row_to_entity(row) if row else None
 
     def create_entity(self, data: Dict) -> Dict:
-        eid = str(uuid.uuid4())[:8]
+        raw_id = data.get("id")
+        requested_id = raw_id.strip() if isinstance(raw_id, str) else ""
+        eid = requested_id if re.fullmatch(r"[A-Za-z0-9_-]{3,64}", requested_id) else str(uuid.uuid4())[:8]
         now = time.time()
         entity = {
             "id": eid,
@@ -148,6 +208,14 @@ class EntityStore:
             self.add_event({"type": "detection", "description": f"Entity created: {entity['name']}", "entityId": eid, "severity": "info"})
             conn.commit()
         return entity
+
+    def upsert_entity(self, data: Dict) -> Dict:
+        raw_id = data.get("id")
+        requested_id = raw_id.strip() if isinstance(raw_id, str) else ""
+        existing = self.get_entity(requested_id) if requested_id else None
+        if existing:
+            return self.update_entity(existing["id"], data) or existing
+        return self.create_entity(data)
 
     _MUTABLE_FIELDS = {"type", "name", "coordinates", "properties", "confidence", "source", "tags", "threatLevel"}
 
@@ -189,6 +257,12 @@ class EntityStore:
     def add_relationship(self, from_id: str, to_id: str, rel_type: str, confidence: int = 50) -> Dict:
         conn = db.get_connection()
         with db.get_lock():
+            existing = conn.execute(
+                "SELECT 1 FROM relationships WHERE from_entity = ? AND to_entity = ? AND type = ?",
+                (from_id, to_id, rel_type),
+            ).fetchone()
+            if existing:
+                return {"from": from_id, "to": to_id, "type": rel_type, "confidence": confidence}
             conn.execute(
                 "INSERT INTO relationships (from_entity, to_entity, type, confidence) VALUES (?,?,?,?)",
                 (from_id, to_id, rel_type, confidence),

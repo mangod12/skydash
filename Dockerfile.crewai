@@ -1,0 +1,19 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+ENV SKYDASH_REPO_ROOT=/workspace
+
+RUN pip install --no-cache-dir uv
+
+COPY . /workspace
+
+WORKDIR /workspace/skydash_intel_crew
+
+RUN uv sync --frozen --no-dev
+
+CMD if [ -z "$OPENAI_API_KEY" ] && [ -n "$MIMO_API_KEY" ]; then export OPENAI_API_KEY="$MIMO_API_KEY"; fi; \
+    if [ -z "$OPENAI_API_BASE" ] && [ -n "$MIMO_BASE_URL" ]; then export OPENAI_API_BASE="$MIMO_BASE_URL"; fi; \
+    if [ -z "$OPENAI_BASE_URL" ] && [ -n "$MIMO_BASE_URL" ]; then export OPENAI_BASE_URL="$MIMO_BASE_URL"; fi; \
+    uv run skydash_intel_crew "${SKYDASH_CREW_FOCUS:-SkyDash operating readiness from the Docker stack}"

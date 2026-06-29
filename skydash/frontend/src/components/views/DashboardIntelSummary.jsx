@@ -34,7 +34,7 @@ function generateFindings(entities, events, relationships) {
   if (highs.length > 0) {
     findings.push({
       type: 'threat',
-      text: `${highs.length} high-threat ${highs.length === 1 ? 'entity' : 'entities'} under surveillance`,
+      text: `${highs.length} high-threat ${highs.length === 1 ? 'entity' : 'entities'} under analyst review`,
       priority: 3,
     });
   }
