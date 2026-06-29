@@ -1,41 +1,58 @@
 # Contributing To SkyDash
 
-SkyDash is an early local-first prototype. Contributions, issues, and architecture critiques are welcome, especially from people with experience in geospatial systems, OSINT/security workflows, drone telemetry, real-time dashboards, or backend platforms.
+SkyDash is an early spatial-intelligence prototype with a public Azure demo.
+Contributions, issues, and architecture critiques are welcome, especially from
+people with experience in geospatial systems, OSINT/security workflows, drone
+telemetry, real-time dashboards, backend platforms, or safety review.
 
-The most useful contributions improve depth, safety, interoperability, or run reliability. More dashboard surface area is lower priority right now.
+The most useful contributions improve depth, safety, interoperability,
+operability, or run reliability. More dashboard surface area is lower priority.
 
 ## Best Ways To Help
 
 Open an issue if you can give specific feedback on:
 
-- Geospatial storage: PostGIS, GeoPackage, MBTiles, STAC, WMS/WFS, or QGIS workflows.
-- OSINT interoperability: STIX/TAXII, OpenCTI, MISP, Maltego-style transforms, or evidence export.
-- Drone telemetry: SITL, log replay, read-only MAVLink ingest, ArduPilot/PX4 state modeling.
-- Provenance: source lineage, confidence, timestamps, analyst decisions, export integrity.
-- Safety: misuse risks, beginner defaults, workflow warnings, or data-boundary problems.
-- Run reliability: install, Docker, WebSocket, browser, or platform-specific issues.
-
-Issue templates are available for launch feedback, architecture critique, integration feedback, and bugs.
+- Geospatial storage: PostGIS, GeoPackage, MBTiles, STAC, WMS/WFS, or QGIS
+  workflows.
+- OSINT interoperability: STIX/TAXII, OpenCTI, MISP, Maltego-style transforms,
+  or evidence export.
+- Drone telemetry: SITL, log replay, read-only MAVLink ingest, ArduPilot/PX4
+  state modeling.
+- Provenance: source lineage, confidence, timestamps, analyst decisions, export
+  integrity.
+- Safety: misuse risks, beginner defaults, workflow warnings, or data-boundary
+  problems.
+- Deployment: backend CI/CD, Azure App Service hardening, monitoring, secrets,
+  rollback, or database migration.
+- Run reliability: install, Docker, WebSocket, browser, or platform-specific
+  issues.
 
 ## Local Setup
 
-Run the backend:
+Docker Compose:
 
-```bash
+```powershell
+docker compose up --build -d
+docker compose ps
+Invoke-RestMethod http://localhost:8001/health
+```
+
+Separate processes:
+
+```powershell
 cd backend
 pip install -r requirements.txt
 python main.py
 ```
 
-Run the frontend in a second terminal:
-
-```bash
+```powershell
 cd skydash/frontend
 npm install
+$env:VITE_API_URL='http://localhost:8001'
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost` for Docker or `http://localhost:5173` for Vite.
 
 For a quick review path, see `docs/reviewer-walkthrough.md`.
 
@@ -43,15 +60,23 @@ For a quick review path, see `docs/reviewer-walkthrough.md`.
 
 Run the checks that match your change:
 
-```bash
-npm --prefix skydash/frontend run test
+```powershell
+python -m compileall backend
+cd backend; python -m pytest tests; cd ..
+npm --prefix skydash/frontend run lint
+npm --prefix skydash/frontend run test -- --run
 npm --prefix skydash/frontend run build
-python -m py_compile backend/main.py backend/simulation.py backend/entities.py backend/missions.py backend/mavlink_adapter.py
+cd skydash_intel_crew; uv run pytest; cd ..
 ```
 
-If your change touches frontend code, include a screenshot or short note describing what you manually verified.
+If your change touches frontend behavior, include a screenshot or short note
+describing what you manually verified.
 
-If your change touches backend routes, stores, exports, telemetry, or persistence, describe the data path and failure case you tested.
+If your change touches backend routes, stores, exports, telemetry, connectors,
+or persistence, describe the data path and failure case you tested.
+
+If your change touches deployment, include the exact Azure/GitHub verification
+commands or workflow run link.
 
 ## Scope Boundaries
 
@@ -75,6 +100,8 @@ Keep PRs narrow:
 - Use existing frontend/backend patterns before introducing new abstractions.
 - Keep local-first setup working.
 - Document any new environment variables.
+- Update `docs/current-status.md` or the runbook when deployment behavior
+  changes.
 
 Good PR titles:
 

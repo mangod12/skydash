@@ -1,24 +1,61 @@
 # SkyDash Reviewer Walkthrough
 
-This is the shortest path for evaluating SkyDash as a local prototype. It is written for reviewers coming from GitHub, Hacker News, LinkedIn, or X who want to understand the system before deciding whether to comment, star, fork, or open an issue.
+This is the shortest path for evaluating SkyDash from GitHub, LinkedIn, X, or a
+live demo link.
 
-SkyDash is not production investigation software. The current demo uses simulated drone telemetry, local SQLite persistence, and a MAVLink adapter stub. Treat this walkthrough as an architecture and workflow review, not an operational endorsement.
+SkyDash is not production investigation software. The current public demo uses
+simulated drone telemetry, SQLite persistence, backend-mediated connector
+routes, and optional vision hooks. Treat this walkthrough as an architecture and
+workflow review, not an operational endorsement.
 
-## Start The App
+## Fastest Path: Live Demo
 
-Run the backend:
+Open the live app:
 
-```bash
+```text
+https://wonderful-cliff-0325f3800.7.azurestaticapps.net
+```
+
+Useful live API links:
+
+```text
+https://skydash-api-38666.azurewebsites.net/health
+https://skydash-api-38666.azurewebsites.net/docs
+```
+
+Expected live baseline:
+
+- Three simulated drones.
+- WebSocket telemetry connected to the Azure backend.
+- Entity and mission workflows available.
+- ADS-B/OpenSky connector available through backend routes.
+- Shodan shown as mock/unavailable until credentials are configured.
+- Optional RT-DETR vision reported unavailable unless installed.
+
+## Local Path
+
+Run with Docker Compose:
+
+```powershell
+docker compose up --build -d
+docker compose ps
+Invoke-RestMethod http://localhost:8001/health
+```
+
+Open `http://localhost`.
+
+Or run separate processes:
+
+```powershell
 cd backend
 pip install -r requirements.txt
 python main.py
 ```
 
-Run the frontend in a second terminal:
-
-```bash
+```powershell
 cd skydash/frontend
 npm install
+$env:VITE_API_URL='http://localhost:8001'
 npm run dev
 ```
 
@@ -26,53 +63,71 @@ Open `http://localhost:5173`.
 
 ## 5-Minute Review Path
 
-1. **Dashboard**
+1. Dashboard
 
-   Let the boot sequence finish, then confirm the dashboard shows three simulated drones, fleet status cards, recent activity, and live telemetry movement. This is the fastest way to verify the real-time UI is wired up.
+   Let the boot sequence finish, then confirm the dashboard shows three
+   simulated drones, fleet status cards, recent activity, and live telemetry
+   movement.
 
-2. **Full Map**
+2. Full Map
 
-   Press `M` or use the sidebar. Toggle map layers, inspect entities, try radius search, and review geofence/annotation tools. This is the core geospatial surface.
+   Press `M` or use the sidebar. Toggle map layers, inspect entities, try
+   radius search, and review geofence/annotation tools.
 
-3. **Intel**
+3. Intel
 
-   Press `I`. Review the entity list, relationship graph, pattern panel, provenance/evidence chain, comparison view, and link suggestions. This is where the OSINT-style data model is easiest to critique.
+   Press `I`. Review the entity list, relationship graph, OSINT ingest panel,
+   pattern panel, provenance/evidence chain, comparison view, and link
+   suggestions.
 
-4. **Missions**
+4. Missions
 
-   Press `O`. Create or inspect a mission workspace, link entities, add notes, and review how operational state is grouped. This shows how map and intel data can become a workflow instead of isolated widgets.
+   Open Missions. Create or inspect a mission workspace, link entities, add
+   notes, and review the debrief/briefing flow.
 
-5. **Telemetry**
+5. Telemetry
 
-   Press `T`. Review the drone command panel, instruments, charts, and WebSocket-driven updates. Command controls are for the simulated fleet in this prototype.
+   Press `T`. Review the drone command panel, instruments, charts, and
+   WebSocket-driven updates. Command controls are for the simulated fleet only.
 
-6. **Exports And API**
+6. Exports And API
 
-   Check exports from the UI, then open `http://localhost:8001/docs` for the FastAPI routes. Useful endpoints include telemetry, entities, relationships, missions, events, and export routes.
+   Check exports from the UI, then open `/docs` on the backend. Useful route
+   groups include telemetry, drone command ACK, entities, missions, connectors,
+   detections, events, and export routes.
 
 ## What To Critique
 
-The most useful feedback is not "add more dashboard features." The better critique targets are:
+The most useful feedback is not "add more dashboard features." Better critique
+targets are:
 
-- Should the next storage layer be PostGIS, GeoPackage, MBTiles, or something else?
-- What import/export path would make this credible for OSINT workflows: STIX/TAXII, OpenCTI, MISP, Maltego-style transforms, or another format?
-- What is the safest real-drone path: SITL, log replay, read-only MAVLink ingest, or limited command/control?
-- Where does the provenance model need stronger source lineage, confidence, timestamps, or analyst review state?
-- What should be removed, constrained, or documented before beginners use this with real data?
+- Should the next storage layer be PostGIS, GeoPackage, MBTiles, STAC, WMS/WFS,
+  or something else?
+- What import/export path would make this credible for OSINT workflows:
+  STIX/TAXII, OpenCTI, MISP, Maltego-style transforms, or another format?
+- What is the safest real-drone path: SITL, log replay, read-only MAVLink
+  ingest, or limited command/control?
+- Where does the provenance model need stronger source lineage, confidence,
+  timestamps, or analyst review state?
+- What should be removed, constrained, or documented before beginners use this
+  with real data?
 
-## Known Local Prototype Limits
+## Known Prototype Limits
 
-- Telemetry is simulated at 10Hz.
-- MAVLink support is currently an adapter stub.
-- SQLite is used for local persistence.
-- There is no breached-data ingestion, private-account scraping, or black-box enrichment.
-- Production deployment would need auth/RBAC, stronger audit guarantees, secrets management, data governance, and safer defaults.
+- Telemetry is simulated at 10 Hz.
+- Real drone support is not wired into the production API.
+- SQLite is used for current persistence.
+- Public demo auth is intentionally open.
+- Shodan requires credentials for live behavior.
+- RT-DETR requires optional local dependencies.
+- Production use would need auth/RBAC, stronger audit guarantees, secrets
+  management, data governance, monitoring, and safer defaults.
 
 ## Suggested Issue
 
-For detailed feedback, open a GitHub issue with the `Launch feedback` template and include:
+For detailed feedback, open a GitHub issue and include:
 
-- Your domain: geospatial, OSINT, drone, security, backend, frontend, or other
-- The workflow you reviewed
-- What broke or felt unrealistic
-- What you would build next and why
+- Your domain: geospatial, OSINT, drone, security, backend, frontend, or other.
+- The workflow you reviewed.
+- What broke or felt unrealistic.
+- What you would build next and why.

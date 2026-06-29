@@ -1,149 +1,247 @@
 # SkyDash
 
-A spatial intelligence and OSINT platform for real-time drone fleet operations. Built to handle multi-drone telemetry streaming, geospatial entity tracking, threat assessment, and intelligence analysis — all from a single dark-themed operations interface.
+SkyDash is a spatial intelligence OS for simulated drone fleet operations,
+geospatial entity tracking, OSINT-style analysis, mission debriefs, and
+operator QA workflows.
 
-**Live demo:** [wonderful-cliff-0325f3800.7.azurestaticapps.net](https://wonderful-cliff-0325f3800.7.azurestaticapps.net)  
-Deployed on Microsoft Azure Static Web Apps.
+It is live on Azure and also runs locally through Docker or separate frontend
+and backend processes.
+
+- Live app: https://wonderful-cliff-0325f3800.7.azurestaticapps.net
+- Live API: https://skydash-api-38666.azurewebsites.net
+- API docs: https://skydash-api-38666.azurewebsites.net/docs
+- Current release status: [docs/current-status.md](docs/current-status.md)
+- Operations runbook: [docs/skydash-operations-runbook.md](docs/skydash-operations-runbook.md)
+- Safety boundary: [docs/safety-and-scope.md](docs/safety-and-scope.md)
 
 ![Dashboard](docs/screenshots/dashboard.png)
-
-## Why I Built This
-
-I wanted to build the kind of software that defense contractors charge millions for — and make it open source. The goal was a system that could track multiple drones simultaneously, overlay intelligence data on a live map, and give an operator everything they need in one screen. Think Palantir Gotham meets a fighter jet HUD, but something you can actually run on your laptop.
-
-The whole thing started as a simple telemetry dashboard for a single drone and grew into a full spatial intelligence platform over several development cycles.
 
 ## What It Does
 
-**Real-time drone fleet monitoring** — Three simulated drones (orbit, grid search, waypoint patrol) stream telemetry over WebSocket at 10Hz. Each drone reports altitude, GPS position, battery voltage, signal strength, attitude (roll/pitch/yaw), and wind conditions. The frontend picks it up via WebSocket with automatic reconnection and HTTP polling fallback.
+SkyDash combines four working surfaces:
 
-**OSINT entity tracking** — Track people, vehicles, buildings, devices, and events on the map. Each entity has a threat level, confidence score, source attribution, and tags. Entities are linked by relationships (located_at, associated_with, traveled_to) and visualized on the map with threat-colored markers.
+- Real-time fleet monitoring: three simulated drones stream telemetry over a
+  WebSocket, with HTTP fallback and a live command acknowledgement path.
+- Spatial intelligence: map layers, entity markers, ADS-B/OpenSky connector
+  data, geofences, measurement tools, heatmaps, overlays, and coordinate
+  formats.
+- OSINT-style analysis: entities, relationships, events, provenance views,
+  natural-language filters, link analysis, threat matrices, comparison views,
+  exports, and Shodan connector hooks.
+- Mission workflow: mission workspaces, notes, entity linking, debrief tabs,
+  optional RT-DETR frame analysis, and briefing/report exports.
 
-**Intelligence analysis tools** — Natural language query parser lets you type things like "high threat vehicles near warehouse" and get filtered results. Anomaly detection flags telemetry values outside 2 standard deviations. Timeline view shows the full operational story with severity-coded events.
+The system is built to be inspectable. It is not a real surveillance product,
+not a production investigation system, and not a real drone ground-control
+station. The public demo uses simulated telemetry.
 
-**Export and reporting** — One-click export to plaintext intelligence report, GeoJSON (for GIS tools), or CSV. The backend also exposes a REST API for programmatic access to everything.
+## Production Demo Status
 
-## Screenshots
+The current public deployment is:
 
-### Operations Dashboard
-Live map with 3 drone markers, flight path trails, entity markers, compass rose, HUD overlay, and telemetry panel.
+- Frontend: Azure Static Web Apps, hosted at
+  `wonderful-cliff-0325f3800.7.azurestaticapps.net`.
+- Backend: Azure App Service for Linux, hosted at
+  `skydash-api-38666.azurewebsites.net`.
+- WebSocket: `wss://skydash-api-38666.azurewebsites.net/ws/telemetry`.
+- CI deploy: GitHub Actions workflow
+  `.github/workflows/skydash-azure-static-web-apps.yml` deploys the frontend
+  after relevant pushes to `main`.
+- Backend deploy: currently direct Azure App Service zip deploy from the
+  `backend/` source.
 
-![Dashboard](docs/screenshots/dashboard.png)
+Known live limits:
 
-### Intelligence View
-Entity list with threat badges, event timeline, natural language query, anomaly detection, threat matrix, and export tools.
-
-![Intel](docs/screenshots/intel.png)
-
-### Analytics
-Fleet status, entity distribution, threat breakdown, altitude trends, and top entities by activity.
-
-![Analytics](docs/screenshots/analytics.png)
-
-### Telemetry
-Artificial horizon (attitude indicator), speed/altitude tapes, battery gauge, signal meter, GPS constellation sky view, and multi-chart with switchable data streams.
-
-![Telemetry](docs/screenshots/telemetry.png)
-
-### Full Map
-Dark CartoDB tiles with satellite toggle, zoom controls, layer management, measure tool, coordinate display (DD/DMS/UTM/MGRS), and timeline playback slider.
-
-![Map](docs/screenshots/map.png)
+- Drone telemetry is simulated.
+- Shodan runs in mock/unavailable mode until `SHODAN_API_KEY` is configured.
+- RT-DETR vision is optional and disabled on the base Azure API unless the
+  heavier vision dependencies are installed.
+- Auth exists in the backend, but the public demo is configured as an open demo.
 
 ## Tech Stack
 
-**Frontend** — React 18, Vite, Tailwind CSS, Zustand (state), Framer Motion (animations), Leaflet (maps), Recharts (charts), cmdk (command palette), Lucide (icons)
+- Frontend: React 18, Vite 8, Tailwind CSS, Zustand, Framer Motion, Leaflet,
+  Deck.gl, Recharts, cmdk, Lucide icons.
+- Backend: FastAPI, Uvicorn, Pydantic, WebSockets, SQLite with lightweight
+  migrations.
+- Connectors: OpenSky/ADS-B and Shodan routes with ingest endpoints.
+- Agent workflow: CrewAI-based SkyDash Intel Crew in
+  `skydash_intel_crew/`.
+- Testing: Vitest, Playwright, pytest, and CrewAI smoke tests.
+- Deployment: Azure Static Web Apps, Azure App Service, Docker Compose for
+  local operation.
 
-**Backend** — Python, FastAPI, Uvicorn, Pydantic, WebSocket streaming
+## Repository Shape
 
-**Testing** — Playwright (46 E2E tests covering telemetry data flow, navigation, entity CRUD, API validation, UI interactions)
+```text
+backend/
+  main.py                  FastAPI entry point and middleware
+  deps.py                  shared config, stores, connectors, telemetry history
+  simulation.py            simulated multi-drone fleet and command state
+  entities.py              entity, relationship, and event store
+  missions.py              missions, notes, linked entities, detections
+  routes/
+    telemetry.py           REST telemetry, command ACK, reset, WebSocket stream
+    entities.py            entity CRUD, graph, timeline, events
+    missions.py            mission CRUD, links, notes
+    connectors.py          ADS-B/OpenSky and Shodan search/ingest
+    export.py              GeoJSON and CSV exports
+    vision.py              optional RT-DETR status, feed, detection routes
+    auth_routes.py         optional user/auth routes
 
-**Design** — Glass morphism, JetBrains Mono for metrics, military-precision typography (ALL CAPS labels, tracking-wider headers), JARVIS-inspired boot sequence and ambient effects
+skydash/frontend/src/
+  components/              dashboard, map, telemetry, intel, mission, common UI
+  hooks/                   telemetry, keyboard, map/context, alerts, console
+  stores/                  Zustand stores for app domains
+  utils/                   coordinates, exports, NLQ, scenarios, runtime config
 
-## Architecture
+skydash_intel_crew/
+  src/skydash_intel_crew/  CrewAI orchestration and source snapshot tooling
+  tests/                   CrewAI smoke tests
 
+docs/
+  current-status.md        live release status and verification baseline
+  skydash-operations-runbook.md
+  skydash-brand-system.md
+  safety-and-scope.md
+  architecture-walkthrough.md
 ```
-Frontend (57 source files)
-  components/
-    common/     12 — GlassCard, Toast, BootSequence, CommandPalette, etc.
-    layout/      4 — Shell, Sidebar, TopBar, StatusBar
-    map/        11 — MapView, DroneMarker, CompassRose, MeasureTool, etc.
-    telemetry/   7 — AttitudeIndicator, BatteryGauge, SignalMeter, MultiChart, etc.
-    intel/       8 — EntityCard, TimelineView, ThreatMatrix, NaturalLanguageQuery, etc.
-    views/       6 — Dashboard, Map, Telemetry, Intel, Analytics, Settings
-  stores/        4 — Zustand (telemetry, map, ui, intel)
-  hooks/         2 — useTelemetry (WebSocket + HTTP fallback), useKeyboard
 
-Backend (3 modules)
-  main.py          — FastAPI server, WebSocket endpoint, REST API
-  simulation.py    — Multi-drone fleet simulator (orbit/grid/waypoint)
-  entities.py      — In-memory entity store with CRUD + relationships
+Current tree facts:
+
+- Frontend `src`: 225 JS/JSX/CSS files, including tests.
+- Backend: 22 Python files.
+- Playwright: 74 E2E test cases.
+- Frontend unit tests: 141 Vitest tests.
+- Backend tests: 4 pytest tests.
+- CrewAI smoke tests: 10 pytest tests.
+
+## Run Locally
+
+### Docker Compose
+
+```powershell
+docker compose up --build -d
+docker compose ps
+Invoke-RestMethod http://localhost:8001/health
 ```
 
-The frontend connects via WebSocket for real-time telemetry (with exponential backoff reconnection and HTTP polling fallback). State management uses Zustand — four stores for telemetry, map, UI, and intelligence data. Code-split via Vite manual chunks so the app bundle is only 25KB gzipped.
+Open http://localhost.
 
-## Getting Started
+### Separate Processes
 
-```bash
-# Backend
+Backend:
+
+```powershell
 cd backend
 pip install -r requirements.txt
-python main.py          # Starts on port 8001
-
-# Frontend (separate terminal)
-cd skydash/frontend
-npm install
-npm run dev             # Opens on localhost:5173
+python main.py
 ```
 
-Open http://localhost:5173 and you'll see the boot sequence, then the full dashboard with live telemetry from 3 simulated drones.
+Frontend:
 
-## Keyboard Shortcuts
+```powershell
+cd skydash/frontend
+npm install
+$env:VITE_API_URL='http://localhost:8001'
+npm run dev
+```
 
-| Key | Action |
-|-----|--------|
-| `D` | Dashboard |
-| `M` | Full map |
-| `T` | Telemetry view |
-| `I` | Intel view |
-| `B` | Toggle sidebar |
-| `Ctrl+K` | Command palette |
-| `?` | Keyboard shortcuts |
+Open http://localhost:5173.
+
+## CrewAI Stack
+
+The CrewAI operating-readiness stack lives in
+[skydash_intel_crew](skydash_intel_crew/README.md). It can read the local
+SkyDash docs/source snapshot, inspect live readiness URLs, fetch CrewAI
+reference material, and produce a company operating plan.
+
+Docker profile:
+
+```powershell
+docker compose --profile crew run --rm crewai
+```
+
+Local smoke tests:
+
+```powershell
+cd skydash_intel_crew
+uv run pytest
+```
+
+LLM provider options are configured through `.env`. OpenAI, OpenRouter, and
+OpenAI-compatible Mimo endpoints are documented in the CrewAI README.
 
 ## API
 
-The backend exposes a full REST API at `http://localhost:8001/docs` (Swagger UI).
+Local docs are available at http://localhost:8001/docs.
+Live docs are available at https://skydash-api-38666.azurewebsites.net/docs.
 
-Key endpoints:
-- `GET /telemetry` — All drones telemetry
-- `GET /telemetry/{drone_id}` — Single drone
-- `WS /ws/telemetry` — WebSocket stream
-- `GET /api/entities` — List entities (filterable by type, threat)
-- `POST /api/entities` — Create entity
-- `GET /api/entities/{id}/graph` — Relationship graph
-- `GET /api/timeline` — Event timeline (paginated)
-- `POST /api/export/geojson` — GeoJSON export
-- `POST /reset` — Reset simulation
+Important routes:
 
-## Testing
+- `GET /health`
+- `GET /telemetry`
+- `GET /telemetry/{drone_id}`
+- `POST /api/drone/{drone_id}/command`
+- `WS /ws/telemetry`
+- `GET /api/telemetry/history`
+- `GET /api/telemetry/stats`
+- `GET /api/entities`
+- `POST /api/entities`
+- `GET /api/entities/graph`
+- `GET /api/timeline`
+- `GET /api/missions`
+- `POST /api/missions`
+- `GET /api/connectors/adsb`
+- `GET /api/connectors/shodan`
+- `POST /api/connectors/adsb/ingest`
+- `POST /api/connectors/shodan/ingest`
+- `GET /api/vision/status`
+- `POST /api/missions/{mission_id}/detections/analyze`
+- `GET /api/export/telemetry/csv`
+- `GET /api/export/entities/csv`
+- `POST /api/export/geojson`
+- `POST /reset`
 
-```bash
-# Run all 46 E2E tests
-npx playwright test
+## Verification
 
-# Run specific suite
-npx playwright test e2e/api.spec.js          # 17 backend API tests
-npx playwright test e2e/interactions.spec.js  # 11 UI interaction tests
-npx playwright test e2e/skydash.spec.js       # 18 core feature tests
+Run the core local checks:
+
+```powershell
+npm --prefix skydash/frontend run lint
+npm --prefix skydash/frontend run test -- --run
+npm --prefix skydash/frontend run build
+python -m compileall backend
+cd backend; python -m pytest tests; cd ..
+cd skydash_intel_crew; uv run pytest; cd ..
 ```
 
-Tests cover telemetry data flow, real-time value changes, entity CRUD lifecycle, NLQ query accuracy, coordinate format cycling, fleet status validation, timeline pagination, and more.
+Production smoke:
 
-## What I Learned
+```powershell
+$env:PLAYWRIGHT_BASE_URL='https://wonderful-cliff-0325f3800.7.azurestaticapps.net'
+$env:PLAYWRIGHT_API_URL='https://skydash-api-38666.azurewebsites.net'
+npx playwright test e2e/skydash.spec.js e2e/interactions.spec.js -g "app boots|backend API returns fleet telemetry|drone command panel uses backend ACK|OSINT ingest panel previews"
+```
 
-Building this taught me a lot about real-time data streaming at scale (WebSocket vs polling tradeoffs), geospatial coordinate systems (implementing DD/DMS/UTM/MGRS conversions from scratch), and how to design information-dense interfaces that don't overwhelm the operator. The anomaly detection and NLQ parser are simple implementations, but they demonstrate the pattern — in production you'd swap those for proper ML models and an NLP pipeline.
+## Documentation Map
 
-The hardest part was making it look good. Dark interfaces are unforgiving — every pixel of spacing, every shade of gray matters. I spent as much time on the design system (glass morphism, glow effects, boot sequence choreography) as on the actual features.
+- [docs/current-status.md](docs/current-status.md): current live deployment,
+  verification baseline, and open production gaps.
+- [docs/skydash-operations-runbook.md](docs/skydash-operations-runbook.md):
+  local, Azure, CI, and release commands.
+- [docs/architecture-walkthrough.md](docs/architecture-walkthrough.md):
+  reviewer-level architecture and tradeoffs.
+- [docs/reviewer-walkthrough.md](docs/reviewer-walkthrough.md):
+  shortest path to evaluate the app.
+- [docs/mission-debrief-workflow.md](docs/mission-debrief-workflow.md):
+  optional vision and mission debrief workflow.
+- [docs/skydash-brand-system.md](docs/skydash-brand-system.md):
+  brand positioning and naming rules.
+- [docs/safety-and-scope.md](docs/safety-and-scope.md):
+  misuse boundaries and real-drone limits.
+- [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md):
+  future real-drone integration notes.
 
 ## License
 

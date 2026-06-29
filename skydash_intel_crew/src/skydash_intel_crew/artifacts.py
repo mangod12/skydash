@@ -237,6 +237,7 @@ def build_subteam_model() -> dict:
         SkyDashProjectDocsTool()._run(
             paths=[
                 "README.md",
+                "docs/current-status.md",
                 "docs/skydash-operations-runbook.md",
                 "docs/safety-and-scope.md",
                 "docs/skydash-brand-system.md",

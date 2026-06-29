@@ -4,6 +4,22 @@
 
 ---
 
+## STATUS NOTE
+
+This file is a historical build log and ideation loop. It is not the current
+release source of truth. For the live deployment, verification baseline,
+production URLs, and current limitations, use:
+
+- `README.md`
+- `docs/current-status.md`
+- `docs/skydash-operations-runbook.md`
+- `docs/safety-and-scope.md`
+
+The phase entries below intentionally preserve the state and test counts from
+the date each phase was written.
+
+---
+
 ## HOW TO RUN
 
 Paste this into Claude Code (or any agentic coding assistant):

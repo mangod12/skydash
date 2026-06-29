@@ -1,147 +1,94 @@
 # SkyDash Real Drone Integration Guide
 
-## Overview
-This guide shows you how to connect SkyDash to real drone hardware instead of the simulator.
+SkyDash currently runs a simulated three-drone fleet. This guide describes a
+safe future path for integrating real telemetry. It is not a production
+ground-control procedure.
 
----
+Do not expose real vehicle command/control from SkyDash until authentication,
+operator confirmation, audit logging, failsafe handling, rate limits, and
+field-tested safety controls exist.
 
-## Option 1: MAVLink Drones (ArduPilot, PX4)
+## Recommended Integration Order
 
-### Step 1: Install Dependencies
+1. SITL telemetry.
+2. Flight-log replay.
+3. Read-only MAVLink ingest.
+4. Limited command/control only after a separate safety design and review.
+
+## Current Backend Shape
+
+The current backend is modular. Do not patch all telemetry behavior directly
+into `backend/main.py`.
+
+Relevant files:
+
+- `backend/simulation.py`: current simulated fleet and command state.
+- `backend/routes/telemetry.py`: telemetry REST, command ACK, reset, and
+  WebSocket stream.
+- `backend/mavlink_adapter.py`: MAVLink adapter stub/reference.
+- `backend/dji_adapter.py`: DJI bridge stub/reference.
+- `backend/models.py`: request/response models used by routes.
+
+The safest first implementation is to add a read-only telemetry provider
+interface that the route layer can consume instead of replacing route code.
+
+## Option 1: MAVLink Drones
+
+Use MAVLink for ArduPilot/PX4/SITL. Install dependencies locally:
+
 ```bash
-pip install pymavlink pyserial
+pip install -r backend/requirements_real_drone.txt
 ```
 
-### Step 2: Update `backend/main.py`
-Replace the simulation code:
+Connection examples:
 
 ```python
 from mavlink_adapter import MAVLinkDrone
 
-# Choose your connection:
-# - Serial: drone = MAVLinkDrone("/dev/ttyUSB0")  # Linux
-# - Serial: drone = MAVLinkDrone("COM3")          # Windows
-# - UDP: drone = MAVLinkDrone("udp:127.0.0.1:14550")  # SITL simulator
-# - TCP: drone = MAVLinkDrone("tcp:192.168.1.100:5760")  # WiFi telemetry
+# ArduPilot SITL
+drone = MAVLinkDrone("udp:127.0.0.1:14550")
 
-drone = MAVLinkDrone("udp:127.0.0.1:14550")  # Change this!
-drone.connect()
-
-@app.get("/telemetry")
-async def get_telemetry():
-    return drone.get_telemetry()
-```
-
-### Step 3: Connection Examples
-
-**Physical Serial Connection:**
-```python
-# Linux with USB telemetry radio
+# Linux USB telemetry radio
 drone = MAVLinkDrone("/dev/ttyUSB0")
 
-# Windows with USB telemetry radio
+# Windows USB telemetry radio
 drone = MAVLinkDrone("COM3")
-```
 
-**WiFi/Network Connection:**
-```python
-# Connect to drone over WiFi
+# Network telemetry
 drone = MAVLinkDrone("tcp:192.168.1.100:5760")
 ```
 
-**SITL Simulator (for testing):**
-```python
-# Connect to ArduPilot SITL
-drone = MAVLinkDrone("udp:127.0.0.1:14550")
-```
+Map incoming telemetry to the SkyDash telemetry shape used by
+`FleetSimulator.get_all_telemetry()`:
 
----
+- `drone_id`
+- `timestamp`
+- `altitude`
+- `battery_voltage`
+- `battery_percentage`
+- `status`
+- `attitude.roll`
+- `attitude.pitch`
+- `attitude.yaw`
+- `gps.latitude`
+- `gps.longitude`
+- `gps.altitude`
+- `gps.satellites`
+- `signal_strength`
+- `ground_speed`
+- `armed`
+- `flight_mode`
+- `pattern`
+- `command_state`
 
-## Option 2: DJI Drones
+Keep the first integration read-only. WebSocket clients should receive telemetry
+but the backend should not forward command requests to real vehicles.
 
-DJI requires a **bridge application** because they don't use MAVLink.
+## Testing With ArduPilot SITL
 
-### Approach A: DJI Mobile SDK (Android/iOS)
-1. Create an Android/iOS app using [DJI Mobile SDK](https://developer.dji.com/mobile-sdk/)
-2. Implement HTTP endpoints in your app to expose telemetry
-3. Use `dji_adapter.py` to fetch data from your mobile app
+Install ArduPilot SITL on Linux/macOS:
 
-### Approach B: DJI Onboard SDK
-1. Install DJI Onboard SDK on companion computer (Raspberry Pi, etc.)
-2. Create a bridge service that exposes telemetry via HTTP
-3. Configure `DJIDrone` class with your bridge URL
-
----
-
-## Option 3: Custom UART/Serial Protocol
-
-For custom drones with proprietary protocols:
-
-```python
-import serial
-import json
-
-class CustomDrone:
-    def __init__(self, port="/dev/ttyUSB0", baudrate=115200):
-        self.serial = serial.Serial(port, baudrate)
-    
-    def get_telemetry(self):
-        # Read from your drone's serial protocol
-        line = self.serial.readline().decode('utf-8')
-        data = json.loads(line)  # Adjust based on your format
-        
-        # Map to SkyDash format
-        return {
-            "altitude": data['alt'],
-            "battery_voltage": data['bat'],
-            "attitude": {
-                "roll": data['roll'],
-                "pitch": data['pitch'],
-                "yaw": data['yaw']
-            },
-            # ... map other fields
-        }
-```
-
----
-
-## Option 4: ROS/ROS2 Integration
-
-For drones using ROS:
-
-```python
-import rclpy
-from sensor_msgs.msg import NavSatFix, BatteryState
-from geometry_msgs.msg import PoseStamped
-
-class ROSDrone:
-    def __init__(self):
-        rclpy.init()
-        self.node = rclpy.create_node('skydash_bridge')
-        self.latest_data = {}
-        
-        # Subscribe to ROS topics
-        self.node.create_subscription(
-            NavSatFix, 
-            '/mavros/global_position/global', 
-            self.gps_callback, 
-            10
-        )
-        # Add more subscriptions...
-    
-    def get_telemetry(self):
-        return self.latest_data
-```
-
----
-
-## Testing with ArduPilot SITL
-
-Best way to test without real hardware:
-
-### Step 1: Install ArduPilot SITL
 ```bash
-# Linux/Mac
 git clone https://github.com/ArduPilot/ardupilot.git
 cd ardupilot
 Tools/environment_install/install-prereqs-ubuntu.sh -y
@@ -150,89 +97,110 @@ cd ArduCopter
 sim_vehicle.py -w
 ```
 
-### Step 2: Connect SkyDash
+Then connect a read-only MAVLink telemetry adapter to:
+
+```text
+udp:127.0.0.1:14550
+```
+
+Recommended acceptance criteria:
+
+- Backend health stays healthy.
+- `/telemetry` returns valid SkyDash-shaped records.
+- `/ws/telemetry` streams valid records for at least 5 minutes.
+- No `/api/drone/{drone_id}/command` request is forwarded to a real vehicle.
+- Connection loss is reported as degraded telemetry, not process failure.
+
+## Option 2: DJI Drones
+
+DJI requires a bridge application because DJI aircraft do not expose MAVLink.
+
+Possible paths:
+
+- DJI Mobile SDK app that exposes a local HTTP telemetry bridge.
+- DJI Onboard SDK service on a companion computer.
+- Vendor-approved cloud/device bridge that normalizes telemetry into the
+  SkyDash shape.
+
+Keep the bridge read-only until the safety design exists.
+
+## Option 3: ROS/ROS2
+
+For ROS-based systems, subscribe to read-only topics and normalize state:
+
 ```python
-# In main.py
-from mavlink_adapter import MAVLinkDrone
+import rclpy
+from sensor_msgs.msg import BatteryState, NavSatFix
 
-drone = MAVLinkDrone("udp:127.0.0.1:14550")
-drone.connect()
+
+class ROSDroneTelemetry:
+    def __init__(self):
+        rclpy.init()
+        self.node = rclpy.create_node("skydash_readonly_bridge")
+        self.latest = {}
+        self.node.create_subscription(
+            NavSatFix,
+            "/mavros/global_position/global",
+            self.gps_callback,
+            10,
+        )
+        self.node.create_subscription(
+            BatteryState,
+            "/mavros/battery",
+            self.battery_callback,
+            10,
+        )
+
+    def gps_callback(self, msg):
+        self.latest["gps"] = {
+            "latitude": msg.latitude,
+            "longitude": msg.longitude,
+            "altitude": msg.altitude,
+        }
+
+    def battery_callback(self, msg):
+        self.latest["battery_voltage"] = msg.voltage
+        self.latest["battery_percentage"] = round(msg.percentage * 100)
 ```
 
-### Step 3: Run
-```bash
-python backend/main.py
-```
+## Security And Safety Requirements
 
----
+Before any real vehicle integration:
 
-## Configuration Reference
-
-### Connection Strings
-
-| Type | Example | Use Case |
-|------|---------|----------|
-| Serial | `COM3` or `/dev/ttyUSB0` | Direct USB/Radio connection |
-| UDP | `udp:127.0.0.1:14550` | SITL simulator |
-| TCP | `tcp:192.168.1.100:5760` | WiFi telemetry |
-| UDP Broadcast | `udpout:127.0.0.1:14550` | Send MAVLink commands |
-
-### Baud Rates (Serial)
-
-- **57600**: Common for 3DR radios
-- **115200**: Most modern telemetry radios
-- **921600**: High-speed serial (short cables)
-
----
+- Use HTTPS/TLS for remote access.
+- Require authentication and role-based authorization.
+- Require explicit operator confirmation for any command path.
+- Rate-limit and validate every command input.
+- Log telemetry source, command request, operator identity, result, and failure.
+- Implement connection-loss and stale-telemetry handling.
+- Keep a physical kill switch and native GCS fallback.
+- Test in SITL before hardware.
 
 ## Troubleshooting
 
-### "No heartbeat received"
-- Check connection string
-- Verify drone is powered on
-- Check firewall/port settings
-- Try different baud rate (serial)
+No heartbeat:
 
-### "Permission denied" (Linux)
+- Check connection string.
+- Verify the simulator or vehicle is powered and emitting telemetry.
+- Check firewall/UDP routing.
+- Try a known SITL endpoint before hardware.
+
+Serial permission denied on Linux:
+
 ```bash
 sudo usermod -a -G dialout $USER
-# Logout and login
 ```
 
-### CORS errors in browser
-Already configured for `localhost:5173-5175`. If using different port:
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:YOUR_PORT"],
-    # ...
-)
-```
+Then log out and back in.
 
----
+Browser CORS errors:
 
-## Security Notes
+- For local Vite, include `http://localhost:5173` in
+  `SKYDASH_CORS_ORIGINS`.
+- For production, include the Azure Static Web Apps origin.
 
-⚠️ **Important for Production:**
+## Next Engineering Step
 
-1. **Never expose control commands** without authentication
-2. **Use HTTPS** in production (not HTTP)
-3. **Implement rate limiting** on API endpoints
-4. **Validate all inputs** before sending to drone
-5. **Add authentication** (JWT tokens, API keys)
-
----
-
-## Next Steps
-
-1. Choose your drone type from options above
-2. Install required dependencies
-3. Update `main.py` with appropriate adapter
-4. Test connection
-5. Start SkyDash dashboard
-
-For questions, refer to:
-- **MAVLink**: https://mavlink.io/
-- **ArduPilot**: https://ardupilot.org/
-- **PX4**: https://px4.io/
-- **DJI SDK**: https://developer.dji.com/
+Create a read-only telemetry provider interface, add SITL tests, and keep
+`FleetSimulator` as the default demo provider. Only after that should a real
+MAVLink provider be selectable through configuration.

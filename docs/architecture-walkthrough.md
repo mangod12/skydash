@@ -1,8 +1,11 @@
 # Architecture Walkthrough
 
-This walkthrough is for reviewers who want to understand how SkyDash is put together and what engineering tradeoffs are still open.
+This walkthrough is for reviewers who want to understand how SkyDash is put
+together, what is running live, and where the engineering tradeoffs still are.
 
-SkyDash is a local-first prototype. The architecture favors inspectability and fast iteration over production deployment hardening.
+SkyDash is a local-first codebase with a public Azure demo. The architecture
+still favors inspectability and fast iteration, but the current main branch also
+has a deployed frontend/backend path.
 
 ## System Boundary
 
@@ -11,102 +14,160 @@ React/Vite UI
   -> Zustand stores
   -> operational views
   -> FastAPI REST routes
-  -> SQLite stores
+  -> SQLite-backed stores
 
 React/Vite UI
   -> telemetry hook/store
   -> WebSocket stream
   -> FastAPI WebSocket endpoint
   -> FleetSimulator
+
+CrewAI runner
+  -> local docs/source snapshot
+  -> optional live app/API checks
+  -> company-readiness report
 ```
 
 The UI has two main data paths:
 
-- REST for entities, relationships, missions, notes, events, exports, and health checks.
+- REST for entities, relationships, missions, notes, detections, connectors,
+  exports, auth, and health checks.
 - WebSocket for live simulated telemetry.
 
-That split keeps live vehicle state separate from slower CRUD-style intelligence workflow state.
+That split keeps live vehicle state separate from slower CRUD-style
+intelligence workflow state.
 
 ## Frontend Shape
 
 The frontend is organized around operational surfaces:
 
-- Dashboard for high-level fleet and workspace status.
-- Map for geospatial context, layers, geofences, annotations, and spatial search.
-- Intel for entities, relationships, provenance, pattern detection, and comparison.
-- Missions for grouping entities, notes, bookmarks, and investigation workflow.
+- Dashboard for high-level fleet, workspace, and system status.
+- Map for geospatial context, layers, geofences, annotations, ADS-B, and spatial
+  search.
+- Intel for entities, relationships, provenance, pattern detection, OSINT
+  ingest, and comparison.
+- Missions for grouping entities, notes, bookmarks, debriefs, and briefing
+  export workflow.
 - Telemetry for drone instruments, charts, commands, and fleet state.
-- Analytics and settings for review and configuration surfaces.
+- Scenario lab, analytics, and settings for review/configuration surfaces.
 
-State is kept in focused Zustand stores rather than one global mega-store. The important boundary is that views compose store state and hooks, while reusable components stay closer to presentation and interaction.
+State is kept in focused Zustand stores rather than one global mega-store.
+Views compose store state and hooks; reusable components stay closer to
+presentation and interaction.
+
+Runtime endpoints come from Vite env vars:
+
+- `VITE_API_URL`
+- `VITE_WS_URL`
+- `VITE_ADSB_URL`
+
+When `VITE_WS_URL` is absent, the frontend derives the WebSocket base from
+`VITE_API_URL`.
 
 ## Backend Shape
 
-The backend is intentionally small:
+The backend is a FastAPI service with route modules:
 
-- `main.py` exposes FastAPI routes, WebSocket streaming, middleware, and export endpoints.
-- `entities.py` owns SQLite persistence for entities, relationships, and events.
-- `missions.py` owns mission persistence, notes, and entity linking.
-- `simulation.py` owns the simulated fleet state.
-- `mavlink_adapter.py` is a stub for future real telemetry integration.
+- `routes/telemetry.py`: telemetry REST, command ACK, reset, WebSocket stream,
+  telemetry history, and fleet stats.
+- `routes/entities.py`: entity CRUD, relationship creation, entity graph,
+  global graph, timeline, and events.
+- `routes/missions.py`: mission CRUD, linked entities, and notes.
+- `routes/connectors.py`: ADS-B/OpenSky and Shodan search, preview, ingest, and
+  status routes.
+- `routes/export.py`: GeoJSON, telemetry CSV, and entities CSV exports.
+- `routes/vision.py`: optional RT-DETR status, sample feed/frame, mission
+  detection analysis, and detection deletion.
+- `routes/auth_routes.py`: optional auth/user endpoints.
 
-SQLite is enough for a local prototype, but it is not the right long-term geospatial store if SkyDash becomes a serious GIS or investigation workflow.
+Shared state and configuration live in `deps.py`. SQLite connection/migrations
+live in `database.py`; the current schema version includes mission detections.
 
 ## Real-Time Telemetry
 
-Telemetry is simulated at 10Hz for three drones. The simulator produces movement, battery, signal, mode, and status fields that the UI consumes over WebSockets.
+Telemetry is simulated at 10 Hz for three drones. The simulator produces
+movement, battery, signal, mode, status, command state, attitude, GPS, and wind
+fields that the UI consumes over WebSockets.
 
-This makes the dashboard feel operational without connecting to real vehicles. That is deliberate: the safer next steps are SITL, log replay, and read-only MAVLink ingest before any command/control path.
+The drone command UI sends commands to the backend and waits for backend ACK
+before confirming mode changes. This is still simulator control, not real
+vehicle control.
 
-## Data Model Priorities
+## Connectors And OSINT Boundary
 
-The current model is broad enough to explore workflows:
+OpenSky/ADS-B and Shodan connectors are backend-mediated. This avoids browser
+CORS limits and gives the UI a consistent ingest contract:
 
-- entities
-- relationships
-- events
-- missions
-- notes
-- provenance fields
-- exports
+- Preview connector records.
+- Import selected records as SkyDash entities.
+- Show data-source status in the UI.
 
-The next credibility jump is depth, not more UI surface area. The strongest candidates are:
+Shodan is mock/unavailable without a live `SHODAN_API_KEY`.
 
-- PostGIS or another spatial storage layer.
-- STIX/TAXII, OpenCTI, MISP, or Maltego-style interoperability.
-- Stronger provenance: source lineage, confidence, timestamps, analyst decisions, and export integrity.
-- SITL/log replay/read-only MAVLink telemetry.
+## Mission Debrief And Vision
+
+Mission debriefs can attach notes, linked entities, briefing exports, and
+optional detection results. RT-DETR support is lazy and optional: the base
+backend starts without `ultralytics`, while `/api/vision/status` reports whether
+the dependency is available.
+
+This keeps the public Azure API lightweight while preserving the workflow for
+local vision demos.
+
+## Deployment Shape
+
+The public deployment is split:
+
+- Azure Static Web Apps hosts the frontend.
+- Azure App Service for Linux hosts the FastAPI backend.
+- GitHub Actions deploys the frontend on relevant pushes to `main`.
+- Backend deploy is currently manual Azure zip deploy from the `backend/`
+  source.
+
+See [skydash-operations-runbook.md](skydash-operations-runbook.md) for the
+commands and verification gate.
 
 ## Main Tradeoffs
 
 ### Local Simplicity vs Spatial Depth
 
-SQLite makes the project easy to run, but PostGIS would make spatial indexing, querying, and integration with GIS tooling more credible.
+SQLite makes the project easy to run and inspect. PostGIS would be the stronger
+long-term choice for spatial indexing, spatial joins, and GIS integration.
 
 ### UI Breadth vs Integration Depth
 
-The UI covers many surfaces. The next work should deepen one or two foundations rather than add more panels.
+The UI covers many surfaces. The next credibility jump should deepen the
+foundations: provenance, persistence, connectors, auth, and safer telemetry
+integration.
 
 ### Live Demo Value vs Safety
 
-Simulated telemetry makes the product understandable quickly. Real drone support should stay read-only until authentication, logging, operator confirmation, failure handling, and safety boundaries are designed.
+Simulated telemetry makes the product understandable quickly. Real drone support
+should stay read-only until authentication, logging, operator confirmation,
+failure handling, and safety boundaries are designed.
 
 ### OSINT Framing vs Misuse Risk
 
-The useful OSINT overlap is entities, relationships, provenance, timelines, and exports. The project deliberately avoids breached data, private scraping, black-box enrichment, and covert collection workflows.
+The useful OSINT overlap is entities, relationships, provenance, timelines, and
+exports. The project deliberately avoids breached data, private scraping,
+biometric identification, black-box enrichment, and covert collection workflows.
 
-## How I Would Harden It Next
+## How To Harden It Next
 
-1. Add PostGIS as an optional backend path while keeping SQLite for local demos.
-2. Define import/export contracts for STIX/TAXII or OpenCTI/MISP.
-3. Make provenance a first-class model with confidence, source lineage, timestamps, and analyst decisions.
-4. Add SITL or log replay telemetry before live MAVLink ingest.
-5. Add auth/RBAC, audit guarantees, and data-retention rules before any production deployment claim.
+1. Add backend CI/CD and release rollback controls.
+2. Add PostGIS as an optional backend path while keeping SQLite for local demos.
+3. Define import/export contracts for STIX/TAXII or OpenCTI/MISP.
+4. Make provenance first-class with confidence, source lineage, timestamps,
+   analyst decisions, and export integrity.
+5. Add SITL/log replay/read-only MAVLink telemetry before live MAVLink ingest.
+6. Add auth/RBAC, audit guarantees, data-retention rules, and deployment
+   monitoring before any production-use claim.
 
 ## Good Review Questions
 
 - Should spatial persistence or OSINT interoperability come first?
 - What is the smallest credible provenance model?
-- What should a read-only MAVLink ingest expose before commands exist?
+- What should read-only MAVLink ingest expose before commands exist?
 - Which UI surface should be cut or simplified?
-- What would make the project useful as a developer platform rather than only a dashboard?
+- What would make the project useful as a developer platform rather than only a
+  dashboard?
