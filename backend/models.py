@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AuthLogin(BaseModel):
@@ -11,18 +11,18 @@ class AuthLogin(BaseModel):
 
 
 class AuthRegister(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=3, max_length=64)
+    password: str = Field(min_length=8, max_length=256)
     role: str = "analyst"
 
 
 class EntityCreate(BaseModel):
     id: Optional[str] = None
     type: str = "event"
-    name: str
+    name: str = Field(min_length=1, max_length=200)
     coordinates: Optional[List[float]] = None
     properties: Dict = {}
-    confidence: int = 50
+    confidence: int = Field(default=50, ge=0, le=100)
     source: str = "Manual"
     tags: List[str] = []
     threatLevel: str = "none"
@@ -35,7 +35,7 @@ class RelationshipCreate(BaseModel):
 
 
 class MissionCreate(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=200)
     description: str = ""
     status: str = "active"
     center_lat: Optional[float] = None
