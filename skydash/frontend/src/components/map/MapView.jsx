@@ -21,7 +21,7 @@ import DeckGlOverlay from './DeckGlOverlay';
 import ProximityWarning from './ProximityWarning';
 import { useDeckLayers } from './deckLayers';
 import { useMapInteractions } from './MapInteractions';
-import { DARK_BASEMAP } from '../../utils/basemap';
+import { DARK_BASEMAP, SATELLITE_BASEMAP } from '../../utils/basemap';
 import 'leaflet/dist/leaflet.css';
 
 function MapContextHandler({ onContextMenu }) {
@@ -31,11 +31,7 @@ function MapContextHandler({ onContextMenu }) {
 
 export const TILE_LAYERS = {
   dark: DARK_BASEMAP,
-  satellite: {
-    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    maxZoom: 20,
-    maxNativeZoom: 20,
-  },
+  satellite: SATELLITE_BASEMAP,
 };
 
 function MapRefBridge({ mapRef }) {
