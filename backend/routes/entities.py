@@ -6,7 +6,7 @@ from typing import Dict, Optional
 from fastapi import APIRouter, Query, HTTPException
 
 from deps import entity_store
-from models import EntityCreate, RelationshipCreate
+from models import EntityCreate, EntityUpdate, RelationshipCreate
 
 log = logging.getLogger("skydash")
 router = APIRouter()
@@ -62,8 +62,8 @@ async def create_entity(body: EntityCreate):
 
 
 @router.put("/api/entities/{entity_id}")
-async def update_entity(entity_id: str, body: Dict):
-    entity = entity_store.update_entity(entity_id, body)
+async def update_entity(entity_id: str, body: EntityUpdate):
+    entity = entity_store.update_entity(entity_id, body.model_dump(exclude_unset=True))
     if not entity:
         raise HTTPException(status_code=404, detail="Entity not found")
     return {"success": True, "data": entity}
