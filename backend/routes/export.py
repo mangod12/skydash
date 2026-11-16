@@ -140,8 +140,8 @@ async def export_entities_csv():
 
         entities = entity_store.list_entities()
         for entity in entities:
-            coords = entity.get("coordinates", [])
-            tags = ", ".join(entity.get("tags", []))
+            coords = entity.get("coordinates") or []
+            tags = ", ".join(entity.get("tags") or [])
 
             row = [
                 entity.get("id", ""),
