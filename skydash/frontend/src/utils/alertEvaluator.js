@@ -54,7 +54,7 @@ function checkGeofenceBreach(drone, config, geofences) {
   return { triggered: false };
 }
 
-function checkProximity(drone, config, entities) {
+function checkProximity(drone, config, _geofences, entities) {
   if (!drone.gps) return { triggered: false };
   const target = entities.find((e) => e.id === config.entityId);
   if (!target?.coordinates) return { triggered: false };
