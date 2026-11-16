@@ -122,5 +122,68 @@ class TestVisionRoutes(unittest.TestCase):
         self.assertEqual(list_response.json()["metadata"]["count"], 0)
 
 
+    # ─── error paths and status endpoints ────────────────────
+
+    def _unavailable(self, error="model missing"):
+        detector = _FakeDetector()
+        detector.status = lambda: SimpleNamespace(available=False, model=None, error=error)
+        return detector
+
+    def test_status_endpoint_reports_detector_state(self):
+        with patch("routes.vision.detector", _FakeDetector()):
+            data = self.client.get("/api/vision/status").json()["data"]
+        self.assertEqual((data["available"], data["model"], data["error"]), (True, "rtdetr-l.pt", None))
+
+    def test_sample_endpoints_return_503_when_unavailable(self):
+        with patch("routes.vision.detector", self._unavailable()):
+            for path in ("/api/vision/sample-feed", "/api/vision/sample-viewer", "/api/vision/sample-frame"):
+                resp = self.client.get(path)
+                self.assertEqual(resp.status_code, 503, path)
+                self.assertEqual(resp.json()["detail"], "model missing")
+
+    def test_sample_frame_returns_jpeg_when_available(self):
+        detector = _FakeDetector()
+        detector.sample_frame = lambda: b"\xff\xd8jpeg"
+        with patch("routes.vision.detector", detector):
+            resp = self.client.get("/api/vision/sample-frame")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers["content-type"], "image/jpeg")
+        self.assertEqual(resp.content, b"\xff\xd8jpeg")
+
+    def test_unknown_mission_is_404_everywhere(self):
+        detector = _FakeDetector()
+        self.assertEqual(self.client.get("/api/missions/nope/detections").status_code, 404)
+        self.assertEqual(self._analyze_payload("nope", detector).status_code, 404)
+        self.assertEqual(self._sample_payload("nope", detector).status_code, 404)
+        self.assertEqual(self.client.delete("/api/missions/nope/detections/x").status_code, 404)
+
+    def test_analyze_and_monitor_503_when_detector_unavailable(self):
+        mission_id = self._create_mission()
+        detector = self._unavailable()
+        self.assertEqual(self._analyze_payload(mission_id, detector).status_code, 503)
+        self.assertEqual(self._sample_payload(mission_id, detector).status_code, 503)
+
+    def test_analyze_maps_detector_errors_to_status_codes(self):
+        mission_id = self._create_mission()
+        for exc, expected in ((ValueError("bad image"), 400), (RuntimeError("busy"), 503), (KeyError("x"), 502)):
+            detector = _FakeDetector()
+            detector.analyze_image = lambda **_kw: (_ for _ in ()).throw(exc)
+            resp = self._analyze_payload(mission_id, detector)
+            self.assertEqual(resp.status_code, expected, repr(exc))
+        self.assertEqual(self._analyze_payload(mission_id, detector).json()["detail"], "Image analysis failed")
+
+    def test_sample_monitor_maps_detector_errors(self):
+        mission_id = self._create_mission()
+        for exc, expected in ((RuntimeError("busy"), 503), (KeyError("x"), 502)):
+            detector = _FakeDetector()
+            detector.analyze_sample_frame = lambda: (_ for _ in ()).throw(exc)
+            self.assertEqual(self._sample_payload(mission_id, detector).status_code, expected)
+
+    def test_delete_unknown_detection_is_404(self):
+        mission_id = self._create_mission()
+        resp = self.client.delete(f"/api/missions/{mission_id}/detections/missing")
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.json()["detail"], "Detection not found")
+
 if __name__ == "__main__":
     unittest.main()
