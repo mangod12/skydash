@@ -1,12 +1,12 @@
 """Mission routes: CRUD, entity linking, notes."""
 
 import logging
-from typing import Dict, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Query, HTTPException
 
 from deps import entity_store, mission_store
-from models import MissionCreate, MissionEntityAdd, MissionNoteAdd
+from models import MissionCreate, MissionEntityAdd, MissionNoteAdd, MissionUpdate
 
 log = logging.getLogger("skydash")
 router = APIRouter()
@@ -45,8 +45,8 @@ async def get_mission(mission_id: str):
 
 
 @router.put("/api/missions/{mission_id}")
-async def update_mission(mission_id: str, body: Dict):
-    mission = mission_store.update_mission(mission_id, body)
+async def update_mission(mission_id: str, body: MissionUpdate):
+    mission = mission_store.update_mission(mission_id, body.model_dump(exclude_unset=True))
     if not mission:
         raise HTTPException(status_code=404, detail="Mission not found")
     return {"success": True, "data": mission}
