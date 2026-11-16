@@ -1,0 +1,61 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { useAuthStore } from './authStore';
+
+describe('authStore', () => {
+  beforeEach(() => {
+    useAuthStore.setState({ token: null, user: null, authEnabled: null, error: null });
+  });
+
+  it('returns no auth header without a token', () => {
+    expect(useAuthStore.getState().getAuthHeader()).toEqual({});
+  });
+
+  it('returns a bearer header when a token is set', () => {
+    useAuthStore.setState({ token: 'abc' });
+    expect(useAuthStore.getState().getAuthHeader()).toEqual({ Authorization: 'Bearer abc' });
+  });
+
+  it('logout clears token and user', () => {
+    useAuthStore.setState({ token: 'abc', user: { username: 'u' } });
+    useAuthStore.getState().logout();
+    const s = useAuthStore.getState();
+    expect([s.token, s.user]).toEqual([null, null]);
+  });
+
+  describe('with a mocked backend', () => {
+    afterEach(() => vi.unstubAllGlobals());
+    const mockFetch = (impl) => vi.stubGlobal('fetch', vi.fn(impl));
+    const json = (body, status = 200) => Promise.resolve({ status, json: () => Promise.resolve(body) });
+
+    it('login stores the token and user on success', async () => {
+      mockFetch(() => json({ success: true, data: { token: 't1', user: { username: 'op' } } }));
+      expect(await useAuthStore.getState().login('op', 'pw')).toBe(true);
+      const s = useAuthStore.getState();
+      expect([s.token, s.user.username, s.error]).toEqual(['t1', 'op', null]);
+    });
+
+    it('login reports the server error on failure', async () => {
+      mockFetch(() => json({ success: false, error: 'Bad credentials' }, 401));
+      expect(await useAuthStore.getState().login('op', 'x')).toBe(false);
+      expect(useAuthStore.getState().error).toBe('Bad credentials');
+    });
+
+    it('login reports an unreachable server', async () => {
+      mockFetch(() => Promise.reject(new Error('down')));
+      expect(await useAuthStore.getState().login('op', 'x')).toBe(false);
+      expect(useAuthStore.getState().error).toBe('Cannot reach server');
+    });
+
+    it('checkAuth enables auth only on a 401', async () => {
+      mockFetch(() => json({}, 401));
+      await useAuthStore.getState().checkAuth();
+      expect(useAuthStore.getState().authEnabled).toBe(true);
+      mockFetch(() => json({}, 200));
+      await useAuthStore.getState().checkAuth();
+      expect(useAuthStore.getState().authEnabled).toBe(false);
+      mockFetch(() => Promise.reject(new Error('down')));
+      await useAuthStore.getState().checkAuth();
+      expect(useAuthStore.getState().authEnabled).toBe(false);
+    });
+  });
+});
