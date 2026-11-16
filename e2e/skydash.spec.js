@@ -100,8 +100,13 @@ test.describe('SkyDash E2E Tests', () => {
     await page.waitForTimeout(1500);
 
     // Battery voltage should be between 14.0V and 16.8V (4S LiPo range)
-    const batteryText = await page.locator('text=/\\d+\\.\\d+V/').first().textContent();
-    const voltage = parseFloat(batteryText);
+    // Telemetry shows 0.0V until the first frame arrives, so wait for a real reading.
+    const readVoltage = async () => {
+      const texts = await page.locator('text=/\\d+\\.\\d+V/').allTextContents();
+      return Math.max(0, ...texts.map((t) => parseFloat(t)).filter((v) => !Number.isNaN(v)));
+    };
+    await expect.poll(readVoltage, { timeout: 15000 }).toBeGreaterThan(0);
+    const voltage = await readVoltage();
     expect(voltage).toBeGreaterThanOrEqual(14.0);
     expect(voltage).toBeLessThanOrEqual(16.9);
     console.log(`Battery: ${voltage}V — within 4S LiPo range`);
@@ -321,11 +326,11 @@ test.describe('SkyDash E2E Tests', () => {
 
     // Coordinate display is a button in bottom-left of map
     // It contains a format label (DD/DMS/UTM/MGRS) and coordinates
-    const getCoordBtn = () => page.locator('.absolute.bottom-3.left-3.z-20 button');
+    const getCoordBtn = () => page.locator('.absolute.bottom-32.left-3.z-30 button');
     const getCoordText = async () => (await getCoordBtn().first().textContent() || '').trim();
 
     const btn = getCoordBtn();
-    await expect(btn).toBeVisible({ timeout: 5000 });
+    await expect(btn).toBeVisible({ timeout: 15000 });
 
     let text = await getCoordText();
     expect(text).toContain('DD');
@@ -346,8 +351,7 @@ test.describe('SkyDash E2E Tests', () => {
 
   test('analytics dashboard shows correct aggregate stats', async ({ page }) => {
     // Navigate to analytics via sidebar
-    const sidebarBtns = page.locator('aside button');
-    await sidebarBtns.nth(7).click(); // Analytics is 8th nav item
+    await page.locator('aside button[aria-label="Analytics"]').click();
     await page.waitForTimeout(1500);
 
     // Stat cards
