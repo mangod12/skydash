@@ -1,6 +1,7 @@
 """Authentication routes: login, register, current user."""
 
 import logging
+import os
 import time
 from collections import defaultdict, deque
 
@@ -68,6 +69,12 @@ async def auth_login(body: AuthLogin, request: Request):
 @router.post("/api/auth/register")
 async def auth_register(body: AuthRegister):
     # Public sign-up never grants elevated roles; body.role is ignored.
+    # Set SKYDASH_ALLOW_REGISTRATION=false to close self-registration (production).
+    if os.getenv("SKYDASH_ALLOW_REGISTRATION", "true").lower() in ("0", "false", "no"):
+        return JSONResponse(
+            status_code=403,
+            content={"success": False, "error": "Self-registration is disabled"},
+        )
     if not user_store:
         return JSONResponse(
             status_code=400,
