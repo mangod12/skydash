@@ -13,13 +13,13 @@ const SEED_NOTIFICATIONS = [
     id: 2, type: 'alert', title: 'Low battery warning',
     message: 'ALPHA-1 battery below 30%',
     severity: 'warning', timestamp: new Date(Date.now() - 300000),
-    read: false,
+    read: false, location: { lat: 37.7749, lon: -122.4194 },
   },
   {
     id: 3, type: 'alert', title: 'Geofence breach',
     message: 'Geofence breach: BRAVO-2 exited Zone Alpha',
     severity: 'critical', timestamp: new Date(Date.now() - 120000),
-    read: false,
+    read: false, location: { lat: 37.7849, lon: -122.4094 },
   },
   {
     id: 4, type: 'system', title: 'ADS-B feed connected',
@@ -41,11 +41,13 @@ const SEED_NOTIFICATIONS = [
   },
 ];
 
+const withStatus = (list) => list.map((n) => ({ status: 'new', ...n }));
+
 const computeUnread = (notifications) =>
   notifications.filter((n) => !n.read).length;
 
 const useNotificationStore = create((set, get) => ({
-  notifications: SEED_NOTIFICATIONS,
+  notifications: withStatus(SEED_NOTIFICATIONS),
   unreadCount: computeUnread(SEED_NOTIFICATIONS),
 
   addNotification: (notification) => set((s) => {
@@ -53,6 +55,7 @@ const useNotificationStore = create((set, get) => ({
       ...notification,
       id: Date.now() + '-' + Math.random().toString(36).slice(2, 6),
       read: false,
+      status: 'new',
       timestamp: new Date(),
     };
     const next = [entry, ...s.notifications].slice(0, MAX_NOTIFICATIONS);
@@ -65,6 +68,23 @@ const useNotificationStore = create((set, get) => ({
     );
     return { notifications: next, unreadCount: computeUnread(next) };
   }),
+
+  // Workflow status for alerts: new -> acknowledged -> escalated
+  setStatus: (id, status) => set((s) => {
+    const next = s.notifications.map((n) =>
+      n.id === id ? { ...n, status, read: true, statusAt: new Date() } : n,
+    );
+    return { notifications: next, unreadCount: computeUnread(next) };
+  }),
+
+  acknowledge: (id) => get().setStatus(id, 'acknowledged'),
+  escalate: (id) => get().setStatus(id, 'escalated'),
+
+  // Alerts and escalations still needing an operator decision
+  getNeedsAttention: () => get().notifications.filter(
+    (n) => n.type === 'alert' && n.status !== 'acknowledged'
+      && (n.severity === 'critical' || n.severity === 'warning' || n.status === 'escalated'),
+  ),
 
   markAllRead: () => set((s) => {
     const next = s.notifications.map((n) => ({ ...n, read: true }));
