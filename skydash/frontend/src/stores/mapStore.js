@@ -20,6 +20,7 @@ export const useMapStore = create((set) => ({
     deckHex: false,
     threatZones: true,
     droneFootprint: true,
+    rangeRings: true,
     tacticalLabels: false,
     sectors: false,
   },

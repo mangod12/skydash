@@ -12,6 +12,7 @@ import MapAnnotations from './MapAnnotations';
 import PlaybackMarkers from './PlaybackMarkers';
 import ThreatZones from './ThreatZones';
 import DroneFootprint from './DroneFootprint';
+import DroneRangeRings from './DroneRangeRings';
 import TacticalLabels from './TacticalLabels';
 import SectorGrid from './SectorGrid';
 import ScenarioOverlay from './ScenarioOverlay';
@@ -143,6 +144,7 @@ export default function MapOverlays({
       {/* Tactical overlays */}
       {layers.threatZones && <ThreatZones />}
       {layers.droneFootprint && <DroneFootprint />}
+      {layers.rangeRings && <DroneRangeRings />}
       {layers.tacticalLabels && <TacticalLabels />}
       {layers.sectors && <SectorGrid />}
 
