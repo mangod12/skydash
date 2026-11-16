@@ -24,6 +24,7 @@ from deps import (
     start_time,
     telemetry_history,
 )
+from rbac import has_role, required_role
 from routes.telemetry import router as telemetry_router
 from routes.entities import router as entities_router
 from routes.missions import router as missions_router
@@ -116,6 +117,20 @@ async def auth_middleware(request: Request, call_next):
             return JSONResponse(
                 status_code=401,
                 content={"success": False, "error": "Invalid or expired token"},
+            )
+        needed = required_role(request.method, path)
+        if not has_role(payload.get("role"), needed):
+            log.warning(
+                "RBAC denied: user=%s role=%s %s %s needs=%s",
+                payload.get("username"), payload.get("role"),
+                request.method, path, needed,
+            )
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "success": False,
+                    "error": f"Requires {needed} role or higher",
+                },
             )
         request.state.user = payload
     return await call_next(request)
