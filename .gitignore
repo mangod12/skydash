@@ -78,3 +78,5 @@ social media/
 *.db-journal
 *.db-shm
 *.db-wal
+
+.coverage
