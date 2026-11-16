@@ -106,5 +106,9 @@ class TestShodan(unittest.TestCase):
         self.assertEqual(live_entities[0]["properties"]["mode"], "live")
 
 
+    def test_zero_coordinates_are_kept(self):
+        entity = ShodanConnector().to_entities([{"ip": "9.9.9.9", "lat": 0.0, "lon": 0.0}])[0]
+        self.assertEqual(entity["coordinates"], [0.0, 0.0])
+
 if __name__ == "__main__":
     unittest.main()

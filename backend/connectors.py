@@ -218,7 +218,7 @@ class ShodanConnector:
                 "type": "device",
                 "name": f"{r.get('product', 'Unknown')} @ {r.get('ip', '')}",
                 "coordinates": (
-                    [r["lat"], r["lon"]] if r.get("lat") and r.get("lon") else None
+                    [r["lat"], r["lon"]] if r.get("lat") is not None and r.get("lon") is not None else None
                 ),
                 "properties": {
                     "ip": r.get("ip"),
