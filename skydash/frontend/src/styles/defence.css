@@ -1,0 +1,78 @@
+/* SkyDash default theme refinement - restrained, high-density C2 look.
+   Principles: solid graphite surfaces, hairline borders, one steel-blue accent,
+   semantic-only status colours, small radii, no blur/glow/gradients, tight tracking. */
+
+[data-theme="midnight"] {
+  --surface-0: #0b0d10;
+  --surface-1: #0f1216;
+  --surface-2: #14181d;
+  --surface-3: #1a1f26;
+
+  --glass-bg: #0f1216;
+  --glass-border: rgba(255, 255, 255, 0.07);
+  --glass-blur: 0px;
+  --glass-highlight: transparent;
+  --glass-highlight-top: transparent;
+  --glass-inner-shadow: none;
+
+  --accent-primary: #6d93c9;
+  --accent-cyan: #6fb3c9;
+  --accent-emerald: #5fb585;
+  --accent-amber: #d1a243;
+  --accent-red: #e0605a;
+  --accent-violet: #8f9cc4;
+  --accent-blue: #6d93c9;
+
+  --glow-primary: none;
+  --glow-cyan: none;
+  --glow-danger: none;
+  --glow-emerald: none;
+  --glow-amber: none;
+  --glow-violet: none;
+}
+
+[data-theme="midnight"] body { background-color: #0b0d10; }
+
+/* Surfaces: no frosted glass, solid panels with hairline borders */
+[data-theme="midnight"] [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+[data-theme="midnight"] [class*="bg-[rgba(9,9,11"] { background-color: #0f1216; box-shadow: none; }
+[data-theme="midnight"] [class*="shadow-["] { box-shadow: none; }
+
+/* Radius scale: 6px panels, 4px controls, no pill buttons */
+[data-theme="midnight"] .rounded-2xl,
+[data-theme="midnight"] .rounded-xl { border-radius: 6px; }
+[data-theme="midnight"] .rounded-lg { border-radius: 5px; }
+[data-theme="midnight"] button.rounded-full { border-radius: 4px; }
+
+/* Tracking: labels stay uppercase but stop shouting */
+[data-theme="midnight"] .tracking-\[0\.15em\],
+[data-theme="midnight"] .tracking-\[0\.12em\] { letter-spacing: 0.08em; }
+[data-theme="midnight"] .tracking-wider { letter-spacing: 0.06em; }
+
+/* One accent: indigo/violet/blue utilities map to steel blue */
+[data-theme="midnight"] .text-indigo-300,
+[data-theme="midnight"] .text-indigo-400,
+[data-theme="midnight"] .text-violet-300,
+[data-theme="midnight"] .text-violet-400,
+[data-theme="midnight"] .text-blue-400 { color: #8fb0dc; }
+[data-theme="midnight"] .text-indigo-500 { color: #6d93c9; }
+[data-theme="midnight"] .bg-indigo-500 { background-color: #4f78b3; }
+[data-theme="midnight"] .bg-indigo-500\/10,
+[data-theme="midnight"] .bg-violet-500\/10,
+[data-theme="midnight"] .bg-violet-500\/15 { background-color: rgba(109, 147, 201, 0.10); }
+[data-theme="midnight"] .bg-indigo-500\/15,
+[data-theme="midnight"] .bg-indigo-500\/20,
+[data-theme="midnight"] .bg-violet-500\/20 { background-color: rgba(109, 147, 201, 0.16); }
+[data-theme="midnight"] .border-indigo-500\/20,
+[data-theme="midnight"] .border-indigo-400\/30,
+[data-theme="midnight"] .border-violet-500\/20 { border-color: rgba(109, 147, 201, 0.30); }
+
+/* Status colours: desaturated, semantic only */
+[data-theme="midnight"] .text-emerald-400 { color: #6bbf90; }
+[data-theme="midnight"] .text-amber-400 { color: #d6a94d; }
+[data-theme="midnight"] .text-red-400 { color: #e57a74; }
+[data-theme="midnight"] .text-cyan-400,
+[data-theme="midnight"] .text-cyan-300 { color: #7dbbd0; }
