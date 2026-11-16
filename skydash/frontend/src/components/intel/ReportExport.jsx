@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Download, Copy, Check, ScrollText } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef } from 'react';
+import { Download, Copy, Check, ScrollText, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
 import { useIntelStore } from '../../stores/intelStore';
@@ -10,11 +10,14 @@ import {
   generateGeoJSON, generateKML, generateCSV,
   generateDossier, generateMissionBrief, downloadFile,
 } from '../../utils/exportGenerators';
+import { toast } from '../common/Toast';
+import { generateCoT, parseCoT } from '../../utils/cot';
 import ReportGenerator from '../views/ReportGenerator';
 
 const FORMATS = [
   { id: 'geojson', label: 'GeoJSON', ext: '.geojson', mime: 'application/json' },
   { id: 'kml', label: 'KML', ext: '.kml', mime: 'application/vnd.google-earth.kml+xml' },
+  { id: 'cot', label: 'CoT (ATAK)', ext: '.cot.xml', mime: 'application/xml' },
   { id: 'csv', label: 'CSV', ext: '.csv', mime: 'text/csv' },
   { id: 'dossier', label: 'Dossier', ext: '.txt', mime: 'text/plain' },
   { id: 'brief', label: 'Brief', ext: '.txt', mime: 'text/plain' },
@@ -42,6 +45,7 @@ function buildContent(fmt, scope, allEntities, relationships, events, mission, s
 
   if (fmt === 'geojson') return generateGeoJSON(entities);
   if (fmt === 'kml') return generateKML(entities);
+  if (fmt === 'cot') return generateCoT(entities);
   if (fmt === 'csv') return generateCSV(entities, relationships);
 
   if (fmt === 'dossier') {
@@ -83,6 +87,8 @@ export default function ReportExport() {
   const [activeFormat, setActiveFormat] = useState('geojson');
   const [scope, setScope] = useState('all');
   const [copied, setCopied] = useState(false);
+  const fileRef = useRef(null);
+  const addEntity = useIntelStore((s) => s.addEntity);
   const reportOpen = useUIStore((s) => s.reportOpen);
   const setReportOpen = useUIStore((s) => s.setReportOpen);
 
@@ -129,6 +135,25 @@ export default function ReportExport() {
       audit('export', 'export', `Copied ${FORMATS.find((f) => f.id === activeFormat)?.label || activeFormat} to clipboard`);
     } catch { /* clipboard unavailable */ }
   }, [activeFormat, effectiveScope, entities, relationships, events, mission, selectedEntity]);
+
+  const handleImport = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const { entities: imported, skipped } = parseCoT(await file.text());
+      imported.forEach((ent) => addEntity(ent));
+      toast(
+        imported.length
+          ? `Imported ${imported.length} CoT entit${imported.length === 1 ? 'y' : 'ies'}${skipped ? ` (${skipped} skipped)` : ''}`
+          : 'No importable CoT events found',
+        imported.length ? 'success' : 'warning',
+      );
+      audit('import', 'export', `Imported ${imported.length} CoT entities from ${file.name}`);
+    } catch {
+      toast('Could not read CoT file: invalid XML', 'error');
+    }
+  }, [addEntity]);
 
   const formatSize = (bytes) => bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
 
@@ -232,6 +257,16 @@ export default function ReportExport() {
           {copied ? 'COPIED' : 'COPY'}
         </button>
       </div>
+      <input ref={fileRef} type="file" accept=".xml,.cot,.cot.xml,application/xml,text/xml" className="hidden"
+        onChange={handleImport} data-testid="cot-import-input" />
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-semibold tracking-wider transition-all bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 hover:bg-cyan-500/20"
+      >
+        <Upload size={12} />
+        IMPORT CoT (ATAK / TAK SERVER)
+      </button>
       <ReportGenerator open={reportOpen} onClose={() => setReportOpen(false)} missionId={activeMissionId} />
     </div>
   );
