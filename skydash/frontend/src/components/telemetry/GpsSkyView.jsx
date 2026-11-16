@@ -28,11 +28,11 @@ export default function GpsSkyView() {
 
   return (
     <div className="space-y-2">
-      <div className="flex justify-between items-baseline">
-        <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
+      <div className="flex justify-between items-baseline gap-2">
+        <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 truncate min-w-0">
           GPS CONSTELLATION
         </span>
-        <span className={`text-xs font-mono tabular-nums font-bold ${colors.text}`}>
+        <span className={`shrink-0 whitespace-nowrap text-xs font-mono tabular-nums font-bold ${colors.text}`}>
           {satCount} SATS
         </span>
       </div>
