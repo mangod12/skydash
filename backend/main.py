@@ -24,6 +24,7 @@ from deps import (
     start_time,
     telemetry_history,
 )
+import audit
 from rbac import has_role, required_role
 from routes.telemetry import router as telemetry_router
 from routes.entities import router as entities_router
@@ -118,6 +119,7 @@ async def auth_middleware(request: Request, call_next):
                 status_code=401,
                 content={"success": False, "error": "Invalid or expired token"},
             )
+        request.state.user = payload  # set first so denials are audited with identity
         needed = required_role(request.method, path)
         if not has_role(payload.get("role"), needed):
             log.warning(
@@ -134,6 +136,25 @@ async def auth_middleware(request: Request, call_next):
             )
         request.state.user = payload
     return await call_next(request)
+
+
+@app.middleware("http")
+async def audit_middleware(request: Request, call_next):
+    # Outermost middleware: sees auth denials (401/403) as well as handler results.
+    path = request.url.path
+    audited = AUTH_ENABLED and audit.should_audit(request.method, path)
+    try:
+        response = await call_next(request)
+    except Exception:
+        if audited:
+            audit.record(request.method, path, 500, getattr(request.state, "user", None),
+                         request.client.host if request.client else None)
+        raise
+    if audited:
+        audit.record(request.method, path, response.status_code,
+                     getattr(request.state, "user", None),
+                     request.client.host if request.client else None)
+    return response
 
 
 # ── Error handling ───────────────────────────────────────────
@@ -168,6 +189,12 @@ async def health():
             },
         },
     }
+
+
+@app.get("/api/audit")
+async def get_audit(limit: int = 100, username: str = None, since: float = None):
+    """Audit trail, newest first. Commander role only (enforced in middleware)."""
+    return {"success": True, "data": audit.query(limit, username, since)}
 
 
 @app.get("/")

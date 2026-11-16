@@ -3,6 +3,7 @@
 Role ladder (low to high): viewer < analyst < operator < commander.
 Reads need any authenticated user. Mutations need analyst or higher.
 Flight control (drone commands, simulation reset) needs operator or higher.
+The audit trail (/api/audit) is commander-only for every method.
 Auth endpoints are exempt (login and register handle their own checks).
 """
 
@@ -22,6 +23,8 @@ def required_role(method: str, path: str):
     """Minimum role for this request, or None when no role is required."""
     if path.startswith("/api/auth/"):
         return None
+    if path.startswith("/api/audit"):
+        return "commander"
     if method.upper() in SAFE_METHODS:
         return None
     if any(p.match(path) for p in _FLIGHT_CONTROL):
