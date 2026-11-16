@@ -21,6 +21,7 @@ import DeckGlOverlay from './DeckGlOverlay';
 import ProximityWarning from './ProximityWarning';
 import { useDeckLayers } from './deckLayers';
 import { useMapInteractions } from './MapInteractions';
+import { DARK_BASEMAP } from '../../utils/basemap';
 import 'leaflet/dist/leaflet.css';
 
 function MapContextHandler({ onContextMenu }) {
@@ -29,11 +30,7 @@ function MapContextHandler({ onContextMenu }) {
 }
 
 export const TILE_LAYERS = {
-  dark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    maxZoom: 20,
-    maxNativeZoom: 20,
-  },
+  dark: DARK_BASEMAP,
   satellite: {
     url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
     maxZoom: 20,
@@ -140,7 +137,6 @@ export default function MapView({ variant = 'operations' }) {
         zoom={zoom}
         className="h-full w-full z-0"
         zoomControl={false}
-        attributionControl={false}
         style={{ background: '#09090b' }}
       >
         <MapRefBridge mapRef={mapRef} />
@@ -150,6 +146,8 @@ export default function MapView({ variant = 'operations' }) {
 
         <TileLayer
           url={tileConfig.url}
+          attribution={tileConfig.attribution}
+          className={tileConfig.className}
           maxZoom={tileConfig.maxZoom}
           maxNativeZoom={tileConfig.maxNativeZoom}
         />
