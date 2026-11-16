@@ -1,6 +1,7 @@
 """SkyDash Spatial Intelligence API — application entry point."""
 
 import asyncio
+import contextlib
 import logging
 import time
 
@@ -35,11 +36,33 @@ log = logging.getLogger("skydash")
 
 # ── App ──────────────────────────────────────────────────────
 
+@contextlib.asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Sample fleet telemetry every second into a ring buffer."""
+    async def record():
+        while True:
+            snapshot = {
+                "timestamp": time.time(),
+                "drones": fleet.get_all_telemetry(),
+            }
+            telemetry_history.append(snapshot)
+            await asyncio.sleep(1)
+
+    task = asyncio.create_task(record())
+    try:
+        yield
+    finally:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
+
 app = FastAPI(
     title="SkyDash Spatial Intelligence API",
     version="2.0.0",
     docs_url="/docs",
     redoc_url=None,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -59,23 +82,6 @@ app.include_router(vision_router)
 app.include_router(auth_router)
 app.include_router(connectors_router)
 app.include_router(export_router)
-
-# ── Startup: telemetry recorder ──────────────────────────────
-
-
-@app.on_event("startup")
-async def start_telemetry_recorder():
-    """Sample fleet telemetry every second into a ring buffer."""
-    async def record():
-        while True:
-            snapshot = {
-                "timestamp": time.time(),
-                "drones": fleet.get_all_telemetry(),
-            }
-            telemetry_history.append(snapshot)
-            await asyncio.sleep(1)
-    asyncio.create_task(record())
-
 
 # ── Auth middleware ──────────────────────────────────────────
 
