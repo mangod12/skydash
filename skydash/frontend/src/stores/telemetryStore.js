@@ -62,6 +62,7 @@ export const useTelemetryStore = create((set, get) => ({
       data,
       history: newHistory,
       isConnected: true,
+      hasEverConnected: true,
       alerts: activeAlerts,
       latency,
       lastUpdate: Date.now(),
@@ -69,7 +70,7 @@ export const useTelemetryStore = create((set, get) => ({
     });
   },
 
-  updateFleet: (fleetData) => set({ fleet: fleetData, isConnected: true, lastUpdate: Date.now() }),
+  updateFleet: (fleetData) => set({ fleet: fleetData, isConnected: true, hasEverConnected: true, lastUpdate: Date.now() }),
 
   setLatency: (latency) => set({ latency }),
 

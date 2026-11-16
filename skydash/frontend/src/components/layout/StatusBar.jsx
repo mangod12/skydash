@@ -8,6 +8,7 @@ import SystemHealth from '../common/SystemHealth';
 import SystemPulse from '../common/SystemPulse';
 import FreshnessIndicator from '../common/FreshnessIndicator';
 import { BACKEND_CONFIGURED } from '../../utils/runtimeConfig';
+import { connectionPhase } from '../../utils/connectionPhase';
 
 function ConnectionBars({ latency, connected }) {
   const bars = connected
@@ -44,7 +45,9 @@ function formatElapsed(ms) {
 }
 
 export default function StatusBar() {
-  const { data, isConnected, latency, lastUpdate } = useTelemetryStore();
+  const { data, isConnected, latency, lastUpdate, hasEverConnected } = useTelemetryStore();
+  const [startedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const isMobile = useUIStore((s) => s.isMobile);
   const activeMission = useMissionStore((s) => s.getActiveMission());
   const [healthOpen, setHealthOpen] = useState(false);
@@ -52,6 +55,8 @@ export default function StatusBar() {
   const popoverRef = useRef(null);
   const staticMode = !BACKEND_CONFIGURED;
   const liveTelemetry = BACKEND_CONFIGURED && isConnected;
+  const phase = connectionPhase({ isConnected: liveTelemetry, hasEverConnected, startedAt, now });
+  const waking = phase === 'waking';
 
   const lat = data?.gps?.latitude?.toFixed(6) ?? '--';
   const lng = data?.gps?.longitude?.toFixed(6) ?? '--';
@@ -65,6 +70,12 @@ export default function StatusBar() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [activeMission]);
+
+  useEffect(() => {
+    if (hasEverConnected) return;
+    const id = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(id);
+  }, [hasEverConnected]);
 
   useEffect(() => {
     if (!healthOpen) return;
@@ -84,8 +95,8 @@ export default function StatusBar() {
       disabled={staticMode}
     >
       <StatusBadge
-        status={liveTelemetry ? 'connected' : staticMode ? 'armed' : 'disconnected'}
-        label={liveTelemetry ? 'CONNECTED' : staticMode ? 'STATIC DEMO' : 'OFFLINE'}
+        status={liveTelemetry ? 'connected' : staticMode || waking ? 'armed' : 'disconnected'}
+        label={liveTelemetry ? 'CONNECTED' : staticMode ? 'STATIC DEMO' : waking ? 'WAKING UP' : 'OFFLINE'}
         pulse={liveTelemetry}
       />
       <div className="flex items-center gap-1.5">
@@ -98,6 +109,8 @@ export default function StatusBar() {
           <span className="text-zinc-600 tabular-nums">{latency}ms</span>
         ) : staticMode ? (
           <span className="text-zinc-600 text-[9px] font-bold tracking-wider">LOCAL</span>
+        ) : waking ? (
+          <span className="text-amber-500 text-[9px] font-bold tracking-wider">BACKEND STARTING</span>
         ) : (
           <span className="text-red-500 text-[9px] font-bold tracking-wider">OFFLINE</span>
         )}
