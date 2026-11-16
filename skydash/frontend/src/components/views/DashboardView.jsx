@@ -133,19 +133,19 @@ export default function DashboardView() {
             label="FLEET STATUS" value={droneCount} icon={Wifi}
             sub={allConnected ? `ALL CONNECTED \u00B7 ${avgBattery}% AVG BAT`
               : droneCount > 0 ? `PARTIAL \u00B7 ${avgBattery}% AVG BAT` : 'NO DRONES'}
-            accent={allConnected ? 'emerald' : 'amber'} index={0}
+            accent={allConnected ? 'emerald' : 'amber'} empty={droneCount === 0}
             freshness={formatFreshness(fleetUpdatedAt)}
           />
           <StatCard
             label="THREAT OVERVIEW" value={threatCounts.high + threatCounts.critical} icon={Shield}
             sub={`${threatCounts.high} HIGH \u00B7 ${threatCounts.critical} CRIT \u00B7 ${threatScore}% SCORE`}
-            accent={threatAccent} index={1}
+            accent={threatAccent} empty={entities.length === 0}
             freshness={formatFreshness(entitiesUpdatedAt)}
           />
           <StatCard
             label="ACTIVE MISSIONS" value={activeMissions.length} icon={Crosshair}
             sub={`${linkedEntities} LINKED ENTITIES \u00B7 ${entities.length} TOTAL`}
-            accent="indigo" index={2}
+            accent="indigo"
             freshness={activeMissions.length > 0
               ? formatFreshness(new Date(activeMissions[0].created_at).getTime())
               : null}
@@ -154,7 +154,7 @@ export default function DashboardView() {
             label="SYSTEM HEALTH" value={systemHealth.value}
             icon={systemHealth.icon}
             sub={systemHealth.sub}
-            accent={systemHealth.accent} index={3}
+            accent={systemHealth.accent}
             freshness={systemHealth.freshness}
           />
         </div>
@@ -173,6 +173,7 @@ export default function DashboardView() {
               score={threatScore}
               highCount={threatCounts.high}
               critCount={threatCounts.critical}
+              total={entities.length}
             />
           </motion.div>
           <motion.div className="lg:col-span-2" initial={{ opacity: 0, y: 12 }}
@@ -200,8 +201,8 @@ export default function DashboardView() {
           <div className="lg:col-span-2 space-y-3">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.45, ease: EASE }}>
-              <GlassCard className="!p-3" animate={false}>
-                <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 block mb-2">
+              <GlassCard className="!p-4" animate={false}>
+                <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 block mb-3">
                   OPERATIONAL MAP
                 </span>
                 <DashboardMiniMap />

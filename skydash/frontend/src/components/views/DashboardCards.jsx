@@ -1,15 +1,4 @@
-import { motion } from 'framer-motion';
 import GlassCard from '../common/GlassCard';
-
-const STAGGER_DELAY = 0.1;
-
-const GLOW_MAP = {
-  emerald: 'shadow-emerald-500/10',
-  amber: 'shadow-amber-500/10',
-  red: 'shadow-red-500/10',
-  indigo: 'shadow-indigo-500/10',
-  cyan: 'shadow-cyan-500/10',
-};
 
 const TEXT_MAP = {
   emerald: 'text-emerald-400',
@@ -19,35 +8,47 @@ const TEXT_MAP = {
   cyan: 'text-cyan-400',
 };
 
-export function StatCard({ label, value, sub, icon: Icon, accent, index, freshness }) {
+const BAR_MAP = {
+  emerald: 'bg-emerald-400',
+  amber: 'bg-amber-400',
+  red: 'bg-red-400',
+  indigo: 'bg-indigo-400',
+  cyan: 'bg-cyan-400',
+};
+
+/**
+ * Flat metric card: label row, one large value, a single supporting line.
+ * `empty` shows a muted dash instead of a value (no data yet).
+ * `status` draws a 2px left rule in the semantic colour; nothing else glows.
+ */
+export function StatCard({ label, value, sub, icon: Icon, accent, freshness, empty = false }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
-      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-      transition={{ duration: 0.4, delay: index * STAGGER_DELAY, ease: [0.16, 1, 0.3, 1] }}
-    >
-      <GlassCard className={`!p-4 ${GLOW_MAP[accent] || ''}`} animate={false}>
-        <div className="flex items-start justify-between mb-2">
-          <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
-            {label}
-          </span>
-          {Icon && <Icon size={14} className="text-zinc-600" />}
+    <GlassCard className="!p-4 relative overflow-hidden" animate={false}>
+      <span
+        aria-hidden="true"
+        className={`absolute left-0 top-0 bottom-0 w-[2px] ${BAR_MAP[accent] || 'bg-zinc-700'}`}
+      />
+      <div className="flex items-start justify-between mb-2">
+        <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
+          {label}
+        </span>
+        {Icon && <Icon size={14} className="text-zinc-600" />}
+      </div>
+      <div className={`text-2xl font-mono font-semibold tabular-nums ${
+        empty ? 'text-zinc-600' : TEXT_MAP[accent] || 'text-zinc-200'}`}>
+        {empty ? '\u2014' : value}
+      </div>
+      {sub && (
+        <div className="text-[10px] text-zinc-500 mt-1 font-mono tabular-nums">
+          {sub}
         </div>
-        <div className={`text-2xl font-mono font-bold tabular-nums ${TEXT_MAP[accent] || 'text-zinc-200'}`}>
-          {value}
+      )}
+      {freshness && (
+        <div className="text-[9px] text-zinc-600 mt-1 font-mono">
+          {freshness}
         </div>
-        {sub && (
-          <div className="text-[10px] text-zinc-500 mt-1 font-mono tabular-nums">
-            {sub}
-          </div>
-        )}
-        {freshness && (
-          <div className="text-[8px] text-zinc-600 mt-1 font-mono">
-            {freshness}
-          </div>
-        )}
-      </GlassCard>
-    </motion.div>
+      )}
+    </GlassCard>
   );
 }
 
