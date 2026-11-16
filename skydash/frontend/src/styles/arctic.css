@@ -249,3 +249,12 @@
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
   color: #1e293b !important;
 }
+
+/* ── Hard-coded dark surfaces (arbitrary-value and opacity variants) ──
+   These bypass the .bg-zinc-* overrides above and render as muddy gray
+   panels with unreadable text on the light theme. */
+[data-theme="arctic"] [class*="bg-[rgba(9,9,11"] { background-color: rgba(255, 255, 255, 0.82); }
+[data-theme="arctic"] [class*="bg-zinc-950/"] { background-color: rgba(248, 250, 252, 0.92); }
+[data-theme="arctic"] [class*="bg-zinc-900/"]:not(.bg-zinc-900\/50):not(.bg-zinc-900\/80) { background-color: rgba(255, 255, 255, 0.78); }
+[data-theme="arctic"] [class*="bg-zinc-800/"]:not(.bg-zinc-800\/50) { background-color: rgba(241, 245, 249, 0.8); }
+[data-theme="arctic"] [class*="bg-black/"] { background-color: rgba(255, 255, 255, 0.7); }
