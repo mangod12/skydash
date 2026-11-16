@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "lint": "eslint src/",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",
@@ -37,6 +38,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/coverage-v8": "^4.1.7",
     "autoprefixer": "^10.4.20",
     "eslint": "^10.4.0",
     "eslint-plugin-react-hooks": "^7.1.1",
