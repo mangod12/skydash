@@ -5,7 +5,8 @@ import { distanceBetween } from './coordinates';
  * Returns { triggered: boolean, message: string } for each check.
  */
 function checkBatteryLow(drone, config) {
-  const pct = drone.battery_percentage ?? 0;
+  const pct = drone.battery_percentage;
+  if (typeof pct !== 'number') return { triggered: false };
   if (pct < config.threshold) {
     return { triggered: true, message: `${drone.drone_id} battery at ${pct}%` };
   }
@@ -53,7 +54,7 @@ function checkGeofenceBreach(drone, config, geofences) {
   return { triggered: false };
 }
 
-function checkProximity(drone, config, entities) {
+function checkProximity(drone, config, _geofences, entities) {
   if (!drone.gps) return { triggered: false };
   const target = entities.find((e) => e.id === config.entityId);
   if (!target?.coordinates) return { triggered: false };
