@@ -31,6 +31,7 @@ const DECK_LAYER_LIST = [
 const TACTICAL_LAYER_LIST = [
   { key: 'threatZones', label: 'Threat Zones' },
   { key: 'droneFootprint', label: 'Drone FOV' },
+  { key: 'rangeRings', label: 'Range Rings + Track' },
   { key: 'tacticalLabels', label: 'Tactical Labels' },
   { key: 'sectors', label: 'Sector Grid' },
 ];
