@@ -119,7 +119,7 @@ class DroneSimulator:
             "command_state": self.get_command_state(),
             "wind": {
                 "speed": round(self.wind_speed + random.gauss(0, 0.3), 1),
-                "direction": round(self.wind_direction, 0),
+                "direction": round(self.wind_direction, 0) % 360,
             },
         }
 
