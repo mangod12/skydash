@@ -94,6 +94,8 @@ export default function Shell({ children }) {
         <div className="flex-1 flex flex-col min-w-0">
           <TopBar onInfoOpen={() => setShowInfo(true)} onNotificationToggle={toggleNotifications} />
 
+          <ConnectionLost />
+
           <main className={`flex-1 min-h-0 overflow-hidden ${isMobile ? 'pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]' : ''}`}>
             {children}
           </main>
@@ -105,7 +107,6 @@ export default function Shell({ children }) {
         <KeyboardHelp open={showHelp} onOpen={() => setShowHelp(true)} onClose={() => setShowHelp(false)} />
         <InfoPanel open={showInfo} onClose={() => setShowInfo(false)} />
         <NotificationCenter isOpen={notificationOpen} onClose={() => setNotificationOpen(false)} />
-        <ConnectionLost />
         </div>
       </div>
 
