@@ -140,7 +140,7 @@ export default function QuickActions() {
   const hasNotifications = unreadCount > 0;
 
   return (
-    <div ref={containerRef} className="fixed bottom-6 right-6 z-40">
+    <div ref={containerRef} className="fixed bottom-10 right-4 z-40">
       <AnimatePresence>
         {open && ACTIONS.map((action, i) => {
           const pos = getPosition(i, ACTIONS.length);
@@ -164,9 +164,7 @@ export default function QuickActions() {
       {/* FAB */}
       <motion.button
         onClick={() => setOpen((v) => !v)}
-        className="relative w-14 h-14 rounded-full flex items-center justify-center border border-white/[0.12] backdrop-blur-xl bg-[rgba(9,9,11,0.7)] shadow-lg shadow-indigo-500/10 hover:bg-[rgba(9,9,11,0.85)] transition-colors"
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.95 }}
+        className="relative w-9 h-9 rounded-md flex items-center justify-center border border-white/[0.12] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] transition-colors"
         aria-label="Quick actions"
         aria-expanded={open}
       >
@@ -174,11 +172,11 @@ export default function QuickActions() {
           animate={{ rotate: open ? 135 : 0 }}
           transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
         >
-          {open ? <X size={20} className="text-zinc-300" /> : <Zap size={20} className="text-indigo-400" />}
+          {open ? <X size={16} className="text-zinc-300" /> : <Zap size={16} className="text-indigo-400" />}
         </motion.div>
 
         {hasNotifications && !open && (
-          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-red-500 border border-zinc-950 animate-pulse" />
+          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-red-500 border border-zinc-950" />
         )}
       </motion.button>
     </div>

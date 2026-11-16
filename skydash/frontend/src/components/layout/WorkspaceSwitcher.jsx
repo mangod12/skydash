@@ -21,7 +21,7 @@ export default function WorkspaceSwitcher() {
             onClick={() => setWorkspace(id)}
             className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors text-[9px] font-semibold tracking-wider ${
               active
-                ? 'bg-indigo-500/15 text-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.15)]'
+                ? 'bg-indigo-500/15 text-indigo-400'
                 : 'text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.04]'
             }`}
           >

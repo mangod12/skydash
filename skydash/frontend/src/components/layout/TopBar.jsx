@@ -89,7 +89,7 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
         >
           <Bell size={18} strokeWidth={1.5} />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center animate-pulse">
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center">
               {unreadCount}
             </span>
           )}
