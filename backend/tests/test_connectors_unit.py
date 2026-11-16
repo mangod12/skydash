@@ -1,0 +1,110 @@
+import unittest
+from unittest.mock import MagicMock, patch
+
+from connectors import OpenSkyConnector, ShodanConnector
+
+
+def state(icao="abc123", callsign="UAL1 ", lon=-122.4, lat=37.7, baro=1000.0, geo=None):
+    row = [None] * 17
+    row[0], row[1], row[2] = icao, callsign, "United States"
+    row[4], row[5], row[6] = 1700000000, lon, lat
+    row[7], row[8], row[9], row[10], row[11] = baro, False, 120.5, 270.0, 0.0
+    row[13] = geo
+    return row
+
+
+def response(status=200, body=None):
+    r = MagicMock()
+    r.status_code = status
+    r.json.return_value = body or {}
+    return r
+
+
+class TestOpenSky(unittest.TestCase):
+    def test_parses_states_and_skips_rows_without_position(self):
+        rows = [state(), state(icao="nopos", lon=None)]
+        with patch("connectors.requests.get", return_value=response(200, {"states": rows})):
+            aircraft = OpenSkyConnector().fetch_aircraft()
+        self.assertEqual(len(aircraft), 1)
+        self.assertEqual(aircraft[0]["callsign"], "UAL1")
+        self.assertEqual(aircraft[0]["latitude"], 37.7)
+        self.assertEqual(aircraft[0]["altitude"], 1000.0)
+
+    def test_falls_back_to_geometric_altitude_and_zero(self):
+        rows = [state(baro=None, geo=900.0), state(icao="z", baro=None, geo=None)]
+        with patch("connectors.requests.get", return_value=response(200, {"states": rows})):
+            aircraft = OpenSkyConnector().fetch_aircraft()
+        self.assertEqual([a["altitude"] for a in aircraft], [900.0, 0])
+
+    def test_sends_bbox_as_query_params(self):
+        with patch("connectors.requests.get", return_value=response(200, {"states": None})) as get:
+            self.assertEqual(OpenSkyConnector().fetch_aircraft(bbox=[1, 2, 3, 4]), [])
+        self.assertEqual(get.call_args.kwargs["params"], {"lamin": 1, "lomin": 2, "lamax": 3, "lomax": 4})
+
+    def test_caches_within_ttl(self):
+        conn = OpenSkyConnector()
+        with patch("connectors.requests.get", return_value=response(200, {"states": [state()]})) as get:
+            conn.fetch_aircraft()
+            conn.fetch_aircraft()
+        self.assertEqual(get.call_count, 1)
+
+    def test_returns_cache_on_http_error_and_exception(self):
+        conn = OpenSkyConnector()
+        conn.cache = [{"icao24": "cached"}]
+        with patch("connectors.requests.get", return_value=response(429)):
+            self.assertEqual(conn.fetch_aircraft(), [{"icao24": "cached"}])
+        with patch("connectors.requests.get", side_effect=RuntimeError("down")):
+            self.assertEqual(conn.fetch_aircraft(), [{"icao24": "cached"}])
+
+    def test_to_entities_shape(self):
+        with patch("connectors.requests.get", return_value=response(200, {"states": [state(callsign="")]})):
+            conn = OpenSkyConnector()
+            entity = conn.to_entities(conn.fetch_aircraft())[0]
+        self.assertEqual(entity["id"], "adsb-abc123")
+        self.assertEqual(entity["name"], "abc123")
+        self.assertEqual(entity["coordinates"], [37.7, -122.4])
+        self.assertEqual(entity["properties"]["velocity_ms"], 120.5)
+        self.assertEqual(entity["type"], "aircraft")
+
+
+class TestShodan(unittest.TestCase):
+    def test_mock_mode_without_key_respects_limit(self):
+        conn = ShodanConnector()
+        self.assertFalse(conn.available)
+        results = conn.search("webcam", 2)
+        self.assertEqual(len(results), 2)
+        self.assertTrue(all(r["ip"] for r in results))
+
+    def test_live_mode_normalizes_matches(self):
+        body = {"matches": [
+            {"ip_str": "1.2.3.4", "port": 80, "org": "Org", "product": "Cam", "location": {"latitude": 1.5, "longitude": 2.5}},
+            {"ip_str": "5.6.7.8"},
+        ]}
+        conn = ShodanConnector(api_key="test-key")
+        with patch("connectors.requests.get", return_value=response(200, body)) as get:
+            results = conn.search("cam", 1)
+        self.assertTrue(conn.available)
+        self.assertEqual(get.call_args.kwargs["params"]["query"], "cam")
+        self.assertEqual(results, [{"ip": "1.2.3.4", "port": 80, "org": "Org", "product": "Cam", "lat": 1.5, "lon": 2.5}])
+
+    def test_live_mode_failure_returns_empty(self):
+        conn = ShodanConnector(api_key="test-key")
+        with patch("connectors.requests.get", return_value=response(500)):
+            self.assertEqual(conn.search("x"), [])
+        with patch("connectors.requests.get", side_effect=RuntimeError("down")):
+            self.assertEqual(conn.search("x"), [])
+
+    def test_to_entities_marks_mode_and_handles_missing_coordinates(self):
+        results = [{"ip": "1.2.3.4", "port": 80, "org": "O", "product": "Cam", "lat": 1.5, "lon": 2.5},
+                   {"ip": "5.6.7.8", "port": 22, "org": "O", "product": "SSH"}]
+        mock_entities = ShodanConnector().to_entities(results)
+        self.assertEqual(mock_entities[0]["id"], "shodan-1_2_3_4")
+        self.assertEqual(mock_entities[0]["coordinates"], [1.5, 2.5])
+        self.assertIsNone(mock_entities[1]["coordinates"])
+        self.assertEqual(mock_entities[0]["source"], "Shodan (Mock)")
+        live_entities = ShodanConnector(api_key="k").to_entities(results)
+        self.assertEqual(live_entities[0]["properties"]["mode"], "live")
+
+
+if __name__ == "__main__":
+    unittest.main()
