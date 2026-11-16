@@ -5,7 +5,8 @@ import { distanceBetween } from './coordinates';
  * Returns { triggered: boolean, message: string } for each check.
  */
 function checkBatteryLow(drone, config) {
-  const pct = drone.battery_percentage ?? 0;
+  const pct = drone.battery_percentage;
+  if (typeof pct !== 'number') return { triggered: false };
   if (pct < config.threshold) {
     return { triggered: true, message: `${drone.drone_id} battery at ${pct}%` };
   }
