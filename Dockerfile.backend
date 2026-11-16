@@ -3,5 +3,10 @@ WORKDIR /app
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ .
+# Run as an unprivileged user; /app/data holds the SQLite database
+RUN useradd --system --uid 10001 --no-create-home skydash \
+    && mkdir -p /app/data \
+    && chown -R skydash:skydash /app
+USER skydash
 EXPOSE 8001
 CMD ["python", "main.py"]

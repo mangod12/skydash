@@ -11,6 +11,9 @@ services:
       - SKYDASH_DB_PATH=/app/data/skydash.db
       - SKYDASH_API_KEY=${SKYDASH_API_KEY:-}
       - SKYDASH_JWT_SECRET=${SKYDASH_JWT_SECRET:-}
+      - SKYDASH_DISABLE_DEMO_USERS=${SKYDASH_DISABLE_DEMO_USERS:-}
+      - SKYDASH_ALLOW_REGISTRATION=${SKYDASH_ALLOW_REGISTRATION:-true}
+      - SKYDASH_CORS_ORIGINS=${SKYDASH_CORS_ORIGINS:-http://localhost,http://localhost:80}
     volumes:
       - skydash-data:/app/data
     restart: unless-stopped
