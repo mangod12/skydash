@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
-import { X, Bell, CheckCheck } from 'lucide-react';
+import { X, Bell, CheckCheck, Crosshair, Check, ArrowUpCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import useNotificationStore from '../../stores/notificationStore';
+import { useUIStore } from '../../stores/uiStore';
+import { useMapStore } from '../../stores/mapStore';
 import VirtualList from './VirtualList';
 
-const TABS = ['all', 'alert', 'intel', 'system', 'mission'];
+const TABS = ['attention', 'all', 'alert', 'intel', 'system', 'mission'];
 
 const SEVERITY_DOT = {
   info: 'bg-blue-400',
@@ -20,8 +22,23 @@ const SEVERITY_BORDER = {
   critical: 'border-l-red-500',
 };
 
-function NotificationItem({ notification, onDismiss }) {
+function NotificationItem({ notification, onDismiss, onClose }) {
   const markRead = useNotificationStore((s) => s.markRead);
+  const acknowledge = useNotificationStore((s) => s.acknowledge);
+  const escalate = useNotificationStore((s) => s.escalate);
+  const isAlert = notification.type === 'alert';
+  const status = notification.status || 'new';
+
+  const locate = (e) => {
+    e.stopPropagation();
+    markRead(notification.id);
+    const loc = notification.location;
+    if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lon)) {
+      useMapStore.getState().flyTo([loc.lat, loc.lon], 15);
+    }
+    useUIStore.getState().setActiveView('map');
+    onClose?.();
+  };
 
   const handleClick = () => {
     markRead(notification.id);
@@ -65,7 +82,36 @@ function NotificationItem({ notification, onDismiss }) {
           </p>
           <span className="text-[9px] font-mono text-zinc-600 mt-1 block">
             {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
+            {isAlert && status !== 'new' && (
+              <span className={clsx('ml-2 uppercase', status === 'escalated' ? 'text-red-400' : 'text-emerald-400')}>
+                {status}
+              </span>
+            )}
           </span>
+          {isAlert && (
+            <div className="flex items-center gap-1.5 mt-1.5">
+              {notification.location && (
+                <button type="button" onClick={locate} aria-label={`Locate ${notification.title} on map`}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold tracking-wider text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20">
+                  <Crosshair size={10} />LOCATE
+                </button>
+              )}
+              {status !== 'acknowledged' && (
+                <button type="button" onClick={(e) => { e.stopPropagation(); acknowledge(notification.id); }}
+                  aria-label={`Acknowledge ${notification.title}`}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold tracking-wider text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20">
+                  <Check size={10} />ACK
+                </button>
+              )}
+              {status === 'new' && (
+                <button type="button" onClick={(e) => { e.stopPropagation(); escalate(notification.id); }}
+                  aria-label={`Escalate ${notification.title}`}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold tracking-wider text-red-300 bg-red-500/10 hover:bg-red-500/20">
+                  <ArrowUpCircle size={10} />ESCALATE
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
@@ -75,7 +121,7 @@ function NotificationItem({ notification, onDismiss }) {
 export default function NotificationCenter({ isOpen, onClose }) {
   const panelRef = useRef(null);
   const { notifications, markAllRead, dismiss } = useNotificationStore();
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('attention');
 
   // Close on Escape
   useEffect(() => {
@@ -98,9 +144,14 @@ export default function NotificationCenter({ isOpen, onClose }) {
     return () => { clearTimeout(timer); window.removeEventListener('mousedown', handler); };
   }, [isOpen, onClose]);
 
+  const needsAttention = (n) => n.type === 'alert' && n.status !== 'acknowledged'
+    && (n.severity === 'critical' || n.severity === 'warning' || n.status === 'escalated');
+  const attentionCount = notifications.filter(needsAttention).length;
   const filtered = activeTab === 'all'
     ? notifications
-    : notifications.filter((n) => n.type === activeTab);
+    : activeTab === 'attention'
+      ? notifications.filter(needsAttention)
+      : notifications.filter((n) => n.type === activeTab);
 
   return (
     <AnimatePresence>
@@ -142,20 +193,20 @@ export default function NotificationCenter({ isOpen, onClose }) {
           </div>
 
           {/* Filter tabs */}
-          <div className="flex gap-1 px-3 py-2 border-b border-white/[0.06]">
+          <div className="flex gap-1 px-3 py-2 border-b border-white/[0.06] overflow-x-auto">
             {TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 aria-pressed={activeTab === tab}
                 className={clsx(
-                  'px-2.5 py-1 rounded text-[10px] font-semibold tracking-wider transition-colors',
+                  'px-2.5 py-1 rounded whitespace-nowrap text-[10px] font-semibold tracking-wider transition-colors',
                   activeTab === tab
                     ? 'bg-indigo-500/15 text-indigo-400'
                     : 'text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.03]',
                 )}
               >
-                {tab.toUpperCase()}
+                {tab === 'attention' ? `ATTENTION${attentionCount ? ` (${attentionCount})` : ''}` : tab.toUpperCase()}
               </button>
             ))}
           </div>
@@ -164,7 +215,7 @@ export default function NotificationCenter({ isOpen, onClose }) {
           {filtered.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center h-40 text-zinc-600">
               <Bell size={20} className="mb-2 opacity-40" />
-              <span className="text-[11px]">No notifications</span>
+              <span className="text-[11px]">{activeTab === 'attention' ? 'Nothing needs attention' : 'No notifications'}</span>
             </div>
           ) : filtered.length > 20 ? (
             <VirtualList
@@ -172,14 +223,14 @@ export default function NotificationCenter({ isOpen, onClose }) {
               itemHeight={72}
               className="flex-1"
               renderItem={(n) => (
-                <NotificationItem key={n.id} notification={n} onDismiss={dismiss} />
+                <NotificationItem key={n.id} notification={n} onDismiss={dismiss} onClose={onClose} />
               )}
             />
           ) : (
             <div className="flex-1 overflow-y-auto">
               <AnimatePresence mode="popLayout">
                 {filtered.map((n) => (
-                  <NotificationItem key={n.id} notification={n} onDismiss={dismiss} />
+                  <NotificationItem key={n.id} notification={n} onDismiss={dismiss} onClose={onClose} />
                 ))}
               </AnimatePresence>
             </div>

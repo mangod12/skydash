@@ -85,3 +85,22 @@ describe('notificationStore', () => {
     expect(store.getState().notifications[0].title).toBe('Global');
   });
 });
+
+describe('alert workflow', () => {
+  it('acknowledges and escalates alerts, tracking attention queue', () => {
+    const s = useNotificationStore.getState();
+    s.clearAll();
+    s.addNotification({ type: 'alert', title: 'A', message: 'm', severity: 'critical' });
+    s.addNotification({ type: 'alert', title: 'B', message: 'm', severity: 'warning' });
+    s.addNotification({ type: 'system', title: 'C', message: 'm', severity: 'info' });
+    const [c, b, a] = useNotificationStore.getState().notifications;
+    expect(c.status).toBe('new');
+    expect(useNotificationStore.getState().getNeedsAttention()).toHaveLength(2);
+    useNotificationStore.getState().acknowledge(a.id);
+    useNotificationStore.getState().escalate(b.id);
+    const after = useNotificationStore.getState();
+    expect(after.notifications.find((n) => n.id === a.id).status).toBe('acknowledged');
+    expect(after.notifications.find((n) => n.id === b.id).status).toBe('escalated');
+    expect(after.getNeedsAttention().map((n) => n.title)).toEqual(['B']);
+  });
+});

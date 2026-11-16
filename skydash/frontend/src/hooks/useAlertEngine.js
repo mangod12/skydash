@@ -46,6 +46,9 @@ export function useAlertEngine() {
             title: rule.name,
             message: result.message,
             severity: rule.severity,
+            location: drone.gps
+              ? { lat: drone.gps.latitude, lon: drone.gps.longitude }
+              : undefined,
           });
           break; // one notification per rule per cycle
         }
