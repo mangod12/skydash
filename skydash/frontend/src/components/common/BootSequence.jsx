@@ -18,16 +18,17 @@ export default function BootSequence({ onComplete }) {
   const [lines, setLines] = useState([]);
 
   useEffect(() => {
-    BOOT_LINES.forEach((line) => {
-      setTimeout(() => {
-        setLines((prev) => [...prev, line]);
-      }, line.delay);
-    });
+    const timers = BOOT_LINES.map((line) => setTimeout(() => {
+      setLines((prev) => [...prev, line]);
+    }, line.delay));
 
-    setTimeout(() => {
+    timers.push(setTimeout(() => {
       setVisible(false);
       onComplete?.();
-    }, 2200);
+    }, 2200));
+
+    // Clear on unmount / StrictMode re-run so lines and onComplete never fire twice
+    return () => timers.forEach(clearTimeout);
   }, [onComplete]);
 
   return (

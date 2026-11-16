@@ -75,15 +75,15 @@ export default function TelemetryPanel() {
         <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/[0.04]">
           <MetricDisplay
             label="ROLL" value={data?.attitude?.roll?.toFixed(1)}
-            unit="\u00B0" color="text-cyan-400" size="sm"
+            unit={"\u00B0"} color="text-cyan-400" size="sm"
           />
           <MetricDisplay
             label="PITCH" value={data?.attitude?.pitch?.toFixed(1)}
-            unit="\u00B0" color="text-blue-400" size="sm"
+            unit={"\u00B0"} color="text-blue-400" size="sm"
           />
           <MetricDisplay
             label="YAW" value={data?.attitude?.yaw?.toFixed(0)}
-            unit="\u00B0" color="text-zinc-400" size="sm"
+            unit={"\u00B0"} color="text-zinc-400" size="sm"
           />
         </div>
       </GlassCard>
