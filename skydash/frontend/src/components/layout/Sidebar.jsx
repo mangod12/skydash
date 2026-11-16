@@ -31,17 +31,14 @@ function NavButton({ item, active, expanded }) {
       aria-current={active ? 'page' : undefined}
       title={expanded ? undefined : item.label}
       className={clsx(
-        'group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl',
-        'transition-all duration-200',
+        'group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-md',
+        'transition-colors duration-150',
         active
-          ? 'bg-indigo-500/15 text-indigo-400'
+          ? 'bg-white/[0.06] text-zinc-100 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-indigo-400'
           : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]',
       )}
     >
-      <item.icon size={20} strokeWidth={1.5} className={clsx(
-        'shrink-0 transition-colors',
-        active && 'drop-shadow-[0_0_6px_rgba(99,102,241,0.5)]',
-      )} />
+      <item.icon size={18} strokeWidth={1.5} className="shrink-0 transition-colors" />
       {expanded && (
         <span className="text-sm font-medium truncate">{item.label}</span>
       )}
@@ -61,15 +58,15 @@ export default function Sidebar() {
 
   return (
     <motion.aside
-      initial={{ x: -20, opacity: 0 }}
+      initial={false}
       animate={{ x: 0, opacity: 1, width }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.15 }}
       className="h-full flex flex-col border-r border-white/[0.06] bg-[var(--surface-0)] relative z-30"
     >
       {/* Logo */}
       <div className="h-12 flex items-center justify-center border-b border-white/[0.06] shrink-0">
         <span className={clsx(
-          'font-bold tracking-wider text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.35)]',
+          'font-semibold tracking-wider text-zinc-200',
           expanded ? 'text-sm' : 'text-xs',
         )}>
           {expanded ? BRAND.wordmark : BRAND.shortName}
