@@ -44,7 +44,7 @@ function formatElapsed(ms) {
 }
 
 export default function StatusBar() {
-  const { data, isConnected, latency } = useTelemetryStore();
+  const { data, isConnected, latency, lastUpdate } = useTelemetryStore();
   const isMobile = useUIStore((s) => s.isMobile);
   const activeMission = useMissionStore((s) => s.getActiveMission());
   const [healthOpen, setHealthOpen] = useState(false);
@@ -162,7 +162,7 @@ export default function StatusBar() {
           <>
             <SystemPulse />
             <FreshnessIndicator
-              timestamp={liveTelemetry ? Date.now() : null}
+              timestamp={liveTelemetry ? lastUpdate : null}
               source="WS"
               compact
             />

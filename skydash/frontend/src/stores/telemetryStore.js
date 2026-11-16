@@ -36,6 +36,7 @@ export const useTelemetryStore = create((set, get) => ({
   isConnected: false,
   alerts: [],
   latency: 0,
+  lastUpdate: null,
   activeDroneId: null,
 
   updateTelemetry: (data, latency) => {
@@ -63,11 +64,12 @@ export const useTelemetryStore = create((set, get) => ({
       isConnected: true,
       alerts: activeAlerts,
       latency,
+      lastUpdate: Date.now(),
       activeDroneId: data.drone_id || state.activeDroneId,
     });
   },
 
-  updateFleet: (fleetData) => set({ fleet: fleetData, isConnected: true }),
+  updateFleet: (fleetData) => set({ fleet: fleetData, isConnected: true, lastUpdate: Date.now() }),
 
   setLatency: (latency) => set({ latency }),
 
