@@ -4,6 +4,7 @@
 @import './styles/animations.css';
 @import './styles/tactical.css';
 @import './styles/arctic.css';
+@import './styles/defence.css';
 
 @tailwind base;
 @tailwind components;
