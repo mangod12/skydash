@@ -3,16 +3,16 @@ import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { useIntelStore } from '../../stores/intelStore';
 
+// Single-hue ramp (steel blue to amber to red) at low alpha: reads as density, not as a rainbow.
 const DEFAULT_GRADIENT = {
-  0.0: 'rgba(0, 0, 255, 0)',
-  0.2: 'rgba(0, 0, 255, 0.3)',
-  0.4: 'rgba(0, 255, 255, 0.5)',
-  0.6: 'rgba(0, 255, 0, 0.5)',
-  0.8: 'rgba(255, 255, 0, 0.6)',
-  1.0: 'rgba(255, 0, 0, 0.7)',
+  0.0: 'rgba(109, 147, 201, 0)',
+  0.3: 'rgba(109, 147, 201, 0.18)',
+  0.55: 'rgba(209, 162, 67, 0.32)',
+  0.8: 'rgba(224, 96, 90, 0.42)',
+  1.0: 'rgba(224, 96, 90, 0.55)',
 };
 
-const DEFAULTS = { radius: 25, blur: 15, maxOpacity: 0.6 };
+const DEFAULTS = { radius: 25, blur: 15, maxOpacity: 0.45 };
 
 const THREAT_INTENSITY = {
   critical: 1.0, high: 0.8, medium: 0.5, low: 0.3, none: 0.15,
