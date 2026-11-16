@@ -3,6 +3,7 @@
 import asyncio
 import contextlib
 import logging
+import os
 import time
 
 from fastapi import FastAPI, Request
@@ -136,6 +137,28 @@ async def auth_middleware(request: Request, call_next):
             )
         request.state.user = payload
     return await call_next(request)
+
+
+MAX_BODY_BYTES = int(os.getenv("SKYDASH_MAX_BODY_BYTES", str(25 * 1024 * 1024)))
+
+
+@app.middleware("http")
+async def hardening_middleware(request: Request, call_next):
+    """Reject oversized bodies and add baseline security headers to every response."""
+    length = request.headers.get("content-length")
+    if length and length.isdigit() and int(length) > MAX_BODY_BYTES:
+        return JSONResponse(
+            status_code=413,
+            content={"success": False, "error": "Request body too large"},
+        )
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), camera=(), microphone=()")
+    if request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https":
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
 
 
 @app.middleware("http")

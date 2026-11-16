@@ -34,7 +34,9 @@ class UserStore:
             created_at TEXT
         )""")
         conn.commit()
-        if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
+        # Production deployments set SKYDASH_DISABLE_DEMO_USERS=1 so no built-in accounts exist.
+        demo_off = os.getenv("SKYDASH_DISABLE_DEMO_USERS", "").lower() in ("1", "true", "yes")
+        if not demo_off and conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
             self.create_user("admin", "admin", "commander")
             self.create_user("analyst", "analyst", "analyst")
             self.create_user("operator", "operator", "operator")
