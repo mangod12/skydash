@@ -11,8 +11,8 @@ export default defineConfig({
       include: ['src/**/*.{js,jsx}'],
       exclude: ['src/**/*.test.{js,jsx}'],
       reporter: ['text-summary'],
-      // Measured over all of src (about 17% lines today, since most UI components have no tests yet). The floor stops regressions; raise it as tests are added.
-      thresholds: { lines: 17, statements: 16, functions: 12, branches: 11 },
+      // Measured over all of src (about 18% lines today, since most UI components have no tests yet). The floor stops regressions; raise it as tests are added.
+      thresholds: { lines: 18, statements: 16, functions: 12, branches: 11 },
     },
   },
 });
