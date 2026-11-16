@@ -3,6 +3,7 @@ import TelemetryPanel from '../telemetry/TelemetryPanel';
 import DroneCommandPanel from '../telemetry/DroneCommandPanel';
 import MapView from '../map/MapView';
 import AlertBar from '../telemetry/AlertBar';
+import ReplayBar from '../telemetry/ReplayBar';
 
 export default function TelemetryView() {
   return (
@@ -22,6 +23,11 @@ export default function TelemetryView() {
             <PanelBoundary name="Telemetry">
               <TelemetryPanel />
             </PanelBoundary>
+            <div className="px-3 pb-3">
+              <PanelBoundary name="Replay">
+                <ReplayBar />
+              </PanelBoundary>
+            </div>
           </div>
           <div className="p-3 pt-0">
             <PanelBoundary name="Drone Command">
