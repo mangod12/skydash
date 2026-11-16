@@ -23,6 +23,7 @@ import ScenarioOverlay from '../map/ScenarioOverlay';
 import { useMapStore } from '../../stores/mapStore';
 import { useScenarioStore } from '../../stores/scenarioStore';
 import { useUIStore } from '../../stores/uiStore';
+import { DARK_BASEMAP } from '../../utils/basemap';
 import {
   FLEET_PRESETS,
   INJECTION_EVENTS,
@@ -32,8 +33,6 @@ import {
   buildScenarioFrame,
   formatScenarioTime,
 } from '../../utils/scenarioEngine';
-
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 
 const SCENARIO_ICONS = {
   fire: Flame,
@@ -128,12 +127,11 @@ function ScenarioMiniMap({ frame }) {
       center={frame.scenario.center}
       zoom={frame.scenario.zoom}
       zoomControl={false}
-      attributionControl={false}
       className="h-full w-full z-0"
       style={{ background: '#09090b' }}
     >
       <ScenarioMapSync center={frame.scenario.center} zoom={frame.scenario.zoom} />
-      <TileLayer url={TILE_URL} maxZoom={20} maxNativeZoom={20} />
+      <TileLayer url={DARK_BASEMAP.url} attribution={DARK_BASEMAP.attribution} className={DARK_BASEMAP.className} maxZoom={DARK_BASEMAP.maxZoom} maxNativeZoom={DARK_BASEMAP.maxNativeZoom} />
       <ScenarioOverlay frame={frame} showIdle compact />
     </MapContainer>
   );

@@ -46,7 +46,12 @@
 }
 
 .leaflet-control-attribution {
-  display: none !important;
+  background: rgba(9, 9, 11, 0.7) !important;
+  color: #71717a !important;
+  font-size: 9px !important;
+}
+.leaflet-control-attribution a {
+  color: #a1a1aa !important;
 }
 
 /* Leaflet tooltip dark theme */
@@ -117,4 +122,9 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Darken standard OSM tiles to fit the dark UI */
+.basemap-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.85) saturate(0.6);
 }

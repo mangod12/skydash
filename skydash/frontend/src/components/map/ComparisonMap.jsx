@@ -46,10 +46,10 @@ const ComparisonMap = forwardRef(function ComparisonMap({ syncEnabled, syncCente
 
   return (
     <div className="relative h-full w-full overflow-hidden opacity-[0.95]">
-      <MapContainer center={center} zoom={zoom} className="h-full w-full z-0" zoomControl={false} attributionControl={false} style={{ background: '#09090b' }}>
+      <MapContainer center={center} zoom={zoom} className="h-full w-full z-0" zoomControl={false} style={{ background: '#09090b' }}>
         <MapBridge mapRef={mapRef} onMoveEnd={onMoveEnd} />
         {syncEnabled && <SyncReceiver center={syncCenter} zoom={syncZoom} />}
-        <TileLayer url={tile.url} maxZoom={tile.maxZoom} maxNativeZoom={tile.maxNativeZoom} />
+        <TileLayer url={tile.url} attribution={tile.attribution} className={tile.className} maxZoom={tile.maxZoom} maxNativeZoom={tile.maxNativeZoom} />
         <DroneMarker />
         {layers.entities && <EntityMarkers />}
         {layers.fleet && <FleetMarkers />}

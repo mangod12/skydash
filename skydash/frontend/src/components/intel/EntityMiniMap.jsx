@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { DARK_BASEMAP } from '../../utils/basemap';
 
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 
 const THREAT_COLORS = {
   none: '#71717a',
@@ -28,10 +28,9 @@ export default function EntityMiniMap({ coordinates, threatLevel }) {
         doubleClickZoom={false}
         touchZoom={false}
         keyboard={false}
-        attributionControl={false}
         style={{ background: '#09090b' }}
       >
-        <TileLayer url={TILE_URL} maxZoom={20} maxNativeZoom={20} />
+        <TileLayer url={DARK_BASEMAP.url} attribution={DARK_BASEMAP.attribution} className={DARK_BASEMAP.className} maxZoom={DARK_BASEMAP.maxZoom} maxNativeZoom={DARK_BASEMAP.maxNativeZoom} />
         <CircleMarker
           center={coordinates}
           radius={6}

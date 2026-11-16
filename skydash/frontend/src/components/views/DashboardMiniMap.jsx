@@ -4,8 +4,8 @@ import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { PATTERN_COLORS, THREAT_COLORS, COLORS } from '../../utils/designTokens';
 import 'leaflet/dist/leaflet.css';
+import { DARK_BASEMAP } from '../../utils/basemap';
 
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 
 function computeCentroid(fleet, entities) {
   const points = [];
@@ -44,10 +44,9 @@ export default function DashboardMiniMap() {
         doubleClickZoom={false}
         touchZoom={false}
         keyboard={false}
-        attributionControl={false}
         style={{ background: COLORS.surface }}
       >
-        <TileLayer url={TILE_URL} maxZoom={20} maxNativeZoom={20} />
+        <TileLayer url={DARK_BASEMAP.url} attribution={DARK_BASEMAP.attribution} className={DARK_BASEMAP.className} maxZoom={DARK_BASEMAP.maxZoom} maxNativeZoom={DARK_BASEMAP.maxNativeZoom} />
 
         {/* Fleet drone dots */}
         {fleet.map((drone) => {
