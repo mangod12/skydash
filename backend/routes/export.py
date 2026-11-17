@@ -81,14 +81,24 @@ async def export_telemetry_csv(
         # Data rows
         rows_written = 0
         for snapshot in data:
+            if not isinstance(snapshot, dict):
+                continue
             ts = snapshot.get("timestamp", "")
-            for drone in snapshot.get("drones", []):
+            drones = snapshot.get("drones")
+            if not isinstance(drones, (list, tuple)):
+                continue
+            for drone in drones:
+                if not isinstance(drone, dict):
+                    continue
                 if drone_id and drone.get("drone_id") != drone_id:
                     continue
 
-                gps = drone.get("gps", {})
-                attitude = drone.get("attitude", {})
-                wind = drone.get("wind", {})
+                gps = drone.get("gps")
+                gps = gps if isinstance(gps, dict) else {}
+                attitude = drone.get("attitude")
+                attitude = attitude if isinstance(attitude, dict) else {}
+                wind = drone.get("wind")
+                wind = wind if isinstance(wind, dict) else {}
 
                 row = [
                     ts,

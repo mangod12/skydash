@@ -110,6 +110,22 @@ class TestExportRoutes(unittest.TestCase):
         self.assertEqual(row[3], "-122.1")
         self.assertEqual(row[5], "15.5")
 
+    def test_telemetry_csv_isolates_malformed_history_containers(self):
+        for bad in (None, [], "invalid", 42, True):
+            with self.subTest(container=repr(bad)):
+                telemetry_history.clear()
+                damaged = snapshot(1000, ["partial"])
+                damaged["drones"][0].update({"gps": bad, "attitude": bad, "wind": bad})
+                damaged["drones"].insert(0, bad)
+                telemetry_history.extend([bad, {"drones": bad}, damaged, snapshot(2000, ["good"])])
+                response = self.client.get("/api/export/telemetry/csv")
+                self.assertEqual(response.status_code, 200)
+                rows = self.rows(response)
+                self.assertEqual(len(rows), 3)
+                self.assertEqual(rows[1][1:4], ["partial", "", ""])
+                self.assertEqual(rows[1][9:14], ["", "", "", "", ""])
+                self.assertEqual(rows[2][:5], ["2000", "good", "37.1", "-122.1", "80"])
+
     def test_telemetry_csv_filters_by_drone_and_limits_snapshots(self):
         for ts in (1, 2, 3):
             telemetry_history.append(snapshot(ts, ["D1", "D2"]))
