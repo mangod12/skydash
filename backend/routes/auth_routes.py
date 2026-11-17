@@ -151,7 +151,14 @@ async def auth_ws_ticket(request: Request):
     raw = request.headers.get("Authorization", "")
     if not AUTH_ENABLED or not payload or not raw.startswith("Bearer "):
         return JSONResponse(status_code=401, content={"success": False, "error": "Not authenticated"})
-    return {"success": True, "data": {"ticket": issue_ws_ticket(raw[7:])}}
+    ticket = issue_ws_ticket(raw[7:])
+    if ticket is None:
+        return JSONResponse(
+            status_code=429,
+            headers={"Retry-After": "30"},
+            content={"success": False, "error": "Too many pending WebSocket tickets, try again shortly"},
+        )
+    return {"success": True, "data": {"ticket": ticket}}
 
 
 @router.post("/api/auth/logout")
