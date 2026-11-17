@@ -56,6 +56,9 @@ export const useMissionStore = create((set, get) => ({
         body: JSON.stringify(data),
       });
       const json = await res.json();
+      if (!res.ok || json?.success !== true || !json.data || typeof json.data !== 'object' || Array.isArray(json.data)) {
+        throw new Error('Failed to create mission');
+      }
       if (json.success) {
         set((s) => ({ missions: [json.data, ...s.missions] }));
         return json.data;
@@ -76,6 +79,9 @@ export const useMissionStore = create((set, get) => ({
         body: JSON.stringify(data),
       });
       const json = await res.json();
+      if (!res.ok || json?.success !== true || !json.data || typeof json.data !== 'object' || Array.isArray(json.data)) {
+        throw new Error('Failed to update mission');
+      }
       if (json.success) {
         set((s) => ({
           missions: s.missions.map((m) => (m.id === id ? { ...m, ...json.data } : m)),
@@ -94,6 +100,9 @@ export const useMissionStore = create((set, get) => ({
     try {
       const res = await apiFetch(`${API}/api/missions/${id}`, { method: 'DELETE' });
       const json = await res.json();
+      if (!res.ok || json?.success !== true) {
+        throw new Error('Failed to delete mission');
+      }
       if (json.success) {
         set((s) => ({
           missions: s.missions.filter((m) => m.id !== id),
