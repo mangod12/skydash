@@ -36,6 +36,8 @@ def _recent_failures(key: str) -> deque:
 
 @router.post("/api/auth/login")
 async def auth_login(body: AuthLogin, request: Request):
+    # Lets the audit trail record who tried to sign in (role stays empty: not authenticated yet).
+    request.state.attempted_username = (body.username or "")[:64]
     if not user_store:
         return JSONResponse(
             status_code=400,
