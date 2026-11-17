@@ -93,8 +93,8 @@ async def export_telemetry_csv(
                 row = [
                     ts,
                     drone.get("drone_id", ""),
-                    gps.get("lat", ""),
-                    gps.get("lng", ""),
+                    gps.get("latitude", gps.get("lat", "")),
+                    gps.get("longitude", gps.get("lng", "")),
                     drone.get("altitude", ""),
                     drone.get("battery_voltage", ""),
                     drone.get("battery_percentage", ""),
