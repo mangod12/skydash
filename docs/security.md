@@ -39,6 +39,10 @@ New passwords (registration) must be at least 8 characters (raise with
 `SKYDASH_MIN_PASSWORD_LENGTH`), mix two character classes, avoid common
 passwords and not contain the username. Rejections return `422`.
 
+Signing out calls `POST /api/auth/logout`, which revokes the token's `jti`
+until its natural expiry, so a copied token stops working immediately. Tokens
+issued before this change have no `jti` and simply expire.
+
 ## Audit trail
 
 With authentication on, every state-changing request and every auth attempt is
