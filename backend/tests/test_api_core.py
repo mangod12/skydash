@@ -42,6 +42,17 @@ class TestHealthAndTelemetry(_ApiTestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["status"], "healthy")
 
+    def test_health_uptime_uses_elapsed_clock_not_wall_clock(self):
+        from unittest.mock import patch
+
+        for wall_time in (1.0, 4000000000.0):
+            with self.subTest(wall_time=wall_time), patch.object(main, "start_time", 100.0), \
+                    patch.object(main.time, "monotonic", return_value=225.25), \
+                    patch.object(main.time, "time", return_value=wall_time):
+                response = self.client.get("/health")
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["uptime"], 125.2)
+
     def test_health_counts_entities_without_materialising_payloads(self):
         from unittest.mock import patch
 

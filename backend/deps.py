@@ -45,7 +45,7 @@ database.check_migrations()
 user_store = UserStore() if AUTH_ENABLED else None
 opensky = OpenSkyConnector()
 shodan = ShodanConnector(api_key=os.getenv("SHODAN_API_KEY"))
-start_time = time.time()
+start_time = time.monotonic()
 
 # ── Telemetry ring buffer (O(1) eviction via deque) ──────────
 

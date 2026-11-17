@@ -236,7 +236,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 async def health():
     return {
         "status": "healthy",
-        "uptime": round(time.time() - start_time, 1),
+        "uptime": round(time.monotonic() - start_time, 1),
         "drones": len(fleet.drones),
         "entities": entity_store.count(),
         "missions": mission_store.count(),
