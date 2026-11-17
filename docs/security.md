@@ -60,6 +60,11 @@ medium, high or critical; coordinates must be 2 or 3 finite numbers; mission lat
 longitude and zoom are range-checked; tags, descriptions, notes and identifiers have
 length limits. Invalid input gets `422` before anything is stored.
 
+## Audit log retention
+
+The audit log keeps everything by default. Set `SKYDASH_AUDIT_RETENTION_DAYS` (for
+example `90`) to delete older rows; the purge runs at most once an hour.
+
 ## Rate limiting
 
 Failed logins are throttled per client and username (5 per minute). For a general cap,

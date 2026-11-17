@@ -6,6 +6,7 @@ never stored, so passwords and tokens cannot leak into the log.
 """
 
 import logging
+import os
 import time
 
 import database as db
@@ -40,9 +41,42 @@ def _ensure_table():
     conn.commit()
 
 
+_PURGE_EVERY = 3600.0
+_last_purge = 0.0
+
+
+def retention_days() -> float:
+    """SKYDASH_AUDIT_RETENTION_DAYS; 0 or unset keeps everything."""
+    try:
+        return max(0.0, float(os.getenv("SKYDASH_AUDIT_RETENTION_DAYS", "0")))
+    except ValueError:
+        return 0.0
+
+
+def purge_old(now=None) -> int:
+    """Delete rows older than the retention window. Returns rows removed."""
+    days = retention_days()
+    if not days:
+        return 0
+    _ensure_table()
+    cutoff = (now or time.time()) - days * 86400
+    cur = db.execute("DELETE FROM audit_log WHERE ts < ?", (cutoff,), commit=True)
+    return getattr(cur, "rowcount", 0) or 0
+
+
+def _maybe_purge():
+    global _last_purge
+    now = time.time()
+    if now - _last_purge < _PURGE_EVERY:
+        return
+    _last_purge = now
+    purge_old(now)
+
+
 def record(method, path, status, user=None, client=None):
     try:
         _ensure_table()
+        _maybe_purge()
         db.execute(
             "INSERT INTO audit_log (ts, username, role, method, path, status, client) "
             "VALUES (?,?,?,?,?,?,?)",
