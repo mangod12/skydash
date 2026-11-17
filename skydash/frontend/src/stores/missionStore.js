@@ -159,7 +159,7 @@ export const useMissionStore = create((set, get) => ({
         body: JSON.stringify({ entity_id: entityId }),
       });
       const json = await res.json();
-      if (json.success) {
+      if (res.ok && json?.success === true) {
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -182,7 +182,7 @@ export const useMissionStore = create((set, get) => ({
         method: 'DELETE',
       });
       const json = await res.json();
-      if (json.success) {
+      if (res.ok && json?.success === true) {
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -207,7 +207,7 @@ export const useMissionStore = create((set, get) => ({
         body: JSON.stringify({ content }),
       });
       const json = await res.json();
-      if (json.success) {
+      if (res.ok && json?.success === true && json.data && typeof json.data === 'object' && !Array.isArray(json.data) && json.data.id != null) {
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -230,7 +230,7 @@ export const useMissionStore = create((set, get) => ({
         method: 'DELETE',
       });
       const json = await res.json();
-      if (json.success) {
+      if (res.ok && json?.success === true) {
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -274,7 +274,7 @@ export const useMissionStore = create((set, get) => ({
         body,
       });
       const json = await res.json();
-      if (json.success) {
+      if (res.ok && json?.success === true && json.data && typeof json.data === 'object' && !Array.isArray(json.data) && json.data.id != null) {
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -284,7 +284,7 @@ export const useMissionStore = create((set, get) => ({
         }));
         return json.data;
       }
-      toast(json.error || 'Detection analysis failed', 'error');
+      toast(json?.error || 'Detection analysis failed', 'error');
     } catch (e) {
       console.error('Failed to analyze mission image', e);
       toast('Detection analysis failed', 'error');
@@ -299,7 +299,7 @@ export const useMissionStore = create((set, get) => ({
         method: 'POST',
       });
       const json = await res.json();
-      if (json.success) {
+      if (res.ok && json?.success === true && json.data && typeof json.data === 'object' && !Array.isArray(json.data) && json.data.id != null) {
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -310,7 +310,7 @@ export const useMissionStore = create((set, get) => ({
         toast('Sample feed analyzed with RT-DETR', 'success');
         return json.data;
       }
-      toast(json.error || 'Sample feed analysis failed', 'error');
+      toast(json?.error || 'Sample feed analysis failed', 'error');
     } catch (e) {
       console.error('Failed to monitor sample video', e);
       toast('Sample feed analysis failed', 'error');
@@ -325,7 +325,7 @@ export const useMissionStore = create((set, get) => ({
         method: 'DELETE',
       });
       const json = await res.json();
-      if (json.success) {
+      if (res.ok && json?.success === true) {
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
