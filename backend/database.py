@@ -37,10 +37,8 @@ def execute(query, params=(), commit=False):
     """Execute a query with the shared lock for writes."""
     conn = get_connection()
     if commit:
-        with _lock:
-            result = conn.execute(query, params)
-            conn.commit()
-            return result
+        with _lock, conn:
+            return conn.execute(query, params)
     return conn.execute(query, params)
 
 

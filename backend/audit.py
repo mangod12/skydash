@@ -36,9 +36,9 @@ def should_audit(method: str, path: str) -> bool:
 
 def _ensure_table():
     conn = db.get_connection()
-    conn.execute(_DDL)
-    conn.execute(_INDEX)
-    conn.commit()
+    with db.get_lock(), conn:
+        conn.execute(_DDL)
+        conn.execute(_INDEX)
 
 
 _PURGE_EVERY = 3600.0

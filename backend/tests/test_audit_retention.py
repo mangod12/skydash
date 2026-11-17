@@ -54,3 +54,41 @@ def test_cleanup_failure_does_not_drop_current_audit_event():
 def test_bad_value_keeps_everything():
     with patch.dict(os.environ, {"SKYDASH_AUDIT_RETENTION_DAYS": "abc"}):
         assert audit.retention_days() == 0.0
+
+
+def test_audit_setup_waits_for_existing_writer():
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    _fresh()
+    started = threading.Event()
+    finished = threading.Event()
+
+    def setup():
+        started.set()
+        try:
+            audit._ensure_table()
+        finally:
+            finished.set()
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        with database.get_lock():
+            future = executor.submit(setup)
+            assert started.wait(2)
+            finished_early = finished.wait(0.1)
+        future.result(timeout=2)
+    assert not finished_early
+
+
+def test_failed_audit_insert_cannot_be_committed_by_next_record():
+    _fresh()
+    conn = database.get_connection()
+    conn.execute("""CREATE TRIGGER reject_audit_insert AFTER INSERT ON audit_log
+                    BEGIN SELECT RAISE(FAIL, 'synthetic failure'); END""")
+    conn.commit()
+    audit.record("POST", "/failed", 500)
+    assert not conn.in_transaction
+    conn.execute("DROP TRIGGER reject_audit_insert")
+    conn.commit()
+    audit.record("POST", "/successful", 201)
+    assert [row[0] for row in conn.execute("SELECT path FROM audit_log")] == ["/successful"]
