@@ -68,6 +68,24 @@ class TestHealthAndTelemetry(_ApiTestCase):
         self.assertEqual(r.status_code, 422)
 
 
+class TestCreationFailures(_ApiTestCase):
+    def test_entity_and_mission_storage_errors_are_not_created(self):
+        from unittest.mock import patch
+
+        cases = (("/api/entities", entity_store, "create_entity"),
+                 ("/api/missions", mission_store, "create_mission"))
+        for url, store, method in cases:
+            with self.subTest(url=url), patch.object(
+                store, method, side_effect=RuntimeError("private storage path")
+            ):
+                response = self.client.post(url, json={"name": "Valid"})
+                self.assertEqual(response.status_code, 500)
+                self.assertEqual(response.json()["detail"], "Internal server error")
+                self.assertNotIn("private storage path", response.text)
+        self.assertEqual(entity_store.count(), 0)
+        self.assertEqual(mission_store.count(), 0)
+
+
 class TestEventRecordIntegrity(_ApiTestCase):
     def test_invalid_event_fields_are_rejected_without_writes(self):
         from unittest.mock import patch

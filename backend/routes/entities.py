@@ -58,7 +58,7 @@ async def create_entity(body: EntityCreate):
         return {"success": True, "data": entity}
     except Exception as exc:
         log.error(f"Error creating entity: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
 @router.put("/api/entities/{entity_id}")
