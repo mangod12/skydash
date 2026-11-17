@@ -52,7 +52,7 @@ function checkGeofenceBreach(drone, config, geofences) {
     : geofences;
 
   for (const fence of fences) {
-    if (fence.type !== 'circle' || !validPosition(fence.center?.lat, fence.center?.lng)
+    if (fence.active === false || fence.type !== 'circle' || !validPosition(fence.center?.lat, fence.center?.lng)
         || !Number.isFinite(fence.radius) || fence.radius <= 0) continue;
     const dist = distanceBetween(latitude, longitude, fence.center.lat, fence.center.lng);
     if (dist > fence.radius) {

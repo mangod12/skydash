@@ -137,3 +137,21 @@ describe('invalid geographic alert inputs', () => {
     expect(evaluateRule(proximity, boundary, [], [{ ...target, coordinates: [90, 180] }]).triggered).toBe(true);
   });
 });
+
+describe('disabled geofence alert behavior', () => {
+  const outside = { drone_id: 'D1', gps: { latitude: 1, longitude: 1 } };
+  const fence = { id: 'f1', type: 'circle', center: { lat: 0, lng: 0 }, radius: 500 };
+
+  it('does not alert for a disabled fence, including an explicitly selected one', () => {
+    for (const config of [{}, { geofenceId: 'f1' }]) {
+      expect(evaluateRule({ type: 'geofence_breach', config }, outside, [{ ...fence, active: false }], []).triggered).toBe(false);
+      expect(evaluateRule({ type: 'geofence_breach', config }, outside, [{ ...fence, active: true }], []).triggered).toBe(true);
+    }
+  });
+
+  it('continues checking active fences after a disabled one and supports legacy fences', () => {
+    const rule = { type: 'geofence_breach', config: {} };
+    expect(evaluateRule(rule, outside, [{ ...fence, active: false }, { ...fence, id: 'f2', active: true }], []).triggered).toBe(true);
+    expect(evaluateRule(rule, outside, [fence], []).triggered).toBe(true);
+  });
+});
