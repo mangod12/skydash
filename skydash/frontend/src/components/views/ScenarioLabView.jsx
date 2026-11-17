@@ -349,7 +349,9 @@ export default function ScenarioLabView() {
                 <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 block mb-3">LIVE INJECTS</span>
                 <div className="grid grid-cols-2 gap-2">
                   {INJECTION_EVENTS.map((event) => {
-                    const alreadyInjected = injectedEvents.some((item) => item.id === event.id);
+                    const injection = injectedEvents.find((item) => item.id === event.id);
+                    const alreadyInjected = Boolean(injection);
+                    const pending = injection && injection.injectedAt > elapsedSeconds;
                     const disabled = status === 'idle' || status === 'complete' || alreadyInjected;
                     return (
                       <button
@@ -364,7 +366,7 @@ export default function ScenarioLabView() {
                         )}
                       >
                         <Radio size={11} />
-                        {alreadyInjected ? 'ACTIVE' : event.label.toUpperCase()}
+                        {pending ? `AT ${formatScenarioTime(injection.injectedAt)}` : alreadyInjected ? 'ACTIVE' : event.label.toUpperCase()}
                       </button>
                     );
                   })}

@@ -1,3 +1,5 @@
+import { calculateBearing } from './bearing';
+
 export const SIMULATION_STEP_SECONDS = 5;
 export const SCENARIO_SPEEDS = [1, 2, 4];
 
@@ -233,10 +235,7 @@ function routePosition(scenario, profile, droneIndex, droneCount, elapsedSeconds
 }
 
 function headingBetween(prev, next) {
-  const dy = next[0] - prev[0];
-  const dx = next[1] - prev[1];
-  const deg = (Math.atan2(dx, dy) * 180) / Math.PI;
-  return Math.round((deg + 360) % 360);
+  return Math.round(calculateBearing(prev[0], prev[1], next[0], next[1])) % 360;
 }
 
 function buildDrone(scenario, preset, typeId, index, elapsedSeconds, injectedEvents) {
@@ -273,7 +272,7 @@ function buildDrone(scenario, preset, typeId, index, elapsedSeconds, injectedEve
 function buildDronePath(scenario, preset, typeId, index, elapsedSeconds) {
   const profile = DRONE_TYPES[typeId] || DRONE_TYPES.recon_quad;
   const sampleEvery = 15;
-  const sampleCount = Math.max(1, Math.floor(elapsedSeconds / sampleEvery));
+  const sampleCount = Math.floor(elapsedSeconds / sampleEvery);
   const points = [];
   for (let i = 0; i <= sampleCount; i += 1) {
     points.push(routePosition(scenario, profile, index, preset.drones.length, i * sampleEvery));
@@ -319,11 +318,13 @@ function calculateScorecard(scenario, preset, fleet, events, injectedEvents, ela
   };
 }
 
-export function buildScenarioFrame(state) {
+export function buildScenarioFrame(state = {}) {
   const scenario = getScenarioById(state.activeScenarioId);
   const preset = getFleetPresetById(state.selectedFleetPresetId);
-  const elapsedSeconds = clamp(state.elapsedSeconds || 0, 0, scenario.durationSeconds);
-  const injectedEvents = state.injectedEvents || [];
+  const elapsedSeconds = clamp(Number.isFinite(state.elapsedSeconds) ? state.elapsedSeconds : 0, 0, scenario.durationSeconds);
+  const injectedEvents = (Array.isArray(state.injectedEvents) ? state.injectedEvents : [])
+    .filter((event) => event && getInjectionById(event.id) && Number.isFinite(event.injectedAt)
+      && event.injectedAt >= 0 && event.injectedAt <= elapsedSeconds);
   const fleet = preset.drones.map((typeId, index) => buildDrone(scenario, preset, typeId, index, elapsedSeconds, injectedEvents));
   const plannedEvents = visibleScenarioEvents(scenario, elapsedSeconds);
   const injected = injectedEvents.map((event) => buildInjectedEvent(scenario, event)).filter(Boolean);
@@ -358,7 +359,7 @@ export function buildScenarioFrame(state) {
 }
 
 export function formatScenarioTime(seconds) {
-  const total = Math.max(0, Math.round(seconds || 0));
+  const total = Math.max(0, Math.round(Number.isFinite(seconds) ? seconds : 0));
   const minutes = Math.floor(total / 60);
   const secs = total % 60;
   return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;

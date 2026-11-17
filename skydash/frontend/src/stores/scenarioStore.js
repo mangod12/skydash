@@ -44,6 +44,7 @@ export const useScenarioStore = create((set, get) => ({
     set({
       status: 'running',
       elapsedSeconds: state.elapsedSeconds >= scenario.durationSeconds ? 0 : state.elapsedSeconds,
+      injectedEvents: state.elapsedSeconds >= scenario.durationSeconds ? [] : state.injectedEvents,
     });
   },
 
@@ -65,6 +66,7 @@ export const useScenarioStore = create((set, get) => ({
   },
 
   seek: (elapsedSeconds) => {
+    if (!Number.isFinite(elapsedSeconds)) return;
     const scenario = getScenarioById(get().activeScenarioId);
     const next = Math.max(0, Math.min(scenario.durationSeconds, elapsedSeconds));
     const currentStatus = get().status;
@@ -78,7 +80,7 @@ export const useScenarioStore = create((set, get) => ({
 
   tick: (deltaSeconds = 1) => {
     const state = get();
-    if (state.status !== 'running') return;
+    if (state.status !== 'running' || !Number.isFinite(deltaSeconds)) return;
     const scenario = getScenarioById(state.activeScenarioId);
     const next = Math.min(scenario.durationSeconds, state.elapsedSeconds + Math.max(0, deltaSeconds));
     set({
