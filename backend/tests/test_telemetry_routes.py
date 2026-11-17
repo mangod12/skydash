@@ -20,6 +20,39 @@ class TestTelemetryRoutes(unittest.TestCase):
     def tearDown(self):
         telemetry_history.clear()
 
+    def test_live_rest_and_websocket_serialise_nonfinite_values_as_missing(self):
+        import json
+        from unittest.mock import patch
+        from routes import telemetry
+
+        drone = {"drone_id": "D1", "altitude": float("nan"), "ground_speed": 0,
+                 "battery_percentage": 80, "gps": {"latitude": float("inf"), "longitude": 0},
+                 "attitude": {"yaw": float("-inf")}, "extra": [float("nan"), 0, None]}
+        expected = {"drone_id": "D1", "altitude": None, "ground_speed": 0,
+                    "battery_percentage": 80, "gps": {"latitude": None, "longitude": 0},
+                    "attitude": {"yaw": None}, "extra": [None, 0, None]}
+
+        def strict_json(raw):
+            def reject_constant(value):
+                raise ValueError("Non-JSON numeric constant: " + value)
+            return json.loads(raw, parse_constant=reject_constant)
+
+        with patch.object(fleet, "get_all_telemetry", return_value=[drone]), \
+                patch.object(fleet, "get_drone_telemetry", return_value=drone), \
+                patch.object(telemetry, "AUTH_ENABLED", False), \
+                patch.object(telemetry, "API_KEY", ""):
+            for path, value in (("/telemetry", [expected]), ("/telemetry/D1", expected)):
+                with self.subTest(path=path):
+                    response = self.client.get(path)
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(strict_json(response.text)["data"], value)
+            with self.client.websocket_connect("/ws/telemetry") as ws:
+                self.assertEqual(strict_json(ws.receive_text())["data"], [expected])
+        # Serialization must not rewrite the source adapter's nested objects.
+        import math
+        self.assertTrue(math.isnan(drone["altitude"]))
+        self.assertTrue(math.isinf(drone["gps"]["latitude"]))
+
     def test_single_drone_found_and_missing(self):
         ok = self.client.get(f"/telemetry/{self.drone_id}")
         self.assertEqual(ok.status_code, 200)

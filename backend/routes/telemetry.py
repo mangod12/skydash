@@ -27,7 +27,7 @@ router = APIRouter()
 @router.get("/telemetry")
 async def get_all_telemetry():
     try:
-        return {"success": True, "data": fleet.get_all_telemetry()}
+        return {"success": True, "data": _json_safe(fleet.get_all_telemetry())}
     except Exception as exc:
         log.error(f"Error fetching telemetry: {exc}", exc_info=True)
         return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error"})
@@ -38,7 +38,7 @@ async def get_drone_telemetry(drone_id: str):
     data = fleet.get_drone_telemetry(drone_id)
     if not data:
         raise HTTPException(status_code=404, detail=f"Drone {drone_id} not found")
-    return {"success": True, "data": data}
+    return {"success": True, "data": _json_safe(data)}
 
 
 @router.post("/api/drone/{drone_id}/command")
@@ -204,7 +204,7 @@ async def ws_telemetry(websocket: WebSocket):
                 if not verify_token(ws_token):
                     await websocket.close(code=4001, reason="Session ended")
                     return
-            payload = fleet.get_all_telemetry()
+            payload = _json_safe(fleet.get_all_telemetry())
             await websocket.send_json(
                 {"type": "telemetry", "data": payload, "timestamp": time.time()}
             )
