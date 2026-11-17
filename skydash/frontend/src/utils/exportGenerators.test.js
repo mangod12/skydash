@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateGeoJSON, generateKML, generateCSV } from './exportGenerators';
+import { generateGeoJSON, generateKML, generateCSV, neutraliseFormula } from './exportGenerators';
 
 const ENTITIES = [
   {
@@ -120,5 +120,23 @@ describe('generateCSV', () => {
     const csv = generateCSV([], []);
     const lines = csv.split('\n');
     expect(lines).toHaveLength(1); // header only
+  });
+});
+
+describe('neutraliseFormula', () => {
+  it('prefixes text that a spreadsheet would run as a formula', () => {
+    expect(neutraliseFormula('=HYPERLINK("http://x")')).toBe(`'=HYPERLINK("http://x")`);
+    expect(neutraliseFormula('@SUM(A1)')).toBe("'@SUM(A1)");
+    expect(neutraliseFormula('-2+3')).toBe("'-2+3");
+  });
+  it('leaves normal text and numbers alone', () => {
+    expect(neutraliseFormula('SUV-Black')).toBe('SUV-Black');
+    expect(neutraliseFormula(-122.416)).toBe('-122.416');
+    expect(neutraliseFormula('-122.416')).toBe('-122.416');
+    expect(neutraliseFormula(null)).toBe('');
+  });
+  it('is applied to CSV cells', () => {
+    const csv = generateCSV([{ ...ENTITIES[0], name: '=cmd|calc' }], []);
+    expect(csv).toContain("'=cmd|calc");
   });
 });
