@@ -190,6 +190,21 @@ describe('missionStore', () => {
     expect(toast).toHaveBeenCalledWith('Failed to load mission', 'error');
   });
 
+  it.each([null, {}, [], { entities: [], notes: [] }, { entities: {}, notes: [], detections: [] },
+    { entities: [], notes: null, detections: [] }, { entities: [], notes: [], detections: 'bad' }])(
+    'rejects incomplete detail without erasing mission children: %j', async (data) => {
+      const original = [mission(1, { entityIds: ['a'], notes: [{ id: 'n' }], detections: [{ id: 'd' }] })];
+      useMissionStore.setState({ missions: original });
+      apiFetch.mockReturnValueOnce(reply({ success: true, data }));
+      expect(await useMissionStore.getState().fetchMissionDetail(1)).toBe(false);
+      expect(useMissionStore.getState().missions).toEqual(original);
+      expect(toast).toHaveBeenCalledWith('Failed to load mission', 'error');
+      apiFetch.mockReturnValueOnce(reply({ success: true, data: { entities: [], notes: [], detections: [] } }));
+      await useMissionStore.getState().fetchMissionDetail(1);
+      expect(useMissionStore.getState().missions[0]).toMatchObject({ entityIds: [], notes: [], detections: [] });
+    },
+  );
+
   it('stores vision status and resolves the active mission', async () => {
     apiFetch.mockReturnValueOnce(reply({ success: true, data: { ready: true } }));
     await useMissionStore.getState().fetchVisionStatus();
