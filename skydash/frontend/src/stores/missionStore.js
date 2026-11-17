@@ -26,9 +26,12 @@ export const useMissionStore = create((set, get) => ({
     try {
       const res = await apiFetch(`${API}/api/missions`);
       const json = await res.json();
+      if (!res.ok || json?.success !== true || !Array.isArray(json.data)) {
+        throw new Error('Invalid mission list response');
+      }
       if (json.success) {
         set((s) => {
-          const missions = json.data || [];
+          const missions = json.data;
           const activeMissionStillExists = missions.some((mission) => mission.id === s.activeMissionId);
           const nextActiveMission = activeMissionStillExists
             ? s.activeMissionId

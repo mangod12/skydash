@@ -14,7 +14,7 @@ describe('missionStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    useMissionStore.setState({ missions: [], activeMissionId: null, loading: false, visionStatus: null });
+    useMissionStore.setState({ missions: [], activeMissionId: null, loading: false, fetchError: false, visionStatus: null });
   });
 
   it('fetchMissions selects the active mission, else the first', async () => {
@@ -39,6 +39,30 @@ describe('missionStore', () => {
     await useMissionStore.getState().fetchMissions();
     expect(toast).toHaveBeenCalledWith('Failed to load missions', 'error');
     expect(useMissionStore.getState().loading).toBe(false);
+  });
+
+  it.each([
+    [{ success: false, error: 'Unavailable' }, true],
+    [{ success: true, data: [] }, false],
+    [{ success: true }, true],
+    [{ success: true, data: {} }, true],
+    [null, true],
+  ])('preserves missions and exposes failed list responses (%j, %s)', async (body, ok) => {
+    const original = [mission(1)];
+    useMissionStore.setState({ missions: original, activeMissionId: 1 });
+    apiFetch.mockReturnValueOnce(reply(body, ok));
+    await useMissionStore.getState().fetchMissions();
+    expect(useMissionStore.getState().missions).toEqual(original);
+    expect(useMissionStore.getState().activeMissionId).toBe(1);
+    expect(useMissionStore.getState().fetchError).toBe(true);
+    expect(useMissionStore.getState().loading).toBe(false);
+    expect(toast).toHaveBeenCalledWith('Failed to load missions', 'error');
+
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: [] }));
+    await useMissionStore.getState().fetchMissions();
+    expect(useMissionStore.getState().fetchError).toBe(false);
+    expect(useMissionStore.getState().missions).toEqual([]);
+    expect(useMissionStore.getState().activeMissionId).toBeNull();
   });
 
   it('createMission prepends, updateMission merges, deleteMission clears active', async () => {
