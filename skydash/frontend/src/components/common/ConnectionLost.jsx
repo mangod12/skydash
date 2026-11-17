@@ -48,7 +48,7 @@ export default function ConnectionLost() {
       <span className="font-semibold tracking-[0.08em] text-red-300">TELEMETRY LINK LOST</span>
       <span className="text-zinc-400 truncate">
         {lastTime
-          ? `Showing last known state from ${lastTime} (${formatAge(now - lastUpdate)} old). Data is not live.`
+          ? `Showing last known state from ${lastTime} (${formatAge(Math.max(now, lostAt) - lastUpdate)} old). Data is not live.`
           : 'No telemetry received yet. Data is not live.'}
       </span>
       <span className="ml-auto text-zinc-500 shrink-0">Reconnecting automatically</span>

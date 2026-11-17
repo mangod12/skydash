@@ -27,6 +27,7 @@ beforeEach(() => {
   vi.stubGlobal('WebSocket', FakeSocket);
   telemetrySocketUrl.mockResolvedValue('wss://test/ws/telemetry?ticket=one');
   apiFetch.mockResolvedValue({ ok: true, json: async () => ({ data: [] }) });
+  useTelemetryStore.setState({ data: null, fleet: [], history: [], isConnected: false, lastUpdate: null });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 const settle = async () => { await act(async () => { await Promise.resolve(); }); };
@@ -132,7 +133,7 @@ describe('telemetry connection lifecycle', () => {
     await settle();
     const socket = FakeSocket.instances[0];
     act(() => socket.onclose());
-    expect(vi.getTimerCount()).toBe(2);
+    expect(vi.getTimerCount()).toBe(3);
     unmount();
     expect(socket.close).toHaveBeenCalledOnce();
     expect(vi.getTimerCount()).toBe(0);
@@ -172,16 +173,19 @@ describe('telemetry connection lifecycle', () => {
     await settle();
     act(() => FakeSocket.instances[0].close());
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
-    act(() => FakeSocket.instances[1].onopen());
+    act(() => {
+      FakeSocket.instances[1].onopen();
+      FakeSocket.instances[1].onmessage({ data: JSON.stringify({ type: 'telemetry', data: [] }) });
+    });
     await act(async () => {
       resolvePoll({ ok: true, json: async () => ({ data: { drone_id: 'stale-http', altitude: 123 } }) });
     });
     expect(update).not.toHaveBeenCalled();
-    expect(vi.getTimerCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(1);
     unmount();
   });
 
-  it('still retries an active connection and stops polling on open', async () => {
+  it('retries but keeps HTTP polling until the socket sends a valid frame', async () => {
     const { unmount } = renderHook(() => useTelemetry());
     await settle();
     act(() => FakeSocket.instances[0].close());
@@ -189,7 +193,137 @@ describe('telemetry connection lifecycle', () => {
     expect(telemetrySocketUrl).toHaveBeenCalledTimes(2);
     expect(FakeSocket.instances).toHaveLength(2);
     act(() => FakeSocket.instances[1].onopen());
-    expect(vi.getTimerCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(2);
+    act(() => FakeSocket.instances[1].onmessage({ data: JSON.stringify({ type: 'telemetry', data: [] }) }));
+    expect(vi.getTimerCount()).toBe(1);
     unmount();
   });
+
+  it('expires a silent live socket, marks data offline and retries without losing the last reading', async () => {
+    apiFetch.mockRejectedValue(new Error('offline'));
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    const socket = FakeSocket.instances[0];
+    act(() => socket.onmessage({ data: JSON.stringify({ type: 'telemetry', data: { drone_id: 'last-known', altitude: 55 } }) }));
+    expect(useTelemetryStore.getState().isConnected).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(4999); });
+    expect(useTelemetryStore.getState().isConnected).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(socket.close).toHaveBeenCalledOnce();
+    expect(useTelemetryStore.getState().isConnected).toBe(false);
+    expect(useTelemetryStore.getState().data.altitude).toBe(55);
+    expect(apiFetch).toHaveBeenCalledOnce();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(FakeSocket.instances).toHaveLength(2);
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('valid frames renew the watchdog but malformed frames and unrelated messages do not', async () => {
+    apiFetch.mockRejectedValue(new Error('offline'));
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    const socket = FakeSocket.instances[0];
+    const send = (payload) => act(() => socket.onmessage({ data: JSON.stringify(payload) }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+    send({ type: 'telemetry', data: [] });
+    await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+    expect(socket.close).not.toHaveBeenCalled();
+    send({ type: 'telemetry', data: [null, {}] });
+    send({ type: 'heartbeat' });
+    act(() => socket.onmessage({ data: 'not-json' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(socket.close).toHaveBeenCalledOnce();
+    unmount();
+  });
+
+  it('bounds a stalled socket connection even if onopen never fires', async () => {
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(FakeSocket.instances[0].close).toHaveBeenCalledOnce();
+    expect(apiFetch).toHaveBeenCalledOnce();
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('ignores a ticket response that arrives after its connection attempt timed out', async () => {
+    let resolveTicket;
+    telemetrySocketUrl.mockReturnValueOnce(new Promise((resolve) => { resolveTicket = resolve; }));
+    const { unmount } = renderHook(() => useTelemetry());
+    await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
+    expect(telemetrySocketUrl).toHaveBeenCalledTimes(2);
+    expect(FakeSocket.instances).toHaveLength(1);
+    await act(async () => { resolveTicket('wss://test?ticket=too-late'); });
+    expect(FakeSocket.instances).toHaveLength(1);
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('does not let callbacks saved from a retired socket change a recovered stream', async () => {
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    const socket = FakeSocket.instances[0];
+    const oldMessage = socket.onmessage;
+    const oldClose = socket.onclose;
+    act(() => socket.close());
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    act(() => FakeSocket.instances[1].onmessage({ data: JSON.stringify({ type: 'telemetry', data: { drone_id: 'recovered' } }) }));
+    act(() => {
+      oldMessage({ data: JSON.stringify({ type: 'telemetry', data: { drone_id: 'retired' } }) });
+      oldClose();
+    });
+    expect(useTelemetryStore.getState().data.drone_id).toBe('recovered');
+    expect(useTelemetryStore.getState().isConnected).toBe(true);
+    expect(vi.getTimerCount()).toBe(1);
+    unmount();
+  });
+
+  it('marks malformed HTTP snapshots offline instead of keeping a stale live indicator', async () => {
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    act(() => FakeSocket.instances[0].close());
+    await settle();
+    expect(useTelemetryStore.getState().isConnected).toBe(true);
+    apiFetch.mockResolvedValue({ ok: true, json: async () => ({ success: false }) });
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+    expect(useTelemetryStore.getState().isConnected).toBe(false);
+    unmount();
+  });
+
+
+  it('aborts a timed-out HTTP read, marks data offline and ignores its late response', async () => {
+    apiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { drone_id: 'last-http', altitude: 33 } }) });
+    let resolveLate;
+    apiFetch.mockReturnValue(new Promise((resolve) => { resolveLate = resolve; }));
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    act(() => FakeSocket.instances[0].close());
+    await settle();
+    expect(useTelemetryStore.getState().isConnected).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+    const requestSignal = apiFetch.mock.calls[1][1].signal;
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(requestSignal.aborted).toBe(true);
+    expect(useTelemetryStore.getState().isConnected).toBe(false);
+    await act(async () => { resolveLate({ ok: true, json: async () => ({ data: { drone_id: 'late-http' } }) }); });
+    expect(useTelemetryStore.getState().data.drone_id).toBe('last-http');
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('aborts an outstanding HTTP request on unmount and discards its response', async () => {
+    let resolvePoll;
+    apiFetch.mockReturnValue(new Promise((resolve) => { resolvePoll = resolve; }));
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    act(() => FakeSocket.instances[0].close());
+    const signal = apiFetch.mock.calls[0][1].signal;
+    unmount();
+    expect(signal.aborted).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+    await act(async () => { resolvePoll({ ok: true, json: async () => ({ data: { drone_id: 'unmounted' } }) }); });
+    expect(useTelemetryStore.getState().data).toBeNull();
+  });
+
 });
