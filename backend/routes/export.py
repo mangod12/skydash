@@ -108,7 +108,9 @@ async def export_telemetry_csv(
                     gps.get("satellites", ""),
                     gps.get("hdop", ""),
                 ]
-                writer.writerow(row)
+                # Connector-provided text must not become spreadsheet formulas.
+                # Keep real numeric telemetry (including negative coordinates) numeric.
+                writer.writerow([_safe_cell(value) if isinstance(value, str) else value for value in row])
                 rows_written += 1
 
         output.seek(0)

@@ -74,6 +74,25 @@ class TestExportRoutes(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         self.assertEqual(rows[1][:5], ["1000", "D1", "37.1", "-122.1", "80"])
 
+    def test_telemetry_csv_neutralizes_connector_text(self):
+        sample = snapshot("=1+1", ["@SUM(1,2)"])
+        drone = sample["drones"][0]
+        drone["altitude"] = "+SUM(1,2)"
+        drone["attitude"]["roll"] = "-SUM(1,2)"
+        drone["wind"]["speed"] = "\t=1+1"
+        drone["gps"]["hdop"] = "\r=1+1"
+        telemetry_history.append(sample)
+        row = self.rows(self.client.get("/api/export/telemetry/csv"))[1]
+        self.assertEqual(row[0], "'=1+1")
+        self.assertEqual(row[1], "'@SUM(1,2)")
+        self.assertEqual(row[4], "'+SUM(1,2)")
+        self.assertEqual(row[9], "'-SUM(1,2)")
+        self.assertEqual(row[12], "'\t=1+1")
+        self.assertEqual(row[15], "'\r=1+1")
+        # Numeric values retain their original CSV representation.
+        self.assertEqual(row[3], "-122.1")
+        self.assertEqual(row[5], "15.5")
+
     def test_telemetry_csv_filters_by_drone_and_limits_snapshots(self):
         for ts in (1, 2, 3):
             telemetry_history.append(snapshot(ts, ["D1", "D2"]))
