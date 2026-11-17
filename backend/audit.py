@@ -6,6 +6,7 @@ never stored, so passwords and tokens cannot leak into the log.
 """
 
 import logging
+import math
 import os
 import time
 
@@ -42,13 +43,14 @@ def _ensure_table():
 
 
 _PURGE_EVERY = 3600.0
-_last_purge = 0.0
+_last_purge = None
 
 
 def retention_days() -> float:
     """SKYDASH_AUDIT_RETENTION_DAYS; 0 or unset keeps everything."""
     try:
-        return max(0.0, float(os.getenv("SKYDASH_AUDIT_RETENTION_DAYS", "0")))
+        days = float(os.getenv("SKYDASH_AUDIT_RETENTION_DAYS", "0"))
+        return days if math.isfinite(days) and days > 0 else 0.0
     except ValueError:
         return 0.0
 
@@ -59,19 +61,24 @@ def purge_old(now=None) -> int:
     if not days:
         return 0
     _ensure_table()
-    cutoff = (now or time.time()) - days * 86400
+    now = time.time() if now is None else now
+    if type(now) not in (int, float) or not math.isfinite(now):
+        raise ValueError("Audit purge time must be finite")
+    cutoff = now - days * 86400
+    if not math.isfinite(cutoff):
+        return 0
     cur = db.execute("DELETE FROM audit_log WHERE ts < ?", (cutoff,), commit=True)
     return getattr(cur, "rowcount", 0) or 0
 
 
 def _maybe_purge():
     global _last_purge
-    now = time.time()
-    if now - _last_purge < _PURGE_EVERY:
+    now = time.monotonic()
+    if _last_purge is not None and 0 <= now - _last_purge < _PURGE_EVERY:
         return
     _last_purge = now
     try:
-        purge_old(now)
+        purge_old()
     except Exception:
         # Optional retention maintenance must not suppress the current audit row.
         log.exception("Audit retention cleanup failed")
