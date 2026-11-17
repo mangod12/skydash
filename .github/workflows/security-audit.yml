@@ -41,3 +41,27 @@ jobs:
           node-version: '20'
       - run: npm ci
       - run: npm audit --omit=dev --audit-level=high
+
+  sbom:
+    name: SBOM (CycloneDX)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: pip install pip-audit
+      - run: mkdir -p sbom
+      - run: pip-audit -r backend/requirements.txt --format cyclonedx-json --output sbom/backend.cdx.json
+      - run: npm ci
+        working-directory: skydash/frontend
+      - run: npm sbom --omit=dev --sbom-format cyclonedx > ../../sbom/frontend.cdx.json
+        working-directory: skydash/frontend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: skydash-sbom
+          path: sbom/
+          retention-days: 90
