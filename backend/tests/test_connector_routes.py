@@ -51,6 +51,23 @@ class TestConnectorRoutes(unittest.TestCase):
         fetch.assert_called_once_with(bbox=[1.0, 2.0, 3.0, 4.0])
         self.assertEqual(body["metadata"], {"count": 2, "source": "OpenSky"})
 
+    def test_invalid_adsb_bounds_are_rejected_before_upstream_calls(self):
+        cases = [{"lat_min": -91}, {"lat_max": 91}, {"lon_min": -181}, {"lon_max": 181},
+                 {"lat_min": "nan"}, {"lon_max": "inf"},
+                 {"lat_min": 40, "lat_max": 30}, {"lon_min": 20, "lon_max": 10}]
+        with patch.object(connector_routes.opensky, "fetch_aircraft") as fetch:
+            for method, path in (("get", "/api/connectors/adsb"), ("post", "/api/connectors/adsb/ingest")):
+                for params in cases:
+                    with self.subTest(path=path, params=params):
+                        self.assertEqual(getattr(self.client, method)(path, params=params).status_code, 422)
+            fetch.assert_not_called()
+
+    def test_adsb_world_boundary_is_valid(self):
+        params = {"lat_min": -90, "lon_min": -180, "lat_max": 90, "lon_max": 180}
+        with patch.object(connector_routes.opensky, "fetch_aircraft", return_value=[]) as fetch:
+            self.assertTrue(self.client.get("/api/connectors/adsb", params=params).json()["success"])
+        fetch.assert_called_once_with(bbox=[-90.0, -180.0, 90.0, 180.0])
+
     def test_adsb_failure_hides_internal_error_details(self):
         with patch.object(connector_routes.opensky, "fetch_aircraft", side_effect=RuntimeError("secret detail")):
             body = self.client.get("/api/connectors/adsb").json()
