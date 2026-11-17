@@ -130,6 +130,30 @@ class TestCreationFailures(_ApiTestCase):
         entity_store.add_event({"description": "Next"})
         self.assertEqual(len(entity_store.get_timeline()), 2)
 
+    def test_failed_relationship_cannot_be_committed_by_a_later_write(self):
+        import sqlite3
+
+        source = entity_store.create_entity({"name": "Source"})["id"]
+        destination = entity_store.create_entity({"name": "Destination"})["id"]
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_relationship AFTER INSERT ON relationships
+                        BEGIN SELECT RAISE(FAIL, 'synthetic relationship failure'); END""")
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            entity_store.add_relationship(source, destination, "test_link")
+        self.assertFalse(conn.in_transaction)
+        self.assertEqual(entity_store.relationships, [])
+        conn.execute("DROP TRIGGER reject_relationship")
+        conn.commit()
+        entity_store.add_event({"description": "Later successful write"})
+        self.assertEqual(entity_store.relationships, [])
+        link = entity_store.add_relationship(source, destination, "test_link", 75)
+        self.assertEqual(link["confidence"], 75)
+        self.assertEqual(entity_store.relationships, [link])
+        self.assertFalse(conn.in_transaction)
+        self.assertEqual(entity_store.add_relationship(source, destination, "test_link"), link)
+        self.assertFalse(conn.in_transaction)
+
     def test_entity_and_mission_storage_errors_are_not_created(self):
         from unittest.mock import patch
 

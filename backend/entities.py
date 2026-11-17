@@ -274,7 +274,7 @@ class EntityStore:
 
     def add_relationship(self, from_id: str, to_id: str, rel_type: str, confidence: int = 50) -> Dict:
         conn = db.get_connection()
-        with db.get_lock():
+        with db.get_lock(), conn:
             for entity_id in (from_id, to_id):
                 if not conn.execute("SELECT 1 FROM entities WHERE id = ?", (entity_id,)).fetchone():
                     raise LookupError("Relationship entity not found")
@@ -288,7 +288,6 @@ class EntityStore:
                 "INSERT INTO relationships (from_entity, to_entity, type, confidence) VALUES (?,?,?,?)",
                 (from_id, to_id, rel_type, confidence),
             )
-            conn.commit()
         return {"from": from_id, "to": to_id, "type": rel_type, "confidence": confidence}
 
     def get_entity_graph(self, entity_id: str) -> Dict:
