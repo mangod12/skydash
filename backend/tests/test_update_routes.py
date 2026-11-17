@@ -92,6 +92,55 @@ class TestUpdateRoutes(unittest.TestCase):
         for field in map_fields:
             self.assertIsNone(response.json()["data"][field])
 
+    def test_failed_entity_delete_restores_relationships_and_events(self):
+        import sqlite3
+
+        other = entity_store.create_entity({"name": "Other"})
+        entity_store.add_relationship(self.eid, other["id"], "observed_with")
+        before_events = entity_store.get_timeline()
+        before_edges = entity_store.relationships
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_entity_delete BEFORE DELETE ON entities
+                        BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END""")
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            entity_store.delete_entity(self.eid)
+        self.assertFalse(conn.in_transaction)
+        # An unrelated commit must not make a partial deletion permanent.
+        mission_store.add_note(self.mid, "Unrelated write")
+        self.assertIsNotNone(entity_store.get_entity(self.eid))
+        self.assertEqual(entity_store.relationships, before_edges)
+        self.assertEqual(entity_store.get_timeline(), before_events)
+        conn.execute("DROP TRIGGER reject_entity_delete")
+        conn.commit()
+        self.assertTrue(entity_store.delete_entity(self.eid))
+        self.assertFalse(entity_store.relationships)
+
+    def test_failed_mission_delete_restores_all_children(self):
+        import sqlite3
+
+        mission_store.add_entity_to_mission(self.mid, self.eid)
+        note = mission_store.add_note(self.mid, "Keep this")
+        detection = mission_store.add_detection(self.mid, {"source_name": "test", "model": "test"})
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_mission_delete BEFORE DELETE ON missions
+                        BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END""")
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            mission_store.delete_mission(self.mid)
+        self.assertFalse(conn.in_transaction)
+        entity_store.add_event({"description": "Unrelated write"})
+        self.assertIsNotNone(mission_store.get_mission(self.mid))
+        self.assertEqual(mission_store.get_notes(self.mid), [note])
+        self.assertEqual(mission_store.get_detections(self.mid), [detection])
+        self.assertEqual(len(mission_store.get_mission_entities(self.mid)), 1)
+        conn.execute("DROP TRIGGER reject_mission_delete")
+        conn.commit()
+        self.assertTrue(mission_store.delete_mission(self.mid))
+        self.assertEqual(mission_store.get_notes(self.mid), [])
+        self.assertEqual(mission_store.get_detections(self.mid), [])
+        self.assertEqual(mission_store.get_mission_entities(self.mid), [])
+
     def test_relationship_requires_both_entities_and_recovers(self):
         for source, target in ((self.eid, "missing"), ("missing", self.eid), ("missing", "also-missing")):
             with self.subTest(source=source, target=target):

@@ -175,12 +175,11 @@ class MissionStore:
         if not self.get_mission(mission_id):
             return False
         conn = db.get_connection()
-        with db.get_lock():
+        with db.get_lock(), conn:
             conn.execute("DELETE FROM mission_notes WHERE mission_id = ?", (mission_id,))
             conn.execute("DELETE FROM mission_entities WHERE mission_id = ?", (mission_id,))
             conn.execute("DELETE FROM mission_detections WHERE mission_id = ?", (mission_id,))
             conn.execute("DELETE FROM missions WHERE id = ?", (mission_id,))
-            conn.commit()
         return True
 
     # ─── Mission-Entity Junction ──────────────────────────────
