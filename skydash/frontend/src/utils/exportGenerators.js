@@ -71,14 +71,17 @@ export function generateKML(entities) {
 
   const folders = Object.entries(groups).map(([name, ents]) => {
     const placemarks = ents.map((e) => {
-      const lon = e.coordinates?.[1] ?? 0;
-      const lat = e.coordinates?.[0] ?? 0;
+      const lat = e.coordinates?.[0];
+      const lon = e.coordinates?.[1];
+      const located = Number.isFinite(lat) && Number.isFinite(lon)
+        && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+      const geometry = located ? `<Point><coordinates>${lon},${lat},0</coordinates></Point>` : '';
       const desc = `Threat: ${(e.threatLevel || 'none').toUpperCase()} | Confidence: ${e.confidence}%`;
       return `      <Placemark>
         <name>${escapeXml(e.name)}</name>
         <description>${escapeXml(desc)}</description>
         <styleUrl>#threat-${e.threatLevel || 'none'}</styleUrl>
-        <Point><coordinates>${lon},${lat},0</coordinates></Point>
+        ${geometry}
       </Placemark>`;
     }).join('\n');
 

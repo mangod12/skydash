@@ -85,6 +85,21 @@ describe('generateKML', () => {
     expect(kml).toContain('TANGO-7');
   });
 
+  it.each([null, undefined, [], [37], [NaN, 1], [1, Infinity], [91, 1], [1, -181], ['37', 1]])(
+    'keeps an unlocated entity without inventing a point for %j', (coordinates) => {
+      const kml = generateKML([{ ...ENTITIES[0], coordinates }]);
+      expect(kml).toContain('<Placemark>');
+      expect(kml).toContain(ENTITIES[0].name);
+      expect(kml).not.toContain('<Point>');
+      expect(kml).not.toContain('<coordinates>');
+    },
+  );
+
+  it('preserves genuine zero and boundary coordinates', () => {
+    expect(generateKML([{ ...ENTITIES[0], coordinates: [0, 0] }])).toContain('<coordinates>0,0,0</coordinates>');
+    expect(generateKML([{ ...ENTITIES[0], coordinates: [-90, 180] }])).toContain('<coordinates>180,-90,0</coordinates>');
+  });
+
   it('handles empty entities', () => {
     const kml = generateKML([]);
     expect(kml).toContain('<kml');
