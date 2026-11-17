@@ -188,6 +188,39 @@ class TestUpdateRoutes(unittest.TestCase):
         for field in map_fields:
             self.assertIsNone(response.json()["data"][field])
 
+    def test_mission_entity_link_changes_roll_back_on_timestamp_failure(self):
+        import sqlite3
+
+        self.assertTrue(mission_store.add_entity_to_mission(self.mid, self.eid))
+        other = entity_store.create_entity({"name": "Other"})
+        before = mission_store.get_mission(self.mid)
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_link_timestamp BEFORE UPDATE ON missions
+                        BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END""")
+        conn.commit()
+        # Linking currently reports an integrity failure as False; it must not
+        # leave its successful INSERT pending for the next request to commit.
+        self.assertFalse(mission_store.add_entity_to_mission(self.mid, other["id"]))
+        self.assertFalse(conn.in_transaction)
+        entity_store.add_event({"description": "Unrelated commit after failed link"})
+        self.assertEqual(mission_store.get_mission_entities(self.mid), [self.eid])
+        with self.assertRaises(sqlite3.IntegrityError):
+            mission_store.remove_entity_from_mission(self.mid, self.eid)
+        self.assertFalse(conn.in_transaction)
+        entity_store.add_event({"description": "Unrelated commit after failed unlink"})
+        self.assertEqual(mission_store.get_mission_entities(self.mid), [self.eid])
+        self.assertEqual(mission_store.get_mission(self.mid), before)
+        conn.execute("DROP TRIGGER reject_link_timestamp")
+        conn.commit()
+        self.assertTrue(mission_store.remove_entity_from_mission(self.mid, self.eid))
+        self.assertTrue(mission_store.add_entity_to_mission(self.mid, other["id"]))
+
+    def test_noop_mission_unlink_closes_transaction_without_changing_timestamp(self):
+        before = mission_store.get_mission(self.mid)
+        self.assertFalse(mission_store.remove_entity_from_mission(self.mid, self.eid))
+        self.assertFalse(database.get_connection().in_transaction)
+        self.assertEqual(mission_store.get_mission(self.mid), before)
+
     def test_detection_changes_roll_back_when_mission_update_fails(self):
         import sqlite3
 
