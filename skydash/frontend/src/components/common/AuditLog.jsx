@@ -2,6 +2,10 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { clsx } from 'clsx';
 import { Trash2, Download } from 'lucide-react';
 import { useAuditStore } from '../../stores/auditStore';
+import { useAuthStore } from '../../stores/authStore';
+import { apiFetch } from '../../utils/api';
+import { API_BASE } from '../../utils/runtimeConfig';
+import { csvCell } from '../../utils/csvSafe';
 
 const CATEGORIES = ['all', 'entity', 'mission', 'map', 'export', 'system'];
 
@@ -24,7 +28,7 @@ function formatTime(iso) {
 function entriesToCSV(entries) {
   const header = 'timestamp,action,category,detail,entityId,missionId';
   const rows = entries.map((e) =>
-    [e.timestamp, e.action, e.category, `"${(e.detail || '').replace(/"/g, '""')}"`, e.entityId || '', e.missionId || ''].join(','),
+    [e.timestamp, e.action, e.category, e.detail, e.entityId, e.missionId].map(csvCell).join(','),
   );
   return [header, ...rows].join('\n');
 }
@@ -35,6 +39,26 @@ export default function AuditLog() {
   const [filter, setFilter] = useState('all');
   const [confirming, setConfirming] = useState(false);
   const listRef = useRef(null);
+  const authEnabled = useAuthStore((s) => s.authEnabled);
+  const role = useAuthStore((s) => s.user?.role);
+  const [serverError, setServerError] = useState(false);
+  const canExportServer = authEnabled && role === 'commander';
+
+  const handleServerExport = useCallback(async () => {
+    setServerError(false);
+    try {
+      const res = await apiFetch(`${API_BASE}/api/audit/export`);
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `skydash-server-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      setServerError(true);
+    }
+  }, []);
 
   const visible = filter === 'all' ? entries : entries.filter((e) => e.category === filter);
 
@@ -67,6 +91,13 @@ export default function AuditLog() {
       <div className="flex items-center justify-between mb-3 shrink-0">
         <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">AUDIT LOG</h3>
         <div className="flex gap-1.5">
+          {canExportServer && (
+            <button onClick={handleServerExport} title="Download the server-side audit trail (who did what, from where)"
+              className={clsx('flex items-center gap-1 px-2 py-1 rounded text-[9px] font-semibold tracking-wider border transition-colors',
+                serverError ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-white/[0.04] text-zinc-300 border-white/[0.1] hover:bg-white/[0.07]')}>
+              <Download size={10} /> {serverError ? 'EXPORT FAILED' : 'SERVER CSV'}
+            </button>
+          )}
           <button onClick={handleExportCSV} className="flex items-center gap-1 px-2 py-1 rounded bg-cyan-500/10 text-cyan-400 text-[9px] font-semibold tracking-wider border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors">
             <Download size={10} /> CSV
           </button>

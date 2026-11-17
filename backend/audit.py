@@ -61,7 +61,7 @@ def record(method, path, status, user=None, client=None):
         log.error(f"Audit write failed: {exc}")
 
 
-def query(limit=100, username=None, since=None):
+def query(limit=100, username=None, since=None, max_limit=1000):
     _ensure_table()
     sql = "SELECT id, ts, username, role, method, path, status, client FROM audit_log WHERE 1=1"
     params = []
@@ -72,5 +72,29 @@ def query(limit=100, username=None, since=None):
         sql += " AND ts >= ?"
         params.append(since)
     sql += " ORDER BY id DESC LIMIT ?"
-    params.append(max(1, min(int(limit), 1000)))
+    params.append(max(1, min(int(limit), max_limit)))
     return [dict(r) for r in db.execute(sql, tuple(params)).fetchall()]
+
+
+CSV_COLUMNS = ("id", "time_utc", "username", "role", "method", "path", "status", "client")
+
+
+def _safe_cell(value) -> str:
+    """Neutralise spreadsheet formula injection (a leading = + - @ or control char)."""
+    text = "" if value is None else str(value)
+    return "\'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
+
+
+def to_csv(rows) -> str:
+    import csv
+    import io
+    from datetime import datetime, timezone
+
+    out = io.StringIO()
+    writer = csv.writer(out, lineterminator="\n")
+    writer.writerow(CSV_COLUMNS)
+    for r in rows:
+        ts = datetime.fromtimestamp(r["ts"], tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        writer.writerow([_safe_cell(v) for v in (
+            r["id"], ts, r["username"], r["role"], r["method"], r["path"], r["status"], r["client"])])
+    return out.getvalue()
