@@ -7,9 +7,13 @@
 /**
  * Build adjacency list from edges (undirected).
  */
-function buildAdjacency(edges) {
+function buildAdjacency(edges, nodeIds) {
   const adj = new Map();
-  for (const { source, target } of edges) {
+  for (const edge of Array.isArray(edges) ? edges : []) {
+    if (!edge) continue;
+    const { source, target } = edge;
+    if (source == null || target == null || source === target) continue;
+    if (nodeIds && (!nodeIds.has(source) || !nodeIds.has(target))) continue;
     if (!adj.has(source)) adj.set(source, new Set());
     if (!adj.has(target)) adj.set(target, new Set());
     adj.get(source).add(target);
@@ -22,7 +26,7 @@ function buildAdjacency(edges) {
  * Degree centrality: connections per node normalized to 0-1.
  */
 export function degreeCentrality(nodes, edges) {
-  const adj = buildAdjacency(edges);
+  const adj = buildAdjacency(edges, new Set(nodes.map((n) => n.id)));
   const maxDeg = Math.max(1, nodes.length - 1);
   const result = new Map();
   for (const node of nodes) {
@@ -37,7 +41,7 @@ export function degreeCentrality(nodes, edges) {
  * Uses BFS from every node, counting shortest-path passes.
  */
 export function betweennessCentrality(nodes, edges) {
-  const adj = buildAdjacency(edges);
+  const adj = buildAdjacency(edges, new Set(nodes.map((n) => n.id)));
   const ids = nodes.map((n) => n.id);
   const counts = new Map();
   for (const id of ids) counts.set(id, 0);
@@ -160,7 +164,7 @@ export function getNeighborhood(edges, nodeId, hops = 2) {
  * most frequent community among its neighbors.
  */
 export function detectCommunities(nodes, edges) {
-  const adj = buildAdjacency(edges);
+  const adj = buildAdjacency(edges, new Set(nodes.map((n) => n.id)));
   const labels = new Map();
 
   // Initialize: each node = own community

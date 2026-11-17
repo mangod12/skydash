@@ -3,6 +3,8 @@
  * Groups events across entities by time proximity and builds timeline data.
  */
 
+const validEvent = (e) => e && e.entityId != null && Number.isFinite(e.time) && Math.abs(e.time) <= 8.64e15;
+
 const DEFAULT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 const TIME_RANGES = {
@@ -18,33 +20,33 @@ const TIME_RANGES = {
  * Returns array of correlation groups: { time, events: [...], entityIds: Set }
  */
 export function findCorrelations(events, windowMs = DEFAULT_WINDOW_MS) {
-  if (!events || events.length < 2) return [];
+  if (!Array.isArray(events) || events.length < 2 || !Number.isFinite(windowMs) || windowMs < 0) return [];
 
   const sorted = [...events]
-    .filter((e) => e.entityId)
+    .filter(validEvent)
     .sort((a, b) => a.time - b.time);
 
   const correlations = [];
   const used = new Set();
 
   for (let i = 0; i < sorted.length; i++) {
-    if (used.has(sorted[i].id)) continue;
+    if (used.has(i)) continue;
 
     const group = [sorted[i]];
     const entityIds = new Set([sorted[i].entityId]);
 
     for (let j = i + 1; j < sorted.length; j++) {
-      if (used.has(sorted[j].id)) continue;
+      if (used.has(j)) continue;
       if (sorted[j].time - sorted[i].time > windowMs) break;
       if (entityIds.has(sorted[j].entityId)) continue;
 
       group.push(sorted[j]);
       entityIds.add(sorted[j].entityId);
-      used.add(sorted[j].id);
+      used.add(j);
     }
 
     if (group.length >= 2) {
-      used.add(sorted[i].id);
+      used.add(i);
       const avgTime = group.reduce((sum, e) => sum + e.time, 0) / group.length;
       correlations.push({
         time: avgTime,
@@ -62,12 +64,14 @@ export function findCorrelations(events, windowMs = DEFAULT_WINDOW_MS) {
  * Returns { lanes: [{ entity, events }], timeRange: { start, end } }
  */
 export function buildTimeline(entities, events, rangeKey = 'all') {
-  const rangeDuration = TIME_RANGES[rangeKey] ?? TIME_RANGES.all;
+  const rangeDuration = Object.hasOwn(TIME_RANGES, rangeKey) ? TIME_RANGES[rangeKey] : TIME_RANGES.all;
   const now = Date.now();
-  const cutoff = rangeDuration === Infinity ? 0 : now - rangeDuration;
+  const cutoff = rangeDuration === Infinity ? -Infinity : now - rangeDuration;
 
-  const filteredEvents = events.filter((e) => e.time >= cutoff);
-  const _entityIds = new Set(entities.map((e) => e.id));
+  entities = (Array.isArray(entities) ? entities : []).filter((e) => e && e.id != null);
+  const entityIds = new Set(entities.map((e) => e.id));
+  const filteredEvents = (Array.isArray(events) ? events : [])
+    .filter((e) => validEvent(e) && entityIds.has(e.entityId) && e.time >= cutoff);
 
   const lanes = entities.map((entity) => ({
     entity,
@@ -76,9 +80,8 @@ export function buildTimeline(entities, events, rangeKey = 'all') {
       .sort((a, b) => a.time - b.time),
   }));
 
-  const allTimes = filteredEvents.map((e) => e.time);
-  const start = allTimes.length > 0 ? Math.min(...allTimes) : now - 3600000;
-  const end = allTimes.length > 0 ? Math.max(...allTimes) : now;
+  const start = filteredEvents.length > 0 ? filteredEvents.reduce((min, e) => Math.min(min, e.time), Infinity) : now - 3600000;
+  const end = filteredEvents.length > 0 ? filteredEvents.reduce((max, e) => Math.max(max, e.time), -Infinity) : now;
   const padding = Math.max((end - start) * 0.05, 60000);
 
   return {
@@ -92,6 +95,12 @@ export function buildTimeline(entities, events, rangeKey = 'all') {
  * Returns { toX(time), toTime(x), tickMarks: [...] }
  */
 export function getTimeScale(start, end, width) {
+  if (!Number.isFinite(start) || !Number.isFinite(end) || !Number.isFinite(end - start)) {
+    start = 0;
+    end = 1;
+  }
+  if (end <= start) end = start + 1;
+  width = Number.isFinite(width) && width > 0 ? width : 1;
   const duration = Math.max(end - start, 1);
 
   const toX = (time) => ((time - start) / duration) * width;
@@ -107,13 +116,13 @@ export function getTimeScale(start, end, width) {
  */
 function generateTicks(start, end, width) {
   const duration = end - start;
-  const maxTicks = Math.floor(width / 80);
+  const maxTicks = Math.max(1, Math.min(1000, Math.floor(width / 80)));
   const intervals = [
     60000, 300000, 600000, 1800000, 3600000,
     21600000, 43200000, 86400000,
   ];
 
-  let interval = intervals[intervals.length - 1];
+  let interval = Math.max(intervals[intervals.length - 1], Math.ceil(duration / maxTicks));
   for (const iv of intervals) {
     if (duration / iv <= maxTicks) { interval = iv; break; }
   }
