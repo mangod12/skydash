@@ -69,6 +69,37 @@ class TestHealthAndTelemetry(_ApiTestCase):
 
 
 class TestCreationFailures(_ApiTestCase):
+    def test_entity_and_creation_event_roll_back_together(self):
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_events BEFORE INSERT ON events
+                        BEGIN SELECT RAISE(ABORT, 'synthetic event failure'); END""")
+        conn.commit()
+        response = self.client.post("/api/entities", json={"id": "atomic-contact", "name": "Failed"})
+        self.assertEqual(response.status_code, 500)
+        self.assertIsNone(entity_store.get_entity("atomic-contact"))
+        self.assertEqual(entity_store.get_timeline(), [])
+        self.assertFalse(conn.in_transaction)
+        conn.execute("DROP TRIGGER reject_events")
+        conn.commit()
+        response = self.client.post("/api/entities", json={"id": "atomic-contact", "name": "Retry"})
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(entity_store.count(), 1)
+        self.assertEqual(len(entity_store.get_timeline()), 1)
+        self.assertFalse(conn.in_transaction)
+
+    def test_failed_standalone_event_leaves_connection_clean(self):
+        conn = database.get_connection()
+        response = self.client.post("/api/events", json={"description": "Valid"})
+        self.assertEqual(response.status_code, 201)
+        import sqlite3
+
+        with self.assertRaises(sqlite3.IntegrityError):
+            entity_store.add_event({"entityId": "missing", "description": "Invalid FK"})
+        self.assertFalse(conn.in_transaction)
+        self.assertEqual(len(entity_store.get_timeline()), 1)
+        entity_store.add_event({"description": "Next"})
+        self.assertEqual(len(entity_store.get_timeline()), 2)
+
     def test_entity_and_mission_storage_errors_are_not_created(self):
         from unittest.mock import patch
 
