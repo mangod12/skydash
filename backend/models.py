@@ -87,6 +87,13 @@ class EntityUpdate(BaseModel):
     _threat = field_validator("threatLevel")(_check_threat)
 
 
+class EventCreate(BaseModel):
+    type: Optional[str] = Field(default=None, min_length=1, max_length=64)
+    description: Optional[str] = Field(default=None, max_length=10000)
+    entityId: Optional[str] = Field(default=None, min_length=1, max_length=128)
+    severity: str = Field(default="info", min_length=1, max_length=32)
+
+
 class RelationshipCreate(BaseModel):
     to_entity: str = Field(min_length=1, max_length=128)
     type: str = Field(min_length=1, max_length=64)
