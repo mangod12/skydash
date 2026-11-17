@@ -2,8 +2,24 @@ import { create } from 'zustand';
 import { API_BASE, API_CONFIGURED } from '../utils/runtimeConfig';
 
 const API = API_BASE;
-const storage = typeof localStorage === 'undefined' ? null : localStorage;
+function browserStorage() {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null;
+  }
+}
+
+const storage = browserStorage();
 let loginGeneration = 0;
+
+function readToken() {
+  try {
+    return storage?.getItem('skydash_token') || null;
+  } catch {
+    return null;
+  }
+}
 
 function readUser() {
   if (!storage) return null;
@@ -15,7 +31,7 @@ function readUser() {
 }
 
 export const useAuthStore = create((set, get) => ({
-  token: storage?.getItem('skydash_token') || null,
+  token: readToken(),
   user: readUser(),
   authEnabled: null,
   error: null,
