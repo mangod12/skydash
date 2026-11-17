@@ -28,14 +28,14 @@ function escapeCsv(val) {
 }
 
 function hasValidPosition(entity) {
-  const coords = entity.coordinates;
+  const coords = entity?.coordinates;
   return Array.isArray(coords) && coords.length >= 2
     && Number.isFinite(coords[0]) && Number.isFinite(coords[1])
     && Math.abs(coords[0]) <= 90 && Math.abs(coords[1]) <= 180;
 }
 
 export function generateGeoJSON(entities) {
-  const features = entities
+  const features = (Array.isArray(entities) ? entities : [])
     .filter(hasValidPosition)
     .map((e) => ({
       type: 'Feature',
@@ -60,11 +60,12 @@ export function generateGeoJSON(entities) {
 
 export function generateKML(entities) {
   const dateStr = format(new Date(), 'yyyy-MM-dd HH:mm');
-  const groups = {};
-  entities.forEach((e) => {
-    const key = e.type.charAt(0).toUpperCase() + e.type.slice(1) + 's';
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(e);
+  const groups = new Map();
+  (Array.isArray(entities) ? entities : []).filter((e) => e && typeof e === 'object').forEach((e) => {
+    const type = typeof e.type === 'string' && e.type ? e.type : 'event';
+    const key = type.charAt(0).toUpperCase() + type.slice(1) + 's';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(e);
   });
 
   const styles = Object.entries(THREAT_KML_COLORS)
@@ -72,17 +73,18 @@ export function generateKML(entities) {
       `    <Style id="threat-${level}"><IconStyle><color>${color}</color></IconStyle></Style>`)
     .join('\n');
 
-  const folders = Object.entries(groups).map(([name, ents]) => {
+  const folders = [...groups].map(([name, ents]) => {
     const placemarks = ents.map((e) => {
       const lat = e.coordinates?.[0];
       const lon = e.coordinates?.[1];
       const located = hasValidPosition(e);
       const geometry = located ? `<Point><coordinates>${lon},${lat},0</coordinates></Point>` : '';
-      const desc = `Threat: ${(e.threatLevel || 'none').toUpperCase()} | Confidence: ${e.confidence}%`;
+      const threat = Object.hasOwn(THREAT_KML_COLORS, e.threatLevel) ? e.threatLevel : 'none';
+      const desc = `Threat: ${threat.toUpperCase()} | Confidence: ${e.confidence}%`;
       return `      <Placemark>
         <name>${escapeXml(e.name)}</name>
         <description>${escapeXml(desc)}</description>
-        <styleUrl>#threat-${e.threatLevel || 'none'}</styleUrl>
+        <styleUrl>#threat-${threat}</styleUrl>
         ${geometry}
       </Placemark>`;
     }).join('\n');
@@ -100,7 +102,19 @@ ${folders}
 </kml>`;
 }
 
+function records(value) {
+  return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object') : [];
+}
+
+function exportDate(value, pattern = 'yyyy-MM-dd HH:mm:ss') {
+  if (value == null || value === '' || !['string', 'number'].includes(typeof value)) return 'N/A';
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? format(date, pattern) : 'N/A';
+}
+
 export function generateCSV(entities, relationships) {
+  entities = records(entities);
+  relationships = records(relationships);
   const headers = [
     'ID', 'Name', 'Type', 'Threat', 'Confidence', 'Source',
     'Latitude', 'Longitude', 'Tags', 'First Seen', 'Last Seen',
@@ -122,10 +136,10 @@ export function generateCSV(entities, relationships) {
 
     return [
       e.id, e.name, e.type, e.threatLevel, e.confidence, e.source,
-      e.coordinates?.[0] ?? '', e.coordinates?.[1] ?? '',
-      (e.tags || []).join(';'),
-      e.firstSeen ? format(e.firstSeen, 'yyyy-MM-dd HH:mm:ss') : '',
-      e.lastSeen ? format(e.lastSeen, 'yyyy-MM-dd HH:mm:ss') : '',
+      hasValidPosition(e) ? e.coordinates[0] : '', hasValidPosition(e) ? e.coordinates[1] : '',
+      Array.isArray(e.tags) ? e.tags.join(';') : '',
+      e.firstSeen != null ? exportDate(e.firstSeen) : '',
+      e.lastSeen != null ? exportDate(e.lastSeen) : '',
       props, rels,
     ].map(escapeCsv).join(',');
   });
@@ -134,6 +148,9 @@ export function generateCSV(entities, relationships) {
 }
 
 export function generateDossier(entity, relationships, events, allEntities) {
+  relationships = records(relationships);
+  events = records(events);
+  allEntities = records(allEntities);
   const resolve = (id) => allEntities.find((e) => e.id === id)?.name || id;
   let doc = `ENTITY DOSSIER: ${entity.name}
 ${SEPARATOR}
@@ -144,23 +161,23 @@ IDENTIFICATION
 ${DASH}
 ID:          ${entity.id}
 Name:        ${entity.name}
-Type:        ${entity.type.toUpperCase()}
-Threat:      ${(entity.threatLevel || 'none').toUpperCase()}
+Type:        ${String(entity.type || 'event').toUpperCase()}
+Threat:      ${String(entity.threatLevel || 'none').toUpperCase()}
 Confidence:  ${entity.confidence}%
 Source:      ${entity.source}
 `;
 
-  if (entity.coordinates) {
+  if (hasValidPosition(entity)) {
     doc += `Location:    ${entity.coordinates[0].toFixed(6)}, ${entity.coordinates[1].toFixed(6)}\n`;
   }
 
-  doc += `Tags:        ${(entity.tags || []).join(', ') || 'none'}\n`;
+  doc += `Tags:        ${(Array.isArray(entity.tags) ? entity.tags : []).join(', ') || 'none'}\n`;
 
-  if (entity.firstSeen) {
-    doc += `First Seen:  ${format(entity.firstSeen, 'yyyy-MM-dd HH:mm:ss')}\n`;
+  if (entity.firstSeen != null) {
+    doc += `First Seen:  ${exportDate(entity.firstSeen)}\n`;
   }
-  if (entity.lastSeen) {
-    doc += `Last Seen:   ${format(entity.lastSeen, 'yyyy-MM-dd HH:mm:ss')}\n`;
+  if (entity.lastSeen != null) {
+    doc += `Last Seen:   ${exportDate(entity.lastSeen)}\n`;
   }
 
   if (entity.properties && Object.keys(entity.properties).length > 0) {
@@ -176,14 +193,14 @@ Source:      ${entity.source}
       const isFrom = r.from === entity.id;
       const target = resolve(isFrom ? r.to : r.from);
       const dir = isFrom ? '-->' : '<--';
-      doc += `  ${dir} ${r.type.toUpperCase()} ${target} (conf: ${r.confidence}%)\n`;
+      doc += `  ${dir} ${String(r.type || 'unknown').toUpperCase()} ${target} (conf: ${r.confidence}%)\n`;
     });
   }
 
   if (events.length > 0) {
     doc += `\nTIMELINE EVENTS (${events.length})\n${DASH}\n`;
     events.forEach((evt) => {
-      doc += `  ${format(evt.time, 'yyyy-MM-dd HH:mm:ss')} [${evt.severity.toUpperCase()}] ${evt.description}\n`;
+      doc += `  ${exportDate(evt.time)} [${String(evt.severity || 'info').toUpperCase()}] ${evt.description}\n`;
     });
   }
 
@@ -192,6 +209,9 @@ Source:      ${entity.source}
 }
 
 export function generateMissionBrief(mission, entities, events, notes) {
+  entities = records(entities);
+  events = records(events);
+  notes = records(notes);
   let doc = `MISSION BRIEF: ${mission.name}
 ${SEPARATOR}
 Generated: ${TIMESTAMP()} UTC
@@ -200,14 +220,14 @@ Classification: UNCLASSIFIED
 MISSION OVERVIEW
 ${DASH}
 Name:        ${mission.name}
-Status:      ${(mission.status || 'active').toUpperCase()}
+Status:      ${String(mission.status || 'active').toUpperCase()}
 `;
 
   if (mission.description) {
     doc += `Description: ${mission.description}\n`;
   }
   if (mission.created_at) {
-    doc += `Created:     ${format(new Date(mission.created_at), 'yyyy-MM-dd HH:mm:ss')}\n`;
+    doc += `Created:     ${exportDate(mission.created_at)}\n`;
   }
 
   doc += `\nLINKED ENTITIES (${entities.length})\n${DASH}\n`;
@@ -215,8 +235,8 @@ Status:      ${(mission.status || 'active').toUpperCase()}
     doc += '  (none)\n';
   } else {
     entities.forEach((e, i) => {
-      doc += `  ${i + 1}. ${e.name} [${e.type.toUpperCase()}] — Threat: ${(e.threatLevel || 'none').toUpperCase()}, Confidence: ${e.confidence}%\n`;
-      if (e.coordinates) {
+      doc += `  ${i + 1}. ${e.name} [${String(e.type || 'event').toUpperCase()}] — Threat: ${String(e.threatLevel || 'none').toUpperCase()}, Confidence: ${e.confidence}%\n`;
+      if (hasValidPosition(e)) {
         doc += `     Location: ${e.coordinates[0].toFixed(6)}, ${e.coordinates[1].toFixed(6)}\n`;
       }
     });
@@ -225,7 +245,7 @@ Status:      ${(mission.status || 'active').toUpperCase()}
   if (notes.length > 0) {
     doc += `\nMISSION NOTES (${notes.length})\n${DASH}\n`;
     notes.forEach((n) => {
-      const ts = n.created_at ? format(new Date(n.created_at), 'yyyy-MM-dd HH:mm') : 'N/A';
+      const ts = n.created_at ? exportDate(n.created_at, 'yyyy-MM-dd HH:mm') : 'N/A';
       doc += `  [${ts}] ${n.content}\n`;
     });
   }
@@ -236,7 +256,7 @@ Status:      ${(mission.status || 'active').toUpperCase()}
   if (missionEvents.length > 0) {
     doc += `\nRELATED EVENTS (${missionEvents.length})\n${DASH}\n`;
     missionEvents.forEach((evt) => {
-      doc += `  ${format(evt.time, 'yyyy-MM-dd HH:mm:ss')} [${evt.severity.toUpperCase()}] ${evt.description}\n`;
+      doc += `  ${exportDate(evt.time)} [${String(evt.severity || 'info').toUpperCase()}] ${evt.description}\n`;
     });
   }
 

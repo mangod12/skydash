@@ -200,3 +200,29 @@ describe('UTC export generation timestamps', () => {
     }
   });
 });
+
+describe('legacy record export isolation', () => {
+  const legacy = { id: 'legacy', name: 'Legacy', coordinates: [1], tags: {}, firstSeen: 'invalid', lastSeen: 0 };
+  it('keeps CSV available and marks invalid dates without dropping epoch zero', () => {
+    const csv = generateCSV([null, legacy, ENTITIES[0]], [null]);
+    expect(csv).toContain('Legacy');
+    expect(csv).toContain('N/A');
+    expect(csv).not.toContain('NaN');
+    expect(csv).toContain('1970-01-01');
+    expect(csv).toContain(ENTITIES[0].name);
+  });
+  it('keeps dossier text available for missing fields and impossible coordinates', () => {
+    const doc = generateDossier(legacy, [null], [{ time: NaN }], null);
+    expect(doc).toContain('Legacy');
+    expect(doc).toContain('N/A');
+    expect(doc).not.toContain('Location:');
+    expect(doc).toContain('END OF DOSSIER');
+  });
+  it('keeps mission text available despite malformed notes, dates and linked entities', () => {
+    const doc = generateMissionBrief({ name: 'Mission', created_at: 'invalid' }, [null, legacy], [null, { entityId: 'legacy', time: Infinity }], [null, { created_at: 'invalid', content: 'Kept note' }]);
+    expect(doc).toContain('Kept note');
+    expect(doc).toContain('N/A');
+    expect(doc).not.toContain('Location:');
+    expect(doc).toContain('END OF BRIEF');
+  });
+});

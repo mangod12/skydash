@@ -3,6 +3,7 @@
 import csv
 import io
 import logging
+import math
 import time
 from typing import Optional
 
@@ -16,13 +17,28 @@ log = logging.getLogger("skydash")
 router = APIRouter()
 
 
+def _valid_position(coords):
+    return (isinstance(coords, (list, tuple)) and len(coords) in (2, 3)
+            and all(type(v) in (int, float) and math.isfinite(v) for v in coords)
+            and abs(coords[0]) <= 90 and abs(coords[1]) <= 180)
+
+
+def _csv_value(value):
+    # Type-corrupt legacy fields must not bypass text formula neutralisation.
+    if isinstance(value, str):
+        return _safe_cell(value)
+    return value
+
+
 @router.post("/api/export/geojson")
 async def export_geojson():
     """Export all geo-located entities as a GeoJSON FeatureCollection."""
     try:
         features = []
         for entity in entity_store.list_entities():
-            if entity.get("coordinates"):
+            if not isinstance(entity, dict):
+                continue
+            if _valid_position(entity.get("coordinates")):
                 features.append(
                     {
                         "type": "Feature",
@@ -153,22 +169,26 @@ async def export_entities_csv():
 
         entities = entity_store.list_entities()
         for entity in entities:
-            coords = entity.get("coordinates") or []
-            tags = ", ".join(entity.get("tags") or [])
+            if not isinstance(entity, dict):
+                continue
+            coords = entity.get("coordinates")
+            coords = coords if _valid_position(coords) else []
+            tags = entity.get("tags")
+            tags = ", ".join(str(tag) for tag in tags) if isinstance(tags, (list, tuple)) else ""
 
             row = [
-                _safe_cell(entity.get("id", "")),
-                _safe_cell(entity.get("name", "")),
-                _safe_cell(entity.get("type", "")),
-                _safe_cell(entity.get("threatLevel", "")),
+                entity.get("id", ""),
+                entity.get("name", ""),
+                entity.get("type", ""),
+                entity.get("threatLevel", ""),
                 entity.get("confidence", ""),
                 coords[0] if len(coords) > 0 else "",
                 coords[1] if len(coords) > 1 else "",
-                _safe_cell(tags),
-                _safe_cell(entity.get("source", "")),
-                _safe_cell(entity.get("lastSeen", "")),
+                tags,
+                entity.get("source", ""),
+                entity.get("lastSeen", ""),
             ]
-            writer.writerow(row)
+            writer.writerow([_csv_value(value) for value in row])
 
         output.seek(0)
         filename = f"skydash_entities_{int(time.time())}.csv"
