@@ -60,8 +60,28 @@ class TestTokenRevocation(unittest.TestCase):
         self.assertEqual(self.client.post("/api/auth/logout").status_code, 401)
 
     def test_revoke_unit(self):
-        t = auth.create_token({"id": "u1", "username": "x", "role": "viewer"})
+        t = self.login()["Authorization"].removeprefix("Bearer ")
         p = auth.verify_token(t)
         self.assertTrue(p["jti"])
         auth.revoke_token(p)
         self.assertIsNone(auth.verify_token(t))
+
+    def test_deleted_account_token_is_rejected(self):
+        h = self.login()
+        database.execute("DELETE FROM users WHERE username=?", ("rev-user",), commit=True)
+        self.assertEqual(self.client.get("/api/auth/me", headers=h).status_code, 401)
+
+    def test_missing_revocation_table_rejects_session(self):
+        h = self.login()
+        database.execute("DROP TABLE revoked_tokens", commit=True)
+        self.assertEqual(self.client.get("/api/auth/me", headers=h).status_code, 401)
+
+    def test_missing_account_table_rejects_session(self):
+        h = self.login()
+        database.execute("DROP TABLE users", commit=True)
+        self.assertEqual(self.client.get("/api/auth/me", headers=h).status_code, 401)
+
+    def test_database_outage_rejects_session(self):
+        token = self.login()["Authorization"].removeprefix("Bearer ")
+        with patch.object(database, "get_connection", side_effect=RuntimeError("unavailable")):
+            self.assertIsNone(auth.verify_token(token))

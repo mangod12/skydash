@@ -157,14 +157,10 @@ def create_token(user):
 def _is_revoked(jti):
     if not jti:
         return False
-    try:
-        row = db.get_connection().execute(
-            "SELECT 1 FROM revoked_tokens WHERE jti=?", (jti,)
-        ).fetchone()
-        return row is not None
-    except Exception:
-        # Table missing (auth store not initialised yet): nothing can be revoked.
-        return False
+    row = db.get_connection().execute(
+        "SELECT 1 FROM revoked_tokens WHERE jti=?", (jti,)
+    ).fetchone()
+    return row is not None
 
 
 def revoke_token(payload):
@@ -184,21 +180,19 @@ def revoke_token(payload):
 
 def _apply_current_account(payload):
     """Disabled accounts lose access at once; role changes apply without re-login."""
-    try:
-        row = db.get_connection().execute(
-            "SELECT role, COALESCE(disabled, 0) AS disabled FROM users WHERE id=?",
-            (payload.get("sub"),),
-        ).fetchone()
-    except Exception:
-        return payload
+    row = db.get_connection().execute(
+        "SELECT role, COALESCE(disabled, 0) AS disabled FROM users WHERE id=?",
+        (payload.get("sub"),),
+    ).fetchone()
     if row is None:
-        return payload
+        return None
     if row["disabled"]:
         return None
     return {**payload, "role": row["role"]}
 
 
 def verify_token(token):
+    # Database lookup failures must reject the session, never trust stale JWT roles.
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         if payload["exp"] < time.time():
