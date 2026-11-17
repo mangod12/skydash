@@ -32,6 +32,32 @@ class TestHardening(unittest.TestCase):
         self.assertEqual(h["referrer-policy"], "no-referrer")
         self.assertNotIn("strict-transport-security", h)
 
+    def test_early_body_and_rate_rejections_keep_security_and_cors_headers(self):
+        from deps import CORS_ORIGINS
+
+        origin = CORS_ORIGINS[0]
+        cases = ((413, {"MAX_BODY_BYTES": 1}, None),
+                 (411, {}, None), (429, {}, 10))
+        for status, config, wait in cases:
+            with self.subTest(status=status), patch.dict(main.__dict__, config), \
+                    patch.object(main.ratelimit, "check", return_value=wait):
+                if status == 411:
+                    response = self.client.post("/api/entities", content=iter([b"{}"]),
+                                                headers={"Origin": origin, "x-forwarded-proto": "https"})
+                else:
+                    response = self.client.post("/api/entities", content=b"{}",
+                                                headers={"Origin": origin, "x-forwarded-proto": "https"})
+                self.assertEqual(response.status_code, status)
+                self.assertEqual(response.headers.get("x-content-type-options"), "nosniff")
+                self.assertEqual(response.headers.get("x-frame-options"), "DENY")
+                self.assertEqual(response.headers.get("referrer-policy"), "no-referrer")
+                self.assertEqual(response.headers.get("permissions-policy"),
+                                 "geolocation=(), camera=(), microphone=()")
+                self.assertIn("max-age", response.headers.get("strict-transport-security", ""))
+                self.assertEqual(response.headers.get("access-control-allow-origin"), origin)
+                if status == 429:
+                    self.assertEqual(response.headers.get("retry-after"), "10")
+
     def test_hsts_only_behind_https(self):
         h = self.client.get("/health", headers={"x-forwarded-proto": "https"}).headers
         self.assertIn("max-age", h["strict-transport-security"])
