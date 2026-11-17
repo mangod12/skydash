@@ -3,6 +3,8 @@ import secrets
 import shutil
 import sqlite3
 import tempfile
+import time
+from datetime import datetime, timezone
 import unittest
 from unittest.mock import patch
 
@@ -45,6 +47,24 @@ class TestAuthHardening(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()["data"]["user"]["role"], "analyst")
+
+    @unittest.skipUnless(hasattr(time, "tzset"), "requires process timezone support")
+    def test_account_creation_time_is_utc_on_non_utc_hosts(self):
+        for zone in ("Asia/Kolkata", "America/Los_Angeles"):
+            with self.subTest(zone=zone):
+                try:
+                    with patch.dict(os.environ, {"TZ": zone}):
+                        time.tzset()
+                        before = int(time.time())
+                        uid = self.users.create_user("utc-" + secrets.token_hex(3), self.good_pw)
+                        after = int(time.time())
+                        created = self.users.get_user(uid)["created_at"]
+                        self.assertTrue(created.endswith("Z"))
+                        parsed = datetime.strptime(created, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+                        self.assertGreaterEqual(parsed.timestamp(), before)
+                        self.assertLessEqual(parsed.timestamp(), after)
+                finally:
+                    time.tzset()
 
     def test_duplicate_user_creation_closes_failed_transaction(self):
         self.users.create_user("alice", self.good_pw)

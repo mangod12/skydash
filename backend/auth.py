@@ -4,6 +4,7 @@ import math
 import secrets
 import time
 import logging
+from datetime import datetime, timezone
 
 import jwt  # PyJWT
 
@@ -83,7 +84,7 @@ class UserStore:
         with db.get_lock(), conn:
             conn.execute(
                 "INSERT INTO users (id, username, password_hash, role, created_at) VALUES (?,?,?,?,?)",
-                (uid, username, pw_hash, role, time.strftime("%Y-%m-%dT%H:%M:%SZ")),
+                (uid, username, pw_hash, role, datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")),
             )
         return uid
 
