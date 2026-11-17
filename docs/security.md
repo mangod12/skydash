@@ -51,6 +51,13 @@ ignores that header. When the backend is reachable only through the proxy (do no
 publish port 8001), set `SKYDASH_TRUST_PROXY=1` so the login throttle and audit
 trail see real client addresses instead of the proxy's.
 
+## Software bill of materials
+
+The Dependency Audit workflow also produces CycloneDX SBOMs for the backend
+(Python) and frontend (npm, production deps) and uploads them as the
+`skydash-sbom` artifact (kept 90 days). Run it from the Actions tab
+(`workflow_dispatch`) when a customer asks for one.
+
 ## Audit trail
 
 With authentication on, every state-changing request and every auth attempt is
