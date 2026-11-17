@@ -200,13 +200,16 @@ class ShodanConnector:
             location = m.get("location")
             if not isinstance(location, dict):
                 location = {}
+            lat, lon = location.get("latitude"), location.get("longitude")
+            if not self._valid_position(lat, lon):
+                lat, lon = None, None
             results.append({
                 "ip": ip.strip(),
                 "port": m.get("port", 0),
                 "org": m.get("org", "Unknown"),
                 "product": m.get("product", "Unknown"),
-                "lat": location.get("latitude"),
-                "lon": location.get("longitude"),
+                "lat": lat,
+                "lon": lon,
             })
         return results
 

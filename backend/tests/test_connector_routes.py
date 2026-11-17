@@ -39,6 +39,29 @@ class TestConnectorRoutes(unittest.TestCase):
         database.reset()
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
+    def test_shodan_invalid_live_positions_are_missing_in_raw_search(self):
+        from connectors import ShodanConnector
+        from unittest.mock import Mock
+
+        live = ShodanConnector(api_key="test-key")
+        for lat, lon in ((float("nan"), 1), (1, float("inf")), (True, 1),
+                         (91, 1), (1, -181), ("20.5", 80), (None, 1)):
+            upstream = Mock(status_code=200)
+            upstream.json.return_value = {"matches": [
+                {"ip_str": "192.0.2.1", "location": {"latitude": lat, "longitude": lon}},
+                {"ip_str": "192.0.2.2", "location": {"latitude": 0, "longitude": 0}},
+            ]}
+            with self.subTest(lat=lat, lon=lon), \
+                    patch.object(connector_routes, "shodan", live), \
+                    patch("connectors.requests.get", return_value=upstream):
+                response = self.client.get("/api/connectors/shodan")
+                self.assertEqual(response.status_code, 200)
+                rows = response.json()["data"]
+                self.assertEqual(len(rows), 2)
+                self.assertIsNone(rows[0]["lat"])
+                self.assertIsNone(rows[0]["lon"])
+                self.assertEqual((rows[1]["lat"], rows[1]["lon"]), (0, 0))
+
     def test_status_reports_both_connectors(self):
         body = self.client.get("/api/connectors/status").json()
         self.assertTrue(body["success"])
