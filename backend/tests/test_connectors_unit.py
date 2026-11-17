@@ -172,6 +172,21 @@ class TestShodan(unittest.TestCase):
         self.assertEqual(live_entities[0]["properties"]["mode"], "live")
 
 
+    def test_invalid_coordinates_are_unlocated_not_persisted_as_bad_points(self):
+        conn = ShodanConnector()
+        for lat, lon in ((float("nan"), 1), (1, float("inf")), (91, 1), (1, -181),
+                         (True, 1), (1, False), ("37.7", -122.4), (None, 1)):
+            with self.subTest(lat=lat, lon=lon):
+                entity = conn.to_entities([{"ip": "9.9.9.9", "lat": lat, "lon": lon}])[0]
+                self.assertIsNone(entity["coordinates"])
+                self.assertEqual(entity["id"], "shodan-9_9_9_9")
+
+    def test_coordinate_boundaries_are_kept(self):
+        for lat, lon in ((90, 180), (-90, -180)):
+            with self.subTest(lat=lat, lon=lon):
+                entity = ShodanConnector().to_entities([{"ip": "9.9.9.9", "lat": lat, "lon": lon}])[0]
+                self.assertEqual(entity["coordinates"], [lat, lon])
+
     def test_zero_coordinates_are_kept(self):
         entity = ShodanConnector().to_entities([{"ip": "9.9.9.9", "lat": 0.0, "lon": 0.0}])[0]
         self.assertEqual(entity["coordinates"], [0.0, 0.0])
