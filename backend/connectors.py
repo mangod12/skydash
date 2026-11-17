@@ -74,16 +74,24 @@ class OpenSkyConnector:
                         continue
                     if s[1] is not None and not isinstance(s[1], str):
                         continue
+                    altitude = s[7] if s[7] is not None else s[13]
+                    altitude = 0 if altitude is None else altitude
+                    velocity = 0 if s[9] is None else s[9]
+                    heading = 0 if s[10] is None else s[10]
+                    vertical_rate = 0 if s[11] is None else s[11]
+                    if any(type(value) not in (int, float) or not math.isfinite(value)
+                           for value in (altitude, velocity, heading, vertical_rate)):
+                        continue
                     aircraft.append({
                         "icao24": s[0],
                         "callsign": (s[1] or "").strip(),
                         "origin_country": s[2],
                         "longitude": lon,
                         "latitude": lat,
-                        "altitude": s[7] or s[13] or 0,
-                        "velocity": s[9] or 0,
-                        "heading": s[10] or 0,
-                        "vertical_rate": s[11] or 0,
+                        "altitude": altitude,
+                        "velocity": velocity,
+                        "heading": heading,
+                        "vertical_rate": vertical_rate,
                         "on_ground": s[8],
                         "last_contact": s[4],
                     })

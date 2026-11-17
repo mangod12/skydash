@@ -48,6 +48,25 @@ class TestOpenSky(unittest.TestCase):
             aircraft = OpenSkyConnector().fetch_aircraft()
         self.assertEqual([a["altitude"] for a in aircraft], [900.0, 0])
 
+    def test_zero_barometric_altitude_is_not_replaced_by_geometric_altitude(self):
+        with patch("connectors.requests.get", return_value=response(200, {"states": [state(baro=0, geo=900.0)]})):
+            conn = OpenSkyConnector()
+            aircraft = conn.fetch_aircraft()
+        self.assertEqual(aircraft[0]["altitude"], 0)
+        self.assertEqual(conn.to_entities(aircraft)[0]["properties"]["altitude_m"], 0)
+
+    def test_invalid_numeric_fields_do_not_break_entity_conversion(self):
+        bad_rows = []
+        for index, value in ((7, "unknown"), (7, float("nan")), (9, float("inf")),
+                             (10, "north"), (11, True), (13, "bad fallback")):
+            row = state(baro=None if index == 13 else 1000.0)
+            row[index] = value
+            bad_rows.append(row)
+        with patch("connectors.requests.get", return_value=response(200, {"states": bad_rows + [state(icao="valid")]})):
+            conn = OpenSkyConnector()
+            entities = conn.to_entities(conn.fetch_aircraft())
+        self.assertEqual([entity["id"] for entity in entities], ["adsb-valid"])
+
     def test_sends_bbox_as_query_params(self):
         with patch("connectors.requests.get", return_value=response(200, {"states": None})) as get:
             self.assertEqual(OpenSkyConnector().fetch_aircraft(bbox=[1, 2, 3, 4]), [])
