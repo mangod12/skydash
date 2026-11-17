@@ -58,3 +58,60 @@ describe('entity update persistence errors', () => {
     expect(useIntelStore.getState().syncError).toBe('Network unavailable');
   });
 });
+
+
+describe('entity update response ordering', () => {
+  it.each(['success', 'error'])('ignores old %s after a newer edit is saved', async (outcome) => {
+    let finish;
+    apiFetch.mockReturnValueOnce(new Promise((resolve, reject) => { finish = outcome === 'error' ? reject : resolve; }));
+    const older = useIntelStore.getState().updateEntity(entity.id, { confidence: 40 });
+    apiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { ...entity, confidence: 90 } }) });
+    await useIntelStore.getState().updateEntity(entity.id, { confidence: 90 });
+    if (outcome === 'error') finish(new Error('old failure'));
+    else finish({ ok: true, json: async () => ({ success: true, data: { ...entity, confidence: 40 } }) });
+    await older;
+    expect(useIntelStore.getState().entities[0].confidence).toBe(90);
+    expect(useIntelStore.getState().syncError).toBeNull();
+  });
+});
+
+
+describe('independent entity update lifecycles', () => {
+  it('does not suppress a different contact update', async () => {
+    const other = { ...entity, id: 'other' };
+    useIntelStore.setState({ entities: [{ ...entity }, other] });
+    const finish = [];
+    apiFetch.mockImplementation(() => new Promise((resolve) => finish.push(resolve)));
+    const first = useIntelStore.getState().updateEntity(entity.id, { confidence: 40 });
+    const second = useIntelStore.getState().updateEntity(other.id, { confidence: 80 });
+    finish[1]({ ok: true, json: async () => ({ success: true, data: { ...other, confidence: 75 } }) });
+    await second;
+    finish[0]({ ok: true, json: async () => ({ success: true, data: { ...entity, confidence: 35 } }) });
+    await first;
+    expect(useIntelStore.getState().entities.map((e) => e.confidence)).toEqual([35, 75]);
+  });
+
+  it('does not clear a newer failure when an old save finishes', async () => {
+    let finishOld;
+    apiFetch.mockReturnValueOnce(new Promise((resolve) => { finishOld = resolve; }));
+    const older = useIntelStore.getState().updateEntity(entity.id, { confidence: 40 });
+    apiFetch.mockRejectedValueOnce(new Error('new failure'));
+    await useIntelStore.getState().updateEntity(entity.id, { confidence: 90 });
+    finishOld({ ok: true, json: async () => ({ success: true, data: { ...entity, confidence: 40 } }) });
+    await older;
+    expect(useIntelStore.getState().syncError).toBe('new failure');
+    expect(useIntelStore.getState().entities[0].confidence).toBe(90);
+  });
+
+  it('invalidates pending edits when a contact is deleted and recreated', async () => {
+    let finishOld;
+    apiFetch.mockReturnValueOnce(new Promise((resolve) => { finishOld = resolve; }));
+    const older = useIntelStore.getState().updateEntity(entity.id, { confidence: 40 });
+    apiFetch.mockResolvedValueOnce({ ok: true });
+    useIntelStore.getState().deleteEntity(entity.id);
+    useIntelStore.getState().addEntity({ ...entity, name: 'Replacement', confidence: 70 });
+    finishOld({ ok: true, json: async () => ({ success: true, data: { ...entity, confidence: 40 } }) });
+    await older;
+    expect(useIntelStore.getState().entities[0]).toMatchObject({ name: 'Replacement', confidence: 70 });
+  });
+});

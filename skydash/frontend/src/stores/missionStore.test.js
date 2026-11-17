@@ -237,6 +237,36 @@ describe('missionStore', () => {
     },
   );
 
+  it.each(['success', 'http failure', 'network failure'])('ignores old mission detail %s after a newer detail response', async (outcome) => {
+    useMissionStore.setState({ missions: [mission(1)] });
+    let finishOld;
+    apiFetch.mockReturnValueOnce(new Promise((resolve, reject) => {
+      finishOld = outcome === 'network failure' ? reject : resolve;
+    }));
+    const older = useMissionStore.getState().fetchMissionDetail(1);
+    const latest = { entities: ['new'], notes: [{ id: 'new-note' }], detections: [] };
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: latest }));
+    await useMissionStore.getState().fetchMissionDetail(1);
+    if (outcome === 'network failure') finishOld(new Error('old failure'));
+    else finishOld(await reply({ success: true, data: { entities: ['old'], notes: [], detections: [] } }, outcome === 'success'));
+    expect(await older).toBeNull();
+    expect(useMissionStore.getState().missions[0]).toMatchObject({ entityIds: ['new'], notes: [{ id: 'new-note' }] });
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('allows independent mission detail requests to finish in either order', async () => {
+    useMissionStore.setState({ missions: [mission(1), mission(2)] });
+    const finish = [];
+    apiFetch.mockImplementation(() => new Promise((resolve) => finish.push(resolve)));
+    const first = useMissionStore.getState().fetchMissionDetail(1);
+    const second = useMissionStore.getState().fetchMissionDetail(2);
+    finish[1](await reply({ success: true, data: { entities: ['two'], notes: [], detections: [] } }));
+    await second;
+    finish[0](await reply({ success: true, data: { entities: ['one'], notes: [], detections: [] } }));
+    await first;
+    expect(useMissionStore.getState().missions.map((m) => m.entityIds)).toEqual([['one'], ['two']]);
+  });
+
   it('stores vision status and resolves the active mission', async () => {
     apiFetch.mockReturnValueOnce(reply({ success: true, data: { ready: true } }));
     await useMissionStore.getState().fetchVisionStatus();

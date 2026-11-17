@@ -27,3 +27,25 @@ describe('map telemetry positions', () => {
     expect(useMapStore.getState().flightPath).toHaveLength(3);
   });
 });
+
+
+describe('map telemetry identity', () => {
+  it('starts a new trail when the selected drone changes', () => {
+    const update = useMapStore.getState().updateDronePosition;
+    update(20, 30, 50, 0, 'one');
+    update(20.1, 30.1, 50, 0, 'one');
+    expect(useMapStore.getState().flightPath).toHaveLength(2);
+    update(40, 50, 50, undefined, 'two');
+    expect(useMapStore.getState().flightPath).toHaveLength(1);
+    expect(useMapStore.getState().dronePosition.droneId).toBe('two');
+    expect(useMapStore.getState().dronePosition.heading).toBeUndefined();
+  });
+
+  it('clears the map reading and trail when no drone is present', () => {
+    const store = useMapStore.getState();
+    store.updateDronePosition(20, 30, 50, 0, 'one');
+    store.clearDronePosition();
+    expect(useMapStore.getState().dronePosition).toBeNull();
+    expect(useMapStore.getState().flightPath).toEqual([]);
+  });
+});

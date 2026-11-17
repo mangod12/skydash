@@ -77,12 +77,18 @@ export const useMapStore = create((set) => ({
   setCenter: (center) => set({ center }),
   setZoom: (zoom) => set({ zoom }),
 
-  updateDronePosition: (lat, lng, alt, heading) => {
+  clearDronePosition: () => set({ dronePosition: null, flightPath: [] }),
+
+  updateDronePosition: (lat, lng, alt, heading, droneId) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
-    set((s) => ({
-      dronePosition: { lat, lng, alt, heading },
-      flightPath: [...s.flightPath, { lat, lng, alt, time: Date.now() }].slice(-500),
-    }));
+    set((s) => {
+      const changedDrone = droneId && s.dronePosition?.droneId !== droneId;
+      const path = changedDrone ? [] : s.flightPath;
+      return {
+        dronePosition: { lat, lng, alt, heading, ...(droneId ? { droneId } : {}) },
+        flightPath: [...path, { lat, lng, alt, time: Date.now() }].slice(-500),
+      };
+    });
   },
 
   toggleLayer: (layer) => set((s) => ({

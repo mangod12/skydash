@@ -72,3 +72,38 @@ describe('intel synchronization completeness', () => {
     expect(state.syncError).toBe('Intel API unavailable');
   });
 });
+
+
+describe('intel refresh ordering', () => {
+  it.each(['success', 'failure'])('ignores older refresh %s after a newer complete snapshot', async (outcome) => {
+    const finish = [];
+    for (let i = 0; i < 3; i += 1) apiFetch.mockReturnValueOnce(new Promise((resolve) => finish.push(resolve)));
+    const older = useIntelStore.getState().fetchIntel();
+    respond([newEntity], { nodes: [newEntity], edges: [] }, []);
+    expect(await useIntelStore.getState().fetchIntel()).toBe(true);
+    const syncedAt = useIntelStore.getState().lastSyncedAt;
+    const oldData = [[oldEntity], { nodes: [oldEntity], edges: [oldEdge] }, [oldEvent]];
+    finish.forEach((resolve, i) => resolve(outcome === 'success' ? reply(oldData[i]) : { ok: false }));
+    expect(await older).toBe(false);
+    expect(useIntelStore.getState().entities[0].id).toBe('new');
+    expect(useIntelStore.getState().events).toEqual([]);
+    expect(useIntelStore.getState().syncError).toBeNull();
+    expect(useIntelStore.getState().lastSyncedAt).toBe(syncedAt);
+  });
+
+  it('keeps loading until the newest refresh completes', async () => {
+    const finishOld = [];
+    const finishNew = [];
+    for (let i = 0; i < 3; i += 1) apiFetch.mockReturnValueOnce(new Promise((resolve) => finishOld.push(resolve)));
+    const older = useIntelStore.getState().fetchIntel();
+    for (let i = 0; i < 3; i += 1) apiFetch.mockReturnValueOnce(new Promise((resolve) => finishNew.push(resolve)));
+    const newer = useIntelStore.getState().fetchIntel();
+    finishOld.forEach((resolve) => resolve({ ok: false }));
+    await older;
+    expect(useIntelStore.getState().loading).toBe(true);
+    const data = [[newEntity], { nodes: [newEntity], edges: [] }, []];
+    finishNew.forEach((resolve, i) => resolve(reply(data[i])));
+    expect(await newer).toBe(true);
+    expect(useIntelStore.getState().loading).toBe(false);
+  });
+});

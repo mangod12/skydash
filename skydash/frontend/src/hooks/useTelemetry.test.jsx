@@ -5,6 +5,7 @@ import { useTelemetry } from './useTelemetry';
 import { telemetrySocketUrl } from '../utils/telemetrySocketUrl';
 import { apiFetch } from '../utils/api';
 import { useTelemetryStore } from '../stores/telemetryStore';
+import { useMapStore } from '../stores/mapStore';
 
 vi.mock('../utils/runtimeConfig', () => ({ API_BASE: 'https://test', API_CONFIGURED: true, WS_BASE: 'wss://test', WS_CONFIGURED: true }));
 vi.mock('../utils/telemetrySocketUrl', () => ({ telemetrySocketUrl: vi.fn() }));
@@ -45,6 +46,26 @@ describe('telemetry connection lifecycle', () => {
     expect(useTelemetryStore.getState().activeDroneId).toBe('two');
     send([]);
     expect(useTelemetryStore.getState().fleet).toEqual([]);
+    unmount();
+  });
+
+  it('keeps map trails separate and clears them on an authoritative empty snapshot', async () => {
+    useTelemetryStore.setState({ fleet: [], activeDroneId: null, data: null, history: [] });
+    useMapStore.getState().clearDronePosition();
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    const send = (data) => act(() => FakeSocket.instances[0].onmessage({ data: JSON.stringify({ type: 'telemetry', data }) }));
+    const frame = (id, lat) => ({ drone_id: id, altitude: 50, gps: { latitude: lat, longitude: 30 } });
+    send([frame('one', 20)]);
+    send([frame('one', 21)]);
+    expect(useMapStore.getState().flightPath).toHaveLength(2);
+    expect(useMapStore.getState().dronePosition.heading).toBeUndefined();
+    send([frame('two', 40)]);
+    expect(useMapStore.getState().flightPath).toHaveLength(1);
+    expect(useMapStore.getState().dronePosition.droneId).toBe('two');
+    send([]);
+    expect(useMapStore.getState().dronePosition).toBeNull();
+    expect(useMapStore.getState().flightPath).toEqual([]);
     unmount();
   });
 

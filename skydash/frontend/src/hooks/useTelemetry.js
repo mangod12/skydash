@@ -41,7 +41,10 @@ export function useTelemetry() {
     const telemetryState = useTelemetryStore.getState();
     // Array messages are complete fleet snapshots, including one or zero drones.
     // Replace membership before selecting data so removed drones cannot linger.
-    if (Array.isArray(droneData)) telemetryState.updateFleet(droneData);
+    if (Array.isArray(droneData)) {
+      telemetryState.updateFleet(droneData);
+      if (droneData.length === 0) useMapStore.getState().clearDronePosition();
+    }
     const data = Array.isArray(droneData)
       ? droneData.find((d) => d.drone_id === telemetryState.activeDroneId) || droneData[0]
       : droneData;
@@ -54,7 +57,8 @@ export function useTelemetry() {
         data.gps.latitude,
         data.gps.longitude,
         data.altitude,
-        data.attitude?.yaw ?? 0
+        data.attitude?.yaw,
+        data.drone_id
       );
     }
 
