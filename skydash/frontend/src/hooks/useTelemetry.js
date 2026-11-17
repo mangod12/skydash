@@ -3,6 +3,7 @@ import { useTelemetryStore } from '../stores/telemetryStore';
 import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import { apiFetch } from '../utils/api';
+import { telemetrySocketUrl } from '../utils/telemetrySocketUrl';
 import { API_BASE, API_CONFIGURED, WS_BASE, WS_CONFIGURED } from '../utils/runtimeConfig';
 
 const WS_URL = WS_CONFIGURED ? `${WS_BASE}/ws/telemetry` : '';
@@ -85,18 +86,13 @@ export function useTelemetry() {
 
     const token = useAuthStore.getState().token;
 
-    // Keep the session token out of the URL: trade it for a one-time ticket first.
-    // If the server has no ticket endpoint, fall back to the token parameter.
-    const urlFor = async () => {
-      if (!token) return WS_URL;
-      try {
-        const res = await apiFetch(`${API_BASE}/api/auth/ws-ticket`, { method: 'POST' });
-        if (res.ok) {
-          const ticket = (await res.json())?.data?.ticket;
-          if (ticket) return `${WS_URL}?ticket=${encodeURIComponent(ticket)}`;
-        }
-      } catch { /* fall through */ }
-      return `${WS_URL}?token=${token}`;
+    // Ticket errors must not downgrade auth by putting a session token in the URL.
+    const retryConnection = () => {
+      setDisconnected();
+      const delay = Math.min(RECONNECT_BASE * Math.pow(2, retryRef.current), RECONNECT_MAX);
+      retryRef.current += 1;
+      setTimeout(() => connectRef.current?.(), delay);
+      fallbackFnRef.current?.();
     };
 
     const open = (wsUrl) => {
@@ -120,13 +116,7 @@ export function useTelemetry() {
           } catch { /* ignore parse errors */ }
         };
 
-        ws.onclose = () => {
-          setDisconnected();
-          const delay = Math.min(RECONNECT_BASE * Math.pow(2, retryRef.current), RECONNECT_MAX);
-          retryRef.current += 1;
-          setTimeout(() => connectRef.current?.(), delay);
-          fallbackFnRef.current?.();
-        };
+        ws.onclose = retryConnection;
 
         ws.onerror = () => {
           ws.close();
@@ -136,7 +126,7 @@ export function useTelemetry() {
       }
     };
 
-    urlFor().then(open);
+    telemetrySocketUrl(WS_URL, API_BASE, token).then(open).catch(retryConnection);
   }, [processData, setDisconnected]);
 
   useEffect(() => { connectRef.current = connectWS; }, [connectWS]);

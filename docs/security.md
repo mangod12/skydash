@@ -58,9 +58,11 @@ by default; set `SKYDASH_TOKEN_TTL_MINUTES` (for example `60`) for shorter sessi
 
 The dashboard normally opens the telemetry WebSocket with a one-time, 30 second
 ticket from `POST /api/auth/ws-ticket`, keeping the session token out of that URL.
-The current client falls back to `?token=` if ticket issuance fails, so this is
-not a guarantee that tokens never appear in proxy logs. Redact WebSocket query
-strings in access logs and use TLS. The stream re-checks the session every
+The client falls back to `?token=` only when the ticket endpoint returns `404` or
+`405` (legacy-server compatibility). Other ticket failures use authenticated HTTP
+polling and retry the WebSocket connection without putting the session token in
+a URL. Legacy fallback means tokens can still appear in proxy logs: redact
+WebSocket query strings in access logs and use TLS. The stream re-checks the session every
 5 seconds and closes (code 4001) if it was signed out, expired or the account was
 disabled. The older `?token=` parameter also works for scripts. Pending tickets
 are capped at 10,000 per process;
