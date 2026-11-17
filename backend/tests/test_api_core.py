@@ -54,6 +54,32 @@ class TestHealthAndTelemetry(_ApiTestCase):
         self.assertEqual(r.status_code, 422)
 
 
+class TestEventRecordIntegrity(_ApiTestCase):
+    def test_client_cannot_override_generated_identity_or_timestamp(self):
+        payload = {
+            "id": "spoofed-event", "time": -1, "type": "test",
+            "description": "Identity integrity", "severity": "warning",
+            "unpersisted": "not a stored field",
+        }
+        response = self.client.post("/api/events", json=payload)
+        self.assertEqual(response.status_code, 201)
+        event = response.json()["data"]
+        self.assertNotEqual(event["id"], payload["id"])
+        self.assertGreater(event["time"], 0)
+        self.assertNotIn("unpersisted", event)
+        stored = self.client.get("/api/timeline").json()["data"]
+        self.assertEqual(stored, [event])
+
+    def test_response_includes_persisted_defaults(self):
+        response = self.client.post("/api/events", json={"description": "Default severity"})
+        self.assertEqual(response.status_code, 201)
+        event = response.json()["data"]
+        self.assertEqual(event["severity"], "info")
+        self.assertIsNone(event["type"])
+        self.assertIsNone(event["entityId"])
+        self.assertEqual(self.client.get("/api/timeline").json()["data"], [event])
+
+
 class TestTimelinePagination(_ApiTestCase):
     def test_invalid_pagination_does_not_reach_store(self):
         from unittest.mock import patch

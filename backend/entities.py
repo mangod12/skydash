@@ -311,4 +311,11 @@ class EntityStore:
             (eid, now, event.get("type"), event.get("description"), event.get("entityId"), event.get("severity", "info")),
         )
         conn.commit()
-        return {"id": eid, "time": now, **event}
+        return {
+            "id": eid,
+            "time": now,
+            "type": event.get("type"),
+            "description": event.get("description"),
+            "entityId": event.get("entityId"),
+            "severity": event.get("severity", "info"),
+        }
