@@ -114,7 +114,7 @@ class UserStore:
             if disabled is not None:
                 conn.execute("UPDATE users SET disabled=? WHERE id=?", (1 if disabled else 0, user_id))
             conn.commit()
-        return self.get_user(user_id)
+        return next(u for u in self.list_users() if u["id"] == user_id)
 
     def get_user(self, user_id):
         row = db.get_connection().execute(

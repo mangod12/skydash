@@ -63,7 +63,8 @@ class TestUserAdmin(unittest.TestCase):
 
     def test_disable_blocks_login_and_token(self):
         h = self.hdr("analyst")
-        self.client.patch(f"/api/users/{self.ids['analyst']}", json={"disabled": True}, headers=self.hdr("commander"))
+        r = self.client.patch(f"/api/users/{self.ids['analyst']}", json={"disabled": True}, headers=self.hdr("commander"))
+        self.assertIs(r.json()["data"]["disabled"], True)
         self.assertEqual(self.client.get("/api/auth/me", headers=h).status_code, 401)
         r = self.client.post("/api/auth/login", json={"username": "ua-analyst", "password": self.pw})
         self.assertEqual(r.status_code, 401)
