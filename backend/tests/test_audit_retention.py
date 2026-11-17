@@ -92,3 +92,41 @@ def test_failed_audit_insert_cannot_be_committed_by_next_record():
     conn.commit()
     audit.record("POST", "/successful", 201)
     assert [row[0] for row in conn.execute("SELECT path FROM audit_log")] == ["/successful"]
+
+
+def test_purge_preserves_explicit_epoch_zero():
+    _fresh()
+    audit.record("POST", "/epoch", 200)
+    database.execute("UPDATE audit_log SET ts=0", commit=True)
+    with patch.dict(os.environ, {"SKYDASH_AUDIT_RETENTION_DAYS": "1"}):
+        assert audit.purge_old(now=0) == 0
+    assert _count() == 1
+
+
+def test_nonfinite_retention_settings_are_disabled():
+    for value in ("nan", "inf", "-inf", "-1"):
+        with patch.dict(os.environ, {"SKYDASH_AUDIT_RETENTION_DAYS": value}):
+            assert audit.retention_days() == 0.0
+
+
+def test_invalid_explicit_purge_time_cannot_delete_records():
+    import pytest
+
+    _fresh()
+    audit.record("POST", "/preserve", 200)
+    for value in (float("inf"), float("nan"), "now", True):
+        with patch.dict(os.environ, {"SKYDASH_AUDIT_RETENTION_DAYS": "1"}):
+            with pytest.raises(ValueError):
+                audit.purge_old(now=value)
+    assert _count() == 1
+
+
+def test_cleanup_cadence_uses_monotonic_time_not_wall_clock():
+    with patch.object(audit, "_last_purge", 0.0), patch(
+        "audit.time.monotonic", side_effect=[4000, 5000, 8000]
+    ), patch("audit.purge_old") as purge:
+        audit._maybe_purge()
+        audit._maybe_purge()
+        audit._maybe_purge()
+        assert purge.call_count == 2
+        assert all(not call.args for call in purge.call_args_list)
