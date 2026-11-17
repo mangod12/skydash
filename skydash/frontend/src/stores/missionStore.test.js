@@ -81,6 +81,36 @@ describe('missionStore', () => {
     expect(useMissionStore.getState().missions.map((m) => m.id)).toEqual([2]);
   });
 
+  it.each([
+    ['createMission', [{ name: 'New' }], 'Failed to create mission', null],
+    ['updateMission', [1, { name: 'Changed' }], 'Failed to update mission', null],
+    ['deleteMission', [1], 'Failed to delete mission', false],
+  ])('reports %s failures and preserves existing state', async (action, args, message, result) => {
+    const original = [mission(1)];
+    useMissionStore.setState({ missions: original, activeMissionId: 1 });
+    for (const [body, ok] of [
+      [{ success: false, error: 'Rejected' }, true],
+      [{ success: true, data: mission(2) }, false],
+      [null, true],
+    ]) {
+      apiFetch.mockReturnValueOnce(reply(body, ok));
+      expect(await useMissionStore.getState()[action](...args)).toBe(result);
+      expect(useMissionStore.getState().missions).toEqual(original);
+      expect(useMissionStore.getState().activeMissionId).toBe(1);
+      expect(toast).toHaveBeenLastCalledWith(message, 'error');
+    }
+  });
+
+  it.each(['createMission', 'updateMission'])('rejects incomplete %s acknowledgements', async (action) => {
+    useMissionStore.setState({ missions: [mission(1)], activeMissionId: 1 });
+    for (const data of [undefined, null, [], 'invalid']) {
+      apiFetch.mockReturnValueOnce(reply({ success: true, data }));
+      expect(await useMissionStore.getState()[action](1, {})).toBeNull();
+      expect(useMissionStore.getState().missions).toEqual([mission(1)]);
+      expect(useMissionStore.getState().activeMissionId).toBe(1);
+    }
+  });
+
   it('returns null or false when the API reports failure', async () => {
     apiFetch.mockReturnValue(reply({ success: false }));
     expect(await useMissionStore.getState().createMission({})).toBeNull();
