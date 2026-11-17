@@ -85,8 +85,8 @@ export const useMapStore = create((set) => ({
       const changedDrone = droneId && s.dronePosition?.droneId !== droneId;
       const path = changedDrone ? [] : s.flightPath;
       return {
-        dronePosition: { lat, lng, alt, heading, ...(droneId ? { droneId } : {}) },
-        flightPath: [...path, { lat, lng, alt, time: Date.now() }].slice(-500),
+        dronePosition: { lat, lng, alt: Number.isFinite(alt) ? alt : null, heading: Number.isFinite(heading) ? heading : undefined, ...(droneId ? { droneId } : {}) },
+        flightPath: [...path, { lat, lng, alt: Number.isFinite(alt) ? alt : null, time: Date.now() }].slice(-500),
       };
     });
   },

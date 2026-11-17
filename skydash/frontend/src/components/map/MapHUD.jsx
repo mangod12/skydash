@@ -1,3 +1,4 @@
+import { finiteReading, formatReading, nonNegativeReading, percentReading } from '../../utils/telemetryReadings';
 import { clsx } from 'clsx';
 
 export default function MapHUD({ data, compact = false }) {
@@ -11,7 +12,7 @@ export default function MapHUD({ data, compact = false }) {
     );
   }
 
-  const batColor = data.battery_voltage < 14.5
+  const batColor = !nonNegativeReading(data.battery_voltage) ? 'text-zinc-500' : data.battery_voltage < 14.5
     ? 'text-red-400'
     : data.battery_voltage < 15.5
       ? 'text-amber-400'
@@ -33,12 +34,12 @@ export default function MapHUD({ data, compact = false }) {
       <div className="absolute top-3 left-3 flex items-center gap-2">
         <div className="bg-zinc-900/80 backdrop-blur-sm border border-white/[0.08] rounded-lg px-3 py-1.5 flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.5)]" />
-          <span className="text-[10px] font-mono text-zinc-300 tracking-wider">DRONE-01</span>
+          <span className="text-[10px] font-mono text-zinc-300 tracking-wider">{typeof data.drone_id === 'string' ? data.drone_id : '--'}</span>
           <span className="text-[9px] font-mono text-zinc-600">|</span>
           <span className={clsx('text-[10px] font-mono tracking-wider',
             data.flight_mode === 'STABILIZE' ? 'text-cyan-400' : 'text-amber-400'
           )}>
-            {data.flight_mode}
+            {typeof data.flight_mode === 'string' ? data.flight_mode : '--'}
           </span>
         </div>
       </div>
@@ -75,11 +76,11 @@ export default function MapHUD({ data, compact = false }) {
       {!compact && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
           {[
-            { label: 'ALT', value: `${data.altitude?.toFixed(1)}`, unit: 'm', color: 'text-emerald-400' },
-            { label: 'SPD', value: `${data.ground_speed?.toFixed(1)}`, unit: 'm/s', color: 'text-blue-400' },
-            { label: 'HDG', value: `${Math.round(data.attitude?.yaw ?? 0).toString().padStart(3, '0')}`, unit: '\u00B0', color: 'text-cyan-400' },
-            { label: 'BAT', value: `${data.battery_voltage?.toFixed(1)}`, unit: 'V', color: batColor },
-            { label: 'SIG', value: `${data.signal_strength}`, unit: '%', color: 'text-violet-400' },
+            { label: 'ALT', value: formatReading(data.altitude), unit: 'm', color: 'text-emerald-400' },
+            { label: 'SPD', value: formatReading(data.ground_speed), unit: 'm/s', color: 'text-blue-400' },
+            { label: 'HDG', value: finiteReading(data.attitude?.yaw) ? (Math.round(((data.attitude.yaw % 360) + 360) % 360) % 360).toString().padStart(3, '0') : '--', unit: '\u00B0', color: 'text-cyan-400' },
+            { label: 'BAT', value: formatReading(data.battery_voltage), unit: 'V', color: batColor },
+            { label: 'SIG', value: percentReading(data.signal_strength) ? String(data.signal_strength) : '--', unit: '%', color: 'text-violet-400' },
           ].map((m) => (
             <div
               key={m.label}
@@ -106,7 +107,7 @@ export default function MapHUD({ data, compact = false }) {
 }
 
 function formatMissionTime(seconds) {
-  if (seconds == null) return '--:--';
+  if (!nonNegativeReading(seconds)) return '--:--';
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
