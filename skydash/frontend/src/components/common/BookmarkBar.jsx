@@ -3,7 +3,7 @@ import { Star, Plus, X, Pencil, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useBookmarkStore } from '../../stores/bookmarkStore';
 
-const CHIP_BASE = 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wider cursor-pointer transition-all duration-150 select-none';
+const CHIP_BASE = 'flex items-center shrink-0 whitespace-nowrap gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wider cursor-pointer transition-all duration-150 select-none';
 const ACTIVE_CHIP = 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30';
 const IDLE_CHIP = 'text-zinc-500 border border-white/[0.04] hover:bg-white/[0.04]';
 

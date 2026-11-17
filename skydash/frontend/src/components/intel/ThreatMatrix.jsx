@@ -11,6 +11,9 @@ const CELL_COLORS = {
   3: 'bg-red-500/15 text-red-400',
 };
 
+const LEVEL_ABBR = { none: 'NONE', low: 'LOW', medium: 'MED', high: 'HIGH', critical: 'CRIT' };
+const TYPE_ABBR = { vehicle: 'VEH', person: 'PERS', building: 'BLDG', device: 'DEV', event: 'EVENT', organization: 'ORG' };
+
 export default function ThreatMatrix() {
   const entities = useIntelStore((s) => s.entities);
 
@@ -40,7 +43,7 @@ export default function ThreatMatrix() {
                   key={level}
                   className="text-center text-zinc-600 font-medium pb-2 px-1 tracking-wider uppercase"
                 >
-                  {level.slice(0, 4)}
+                  {LEVEL_ABBR[level] || level.slice(0, 4)}
                 </th>
               ))}
             </tr>
@@ -49,7 +52,7 @@ export default function ThreatMatrix() {
             {ENTITY_TYPES.map((type) => (
               <tr key={type}>
                 <td className="text-zinc-500 font-medium py-1 pr-2 uppercase tracking-wider">
-                  {type.slice(0, 6)}
+                  {TYPE_ABBR[type] || type.slice(0, 6)}
                 </td>
                 {THREAT_LEVELS.map((threat) => {
                   const count = getCount(type, threat);
