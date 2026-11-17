@@ -75,6 +75,9 @@ Failed logins are throttled per client and username (5 per minute). For a genera
 set `SKYDASH_RATE_LIMIT_PER_MIN` (for example `600`): `/api` requests beyond it per client
 address get `429` with `Retry-After`. It is off by default; `/health` and WebSockets are
 exempt. Behind a proxy, also set `SKYDASH_TRUST_PROXY=1` so clients are told apart.
+Client tracking is capped at 10,000 addresses with expired entries reclaimed once
+per minute. At capacity, new addresses receive `429` with a 60-second retry hint;
+existing addresses retain their current limits.
 
 ## Behind a reverse proxy
 
