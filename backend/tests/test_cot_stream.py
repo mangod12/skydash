@@ -85,6 +85,15 @@ class TestTarget(unittest.TestCase):
     def test_ipv6_and_trimmed_targets_remain_supported(self):
         self.assertEqual(cot_stream.parse_target(" udp://[::1]:6969 "), ("udp", "::1", 6969))
 
+    def test_interval_rejects_nonfinite_values_and_keeps_minimum(self):
+        from unittest.mock import patch
+
+        for value, expected in (("inf", 5.0), ("-inf", 5.0), ("nan", 5.0),
+                                ("1e9999", 5.0), ("bad", 5.0), ("0", 1.0),
+                                ("-3", 1.0), ("0.2", 1.0), ("2.5", 2.5)):
+            with self.subTest(value=value), patch.dict(os.environ, {"SKYDASH_COT_INTERVAL": value}):
+                self.assertEqual(cot_stream.interval_from_env(), expected)
+
 
 class TestUdpStream(unittest.TestCase):
     def test_streams_events_over_udp(self):

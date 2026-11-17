@@ -125,7 +125,8 @@ def parse_target(value: Optional[str]) -> Optional[Tuple[str, str, int]]:
 
 def interval_from_env() -> float:
     try:
-        return max(1.0, float(os.getenv("SKYDASH_COT_INTERVAL", "5")))
+        interval = float(os.getenv("SKYDASH_COT_INTERVAL", "5"))
+        return max(1.0, interval) if math.isfinite(interval) else 5.0
     except ValueError:
         return 5.0
 
