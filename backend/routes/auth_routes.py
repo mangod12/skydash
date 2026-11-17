@@ -9,6 +9,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from auth import create_token, revoke_token
+from client_ip import client_ip
 from deps import AUTH_ENABLED, user_store
 from models import AuthLogin, AuthRegister
 from password_policy import check_password
@@ -23,7 +24,7 @@ _login_failures = defaultdict(deque)
 
 
 def _throttle_key(request: Request, username: str) -> str:
-    client = request.client.host if request.client else "unknown"
+    client = client_ip(request)
     return f"{client}:{username.lower()}"
 
 

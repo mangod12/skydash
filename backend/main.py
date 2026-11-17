@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from auth import verify_token
+from client_ip import client_ip
 from deps import (
     API_KEY,
     AUTH_ENABLED,
@@ -175,14 +176,14 @@ async def audit_middleware(request: Request, call_next):
     except Exception:
         if audited:
             audit.record(request.method, path, 500, getattr(request.state, "user", None),
-                         request.client.host if request.client else None)
+                         client_ip(request))
         raise
     if audited:
         who = getattr(request.state, "user", None)
         if not who and getattr(request.state, "attempted_username", None):
             who = {"username": request.state.attempted_username}
         audit.record(request.method, path, response.status_code, who,
-                     request.client.host if request.client else None)
+                     client_ip(request))
     return response
 
 
