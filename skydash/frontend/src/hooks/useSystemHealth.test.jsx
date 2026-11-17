@@ -70,3 +70,38 @@ describe('backend health uptime freshness', () => {
     },
   );
 });
+
+describe('health drone presence counts', () => {
+  it('does not invent an active drone from a connected empty fleet', () => {
+    const { result } = renderHook(() => useSystemHealth());
+    act(() => useTelemetryStore.getState().updateFleet([]));
+    expect(result.current.pipeline.activeDrones).toBe(0);
+    expect(result.current.pipeline.total).toBe(0);
+    expect(result.current.status).toBe('degraded');
+  });
+
+  it('counts disarmed fleet members as present but not active', () => {
+    const { result } = renderHook(() => useSystemHealth());
+    act(() => useTelemetryStore.getState().updateFleet([
+      { drone_id: 'one', is_armed: false }, { drone_id: 'two', is_armed: false },
+    ]));
+    expect(result.current.pipeline.activeDrones).toBe(0);
+    expect(result.current.pipeline.total).toBe(2);
+    expect(result.current.status).toBe('degraded');
+    act(() => useTelemetryStore.getState().updateFleet([
+      { drone_id: 'one', is_armed: true }, { drone_id: 'two', is_armed: false },
+    ]));
+    expect(result.current.pipeline.activeDrones).toBe(1);
+    expect(result.current.pipeline.total).toBe(2);
+    expect(result.current.status).toBe('healthy');
+  });
+
+  it('supports single-record telemetry without inferring presence from connectivity', () => {
+    const { result } = renderHook(() => useSystemHealth());
+    act(() => useTelemetryStore.getState().updateTelemetry({ ...frame, is_armed: false }, 0));
+    expect(result.current.pipeline.activeDrones).toBe(0);
+    expect(result.current.pipeline.total).toBe(1);
+    act(() => useTelemetryStore.getState().updateTelemetry({ ...frame, is_armed: true }, 0));
+    expect(result.current.pipeline.activeDrones).toBe(1);
+  });
+});
