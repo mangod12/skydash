@@ -61,9 +61,16 @@ export const useAuthStore = create((set, get) => ({
     if (tok && API_CONFIGURED) {
       fetch(`${API}/api/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${tok}` } }).catch(() => {});
     }
-    storage?.removeItem('skydash_token');
-    storage?.removeItem('skydash_user');
+    // Clear the active session even when browser storage is blocked or broken.
+    // Try both persisted keys independently so one failure cannot skip the other.
     set({ token: null, user: null });
+    for (const key of ['skydash_token', 'skydash_user']) {
+      try {
+        storage?.removeItem(key);
+      } catch {
+        // Storage is best effort; the in-memory session is already gone.
+      }
+    }
   },
 
   checkAuth: async () => {
