@@ -24,6 +24,22 @@ class TestUpdateRoutes(unittest.TestCase):
         database.reset()
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
+    def test_boolean_entity_coordinates_are_rejected_without_writes(self):
+        before = entity_store.get_entity(self.eid)
+        count = entity_store.count()
+        for coordinates in ([True, 80], [20, False], [20, 80, True]):
+            with self.subTest(coordinates=coordinates):
+                response = self.client.post("/api/entities", json={
+                    "name": "Invalid location", "coordinates": coordinates,
+                })
+                self.assertEqual(response.status_code, 422)
+                response = self.client.put(f"/api/entities/{self.eid}", json={
+                    "coordinates": coordinates,
+                })
+                self.assertEqual(response.status_code, 422)
+                self.assertEqual(entity_store.count(), count)
+                self.assertEqual(entity_store.get_entity(self.eid), before)
+
     def test_entity_partial_update_keeps_other_fields(self):
         resp = self.client.put(f"/api/entities/{self.eid}", json={"confidence": 80})
         data = resp.json()["data"]
