@@ -15,10 +15,14 @@ export function destinationPoint(lat, lng, bearingDeg, distanceM) {
 
 /** Straight-line predicted track: positions at each step seconds ahead, at constant speed/heading. */
 export function predictTrack(pos, speedMps, headingDeg, horizonS = 120, stepS = 30) {
-  if (!pos || !Number.isFinite(speedMps) || speedMps < 0.5) return [];
+  if (!pos || !Number.isFinite(pos.lat) || !Number.isFinite(pos.lng)
+      || Math.abs(pos.lat) > 90 || Math.abs(pos.lng) > 180
+      || !Number.isFinite(speedMps) || speedMps < 0.5 || !Number.isFinite(headingDeg)
+      || !Number.isFinite(horizonS) || horizonS < 0
+      || !Number.isFinite(stepS) || stepS <= 0 || horizonS / stepS > 1000) return [];
   const pts = [[pos.lat, pos.lng]];
   for (let t = stepS; t <= horizonS; t += stepS) {
-    pts.push(destinationPoint(pos.lat, pos.lng, headingDeg || 0, speedMps * t));
+    pts.push(destinationPoint(pos.lat, pos.lng, headingDeg, speedMps * t));
   }
   return pts;
 }
