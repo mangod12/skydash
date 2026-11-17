@@ -66,11 +66,12 @@ export const useAuthStore = create((set, get) => ({
       const res = await fetch(`${API}/api/entities`);
       if (res.status === 401) {
         set({ authEnabled: true });
-      } else {
+      } else if (res.status >= 200 && res.status < 300) {
         set({ authEnabled: false });
       }
     } catch {
-      set({ authEnabled: false });
+      // An outage cannot establish that authentication is disabled.
+      // Retain the last known mode (or null when it has not been determined).
     }
   },
 
