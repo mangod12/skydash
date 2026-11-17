@@ -57,6 +57,49 @@ class TestTelemetryRoutes(unittest.TestCase):
         self.assertEqual(data["active_drones"], 3)
         self.assertEqual(data["total_samples"], 1)
 
+    def test_history_isolates_malformed_samples_and_drone_records(self):
+        telemetry_history.clear()
+        for value in (None, {}, {"timestamp": "1", "drones": []}, {"timestamp": float("inf"), "drones": []},
+                      {"timestamp": 1, "drones": {}}, {"timestamp": 2, "drones": [None, {}, {"drone_id": "D1", "altitude": 10}]}):
+            telemetry_history.append(value)
+        body = self.client.get("/api/telemetry/history").json()
+        self.assertEqual(body["metadata"]["count"], 1)
+        self.assertEqual(body["data"][0]["drones"], [{"drone_id": "D1", "altitude": 10}])
+        filtered = self.client.get("/api/telemetry/history", params={"drone_id": "D1", "field": "altitude"}).json()
+        self.assertEqual(filtered["data"], [{"timestamp": 2, "value": 10}])
+
+    def test_history_serialises_nonfinite_metrics_as_missing_including_nested_fields(self):
+        telemetry_history.clear()
+        telemetry_history.append({"timestamp": 1, "drones": [{"drone_id": "D1", "altitude": float("nan"), "gps": {"latitude": float("inf")}}]})
+        response = self.client.get("/api/telemetry/history")
+        self.assertEqual(response.status_code, 200)
+        drone = response.json()["data"][0]["drones"][0]
+        self.assertIsNone(drone["altitude"])
+        self.assertIsNone(drone["gps"]["latitude"])
+        response = self.client.get("/api/telemetry/history", params={"drone_id": "D1", "field": "altitude"})
+        self.assertIsNone(response.json()["data"][0]["value"])
+
+    def test_stats_average_only_available_finite_metrics_without_treating_missing_as_zero(self):
+        telemetry_history.clear()
+        telemetry_history.append({"timestamp": 2, "drones": [{"drone_id": "D1", "altitude": 20, "battery_percentage": 80},
+                                {"drone_id": "D2", "altitude": None, "battery_percentage": float("nan"), "signal_strength": True},
+                                {"drone_id": "D3", "altitude": "50"}, None]})
+        data = self.client.get("/api/telemetry/stats").json()["data"]
+        self.assertEqual(data["active_drones"], 3)
+        self.assertEqual(data["avg_altitude"], 20)
+        self.assertEqual(data["avg_battery"], 80)
+        self.assertIsNone(data["avg_signal"])
+        self.assertEqual(data["total_samples"], 1)
+
+    def test_stats_ignore_invalid_samples_and_do_not_report_negative_duration(self):
+        telemetry_history.clear()
+        telemetry_history.append(None)
+        self.assertEqual(self.client.get("/api/telemetry/stats").json()["data"], {})
+        telemetry_history.extend([{"timestamp": 20, "drones": [{"drone_id": "D1"}]}, {"timestamp": 10, "drones": [{"drone_id": "D1"}]}])
+        data = self.client.get("/api/telemetry/stats").json()["data"]
+        self.assertEqual(data["total_samples"], 2)
+        self.assertEqual(data["recording_duration_s"], 0)
+
     def test_command_unknown_drone_is_404(self):
         resp = self.client.post("/api/drone/NOPE/command", json={"command": "hold"})
         self.assertEqual(resp.status_code, 404)
