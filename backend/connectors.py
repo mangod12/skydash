@@ -26,6 +26,7 @@ class OpenSkyConnector:
         self.last_fetch = 0
         self.cache: List[Dict] = []
         self.cache_ttl = 15  # seconds
+        self.cache_bbox = None
 
     def fetch_aircraft(self, bbox: Optional[List[float]] = None) -> List[Dict]:
         """Fetch aircraft states.
@@ -37,7 +38,9 @@ class OpenSkyConnector:
             List of aircraft dicts with position and flight data.
         """
         now = time.time()
-        if now - self.last_fetch < self.cache_ttl and self.cache:
+        bbox_key = tuple(bbox) if bbox else None
+        same_region = bbox_key == self.cache_bbox
+        if same_region and self.last_fetch and now - self.last_fetch < self.cache_ttl:
             return self.cache
 
         try:
@@ -73,15 +76,16 @@ class OpenSkyConnector:
                             "last_contact": s[4],
                         })
                 self.cache = aircraft
+                self.cache_bbox = bbox_key
                 self.last_fetch = now
                 log.info(f"OpenSky: fetched {len(aircraft)} aircraft")
                 return aircraft
             else:
                 log.warning(f"OpenSky API returned {resp.status_code}")
-                return self.cache
+                return self.cache if same_region else []
         except Exception as e:
             log.warning(f"OpenSky fetch failed: {e}")
-            return self.cache
+            return self.cache if same_region else []
 
     def to_entities(self, aircraft: List[Dict]) -> List[Dict]:
         """Convert aircraft list to SkyDash entity format."""
