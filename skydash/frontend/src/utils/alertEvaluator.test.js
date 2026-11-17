@@ -102,3 +102,38 @@ describe('malformed numeric telemetry', () => {
     }
   });
 });
+
+describe('invalid geographic alert inputs', () => {
+  const fence = { id: 'f', type: 'circle', center: { lat: 0, lng: 0 }, radius: 500 };
+  const target = { id: 'e', name: 'Target', coordinates: [0, 0] };
+  const gpsDrone = { drone_id: 'test', gps: { latitude: 0, longitude: 0 } };
+  const proximity = { type: 'proximity', config: { entityId: 'e' } };
+  const geofence = { type: 'geofence_breach', config: {} };
+
+  it.each([[null, 0], [false, 0], ['0', 0], [91, 0], [0, 181], [NaN, 0], [0, Infinity]])(
+    'does not treat invalid position %j,%j as a real drone fix', (latitude, longitude) => {
+      const invalid = { ...gpsDrone, gps: { latitude, longitude } };
+      expect(evaluateRule(proximity, invalid, [], [target]).triggered).toBe(false);
+      expect(evaluateRule(geofence, invalid, [fence], []).triggered).toBe(false);
+    },
+  );
+
+  it('ignores malformed targets and fence geometry rather than coercing coordinates', () => {
+    for (const coordinates of [[], [null, 0], [0, false], [91, 0], '00']) {
+      expect(evaluateRule(proximity, gpsDrone, [], [{ ...target, coordinates }]).triggered).toBe(false);
+    }
+    for (const center of [{ lat: null, lng: 0 }, { lat: 0, lng: 181 }, null]) {
+      expect(evaluateRule(geofence, { ...gpsDrone, gps: { latitude: 1, longitude: 1 } }, [{ ...fence, center }], []).triggered).toBe(false);
+    }
+    for (const radius of [-1, 0, '500', Infinity, NaN]) {
+      expect(evaluateRule({ ...proximity, config: { entityId: 'e', radiusM: radius } }, gpsDrone, [], [target]).triggered).toBe(false);
+      expect(evaluateRule(geofence, { ...gpsDrone, gps: { latitude: 1, longitude: 1 } }, [{ ...fence, radius }], []).triggered).toBe(false);
+    }
+  });
+
+  it('preserves genuine zero and boundary positions', () => {
+    expect(evaluateRule(proximity, gpsDrone, [], [target]).triggered).toBe(true);
+    const boundary = { ...gpsDrone, gps: { latitude: 90, longitude: 180 } };
+    expect(evaluateRule(proximity, boundary, [], [{ ...target, coordinates: [90, 180] }]).triggered).toBe(true);
+  });
+});
