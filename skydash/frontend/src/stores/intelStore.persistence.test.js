@@ -28,6 +28,22 @@ describe('entity update persistence errors', () => {
     },
   );
 
+  it.each([[], 'invalid', {}, { id: 'wrong-contact', confidence: 1 }])(
+    'does not replace a contact with an invalid canonical record: %j', async (data) => {
+      apiFetch.mockResolvedValue({ ok: true, json: async () => ({ success: true, data }) });
+      await useIntelStore.getState().updateEntity(entity.id, { confidence: 80 });
+      expect(useIntelStore.getState().syncError).toBe('Entity update was not saved');
+      expect(useIntelStore.getState().entities[0]).toMatchObject({ id: entity.id, name: 'Original', confidence: 80 });
+    },
+  );
+
+  it('requires a boolean success acknowledgement even with a matching identity', async () => {
+    apiFetch.mockResolvedValue({ ok: true, json: async () => ({ success: 'false', data: { ...entity, confidence: 1 } }) });
+    await useIntelStore.getState().updateEntity(entity.id, { confidence: 80 });
+    expect(useIntelStore.getState().syncError).toBe('Entity update was not saved');
+    expect(useIntelStore.getState().entities[0].confidence).toBe(80);
+  });
+
   it('accepts the canonical server record and clears a prior error', async () => {
     useIntelStore.setState({ syncError: 'Prior failure' });
     apiFetch.mockResolvedValue({ ok: true, json: async () => ({ success: true, data: { ...entity, confidence: 75 } }) });
