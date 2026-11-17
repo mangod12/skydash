@@ -2,6 +2,7 @@ import { clsx } from 'clsx';
 import GlassCard from '../common/GlassCard';
 import DataSources from '../common/DataSources';
 import AuditLog from '../common/AuditLog';
+import UserAdmin from '../common/UserAdmin';
 import AlertRulesConfig from '../common/AlertRulesConfig';
 import SystemHealth from '../common/SystemHealth';
 import PlatformStatus from '../common/PlatformStatus';
@@ -122,6 +123,9 @@ export default function SettingsView() {
             ))}
           </div>
         </GlassCard>
+
+        {/* Accounts (commander only, renders nothing otherwise) */}
+        <UserAdmin />
 
         {/* Audit Log */}
         <AuditLog />
