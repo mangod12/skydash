@@ -30,6 +30,55 @@ class TestUpdateRoutes(unittest.TestCase):
         self.assertEqual(data["confidence"], 80)
         self.assertEqual(data["name"], "Alpha")
 
+    def test_failed_entity_update_cannot_be_committed_by_later_write(self):
+        import sqlite3
+
+        before = entity_store.get_entity(self.eid)
+        conn = database.get_connection()
+        # FAIL retains this statement's changes until the caller rolls back.
+        conn.execute("""CREATE TRIGGER reject_entity_update AFTER UPDATE ON entities
+                        BEGIN SELECT RAISE(FAIL, 'synthetic failure'); END""")
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            entity_store.update_entity(self.eid, {"name": "Must not persist"})
+        self.assertFalse(conn.in_transaction)
+        entity_store.add_event({"description": "Unrelated write"})
+        self.assertEqual(entity_store.get_entity(self.eid), before)
+        conn.execute("DROP TRIGGER reject_entity_update")
+        conn.commit()
+        self.assertEqual(entity_store.update_entity(self.eid, {"name": "Retry"})["name"], "Retry")
+
+    def test_entity_update_reads_only_after_acquiring_write_lock(self):
+        import threading
+        from concurrent.futures import ThreadPoolExecutor
+        from unittest.mock import patch
+
+        started = threading.Event()
+        read = threading.Event()
+        original = entity_store.get_entity
+
+        def tracked_get(entity_id):
+            read.set()
+            return original(entity_id)
+
+        def update():
+            started.set()
+            return entity_store.update_entity(self.eid, {"confidence": 80})
+
+        lock = database.get_lock()
+        with ThreadPoolExecutor(max_workers=1) as executor, patch.object(entity_store, "get_entity", tracked_get):
+            with lock:
+                future = executor.submit(update)
+                self.assertTrue(started.wait(2))
+                # While a previous writer holds the lock, no stale merge read is allowed.
+                was_read_early = read.wait(0.1)
+                database.get_connection().execute("UPDATE entities SET name=? WHERE id=?", ("Newer name", self.eid))
+                database.get_connection().commit()
+            result = future.result(timeout=2)
+        self.assertFalse(was_read_early)
+        self.assertEqual(result["name"], "Newer name")
+        self.assertEqual(result["confidence"], 80)
+
     def test_entity_update_rejects_invalid_values(self):
         for body in ({"name": ""}, {"confidence": 101}, {"confidence": -5}):
             resp = self.client.put(f"/api/entities/{self.eid}", json=body)
