@@ -38,6 +38,31 @@ class TestDemoReset(unittest.TestCase):
         self.assertIsNotNone(entity_store.get_entity("ent-001"))
         self.assertEqual(self.client.get("/api/missions").json()["data"], [])
 
+    def test_failed_entity_reset_rolls_back_deleted_events_and_relationships(self):
+        import sqlite3
+
+        extra = entity_store.create_entity({"name": "Preserve contact"})["id"]
+        entity_store.add_relationship(extra, "ent-001", "associated_with")
+        before_entities = entity_store.list_entities()
+        before_relationships = entity_store.relationships
+        before_events = entity_store.get_timeline(limit=1000)
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_entity_reset BEFORE DELETE ON entities
+                        BEGIN SELECT RAISE(ABORT, 'synthetic reset failure'); END""")
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            entity_store.reset_demo()
+        self.assertFalse(conn.in_transaction)
+        conn.execute("DROP TRIGGER reject_entity_reset")
+        conn.commit()
+        self.assertEqual(entity_store.list_entities(), before_entities)
+        self.assertEqual(entity_store.relationships, before_relationships)
+        self.assertEqual(entity_store.get_timeline(limit=1000), before_events)
+        entity_store.reset_demo()
+        self.assertEqual(entity_store.count(), 8)
+        self.assertIsNone(entity_store.get_entity(extra))
+        self.assertFalse(conn.in_transaction)
+
     def test_commander_only(self):
         self.assertEqual(required_role("POST", "/api/demo/reset"), "commander")
 
