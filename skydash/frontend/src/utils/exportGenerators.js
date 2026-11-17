@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { escapeHtml } from './sanitize';
 
-const TIMESTAMP = () => format(new Date(), 'yyyy-MM-dd HH:mm:ss');
+const TIMESTAMP = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
 const SEPARATOR = '='.repeat(60);
 const DASH = '-'.repeat(60);
 
