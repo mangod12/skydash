@@ -43,6 +43,14 @@ class TestTarget(unittest.TestCase):
         self.assertIsNone(cot_stream.parse_target("udp://nohost"))
         self.assertIsNone(cot_stream.parse_target(None))
 
+    def test_malformed_targets_are_ignored_without_crashing_startup(self):
+        for value in ("udp://host:not-a-port", "tcp://host:65536", "tls://host:-1", "udp://[::1", "tcp://host:0"):
+            with self.subTest(target=value):
+                self.assertIsNone(cot_stream.parse_target(value))
+
+    def test_ipv6_and_trimmed_targets_remain_supported(self):
+        self.assertEqual(cot_stream.parse_target(" udp://[::1]:6969 "), ("udp", "::1", 6969))
+
 
 class TestUdpStream(unittest.TestCase):
     def test_streams_events_over_udp(self):

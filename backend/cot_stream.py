@@ -90,11 +90,15 @@ def parse_target(value: Optional[str]) -> Optional[Tuple[str, str, int]]:
     """Return (scheme, host, port) for udp://, tcp:// or tls:// targets, else None."""
     if not value:
         return None
-    u = urlparse(value.strip())
-    if u.scheme not in ("udp", "tcp", "tls") or not u.hostname or not u.port:
-        log.warning("SKYDASH_COT_TARGET ignored: expected udp://, tcp:// or tls:// host:port")
-        return None
-    return u.scheme, u.hostname, u.port
+    try:
+        u = urlparse(value.strip())
+        if u.scheme in ("udp", "tcp", "tls") and u.hostname and u.port:
+            return u.scheme, u.hostname, u.port
+    except ValueError:
+        # Invalid ports and malformed IPv6 authorities can fail during parsing.
+        pass
+    log.warning("SKYDASH_COT_TARGET ignored: expected udp://, tcp:// or tls:// host:port")
+    return None
 
 
 def interval_from_env() -> float:
