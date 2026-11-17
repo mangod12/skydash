@@ -33,6 +33,10 @@ class UserStore:
             role TEXT DEFAULT 'analyst',
             created_at TEXT
         )""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS revoked_tokens (
+            jti TEXT PRIMARY KEY,
+            exp REAL NOT NULL
+        )""")
         conn.commit()
         # Production deployments set SKYDASH_DISABLE_DEMO_USERS=1 so no built-in accounts exist.
         demo_off = os.getenv("SKYDASH_DISABLE_DEMO_USERS", "").lower() in ("1", "true", "yes")
@@ -107,14 +111,45 @@ def create_token(user):
         "username": user["username"],
         "role": user["role"],
         "exp": time.time() + TOKEN_EXPIRE_SECONDS,
+        "jti": secrets.token_hex(16),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def _is_revoked(jti):
+    if not jti:
+        return False
+    try:
+        row = db.get_connection().execute(
+            "SELECT 1 FROM revoked_tokens WHERE jti=?", (jti,)
+        ).fetchone()
+        return row is not None
+    except Exception:
+        # Table missing (auth store not initialised yet): nothing can be revoked.
+        return False
+
+
+def revoke_token(payload):
+    """Revoke a verified token payload until its natural expiry (idempotent)."""
+    jti = payload.get("jti")
+    if not jti:
+        return False
+    conn = db.get_connection()
+    conn.execute("DELETE FROM revoked_tokens WHERE exp < ?", (time.time(),))
+    conn.execute(
+        "INSERT OR REPLACE INTO revoked_tokens (jti, exp) VALUES (?, ?)",
+        (jti, float(payload.get("exp", time.time()))),
+    )
+    conn.commit()
+    return True
 
 
 def verify_token(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         if payload["exp"] < time.time():
+            return None
+        if _is_revoked(payload.get("jti")):
             return None
         return payload
     except Exception:

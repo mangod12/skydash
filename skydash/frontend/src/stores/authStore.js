@@ -47,6 +47,11 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: () => {
+    // Revoke server-side so a copied token stops working now, not at expiry. Best effort.
+    const tok = get().token;
+    if (tok && API_CONFIGURED) {
+      fetch(`${API}/api/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${tok}` } }).catch(() => {});
+    }
     storage?.removeItem('skydash_token');
     storage?.removeItem('skydash_user');
     set({ token: null, user: null });

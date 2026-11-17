@@ -8,7 +8,7 @@ from collections import defaultdict, deque
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from auth import create_token
+from auth import create_token, revoke_token
 from deps import AUTH_ENABLED, user_store
 from models import AuthLogin, AuthRegister
 from password_policy import check_password
@@ -124,3 +124,16 @@ async def auth_me(request: Request):
             content={"success": False, "error": "User not found"},
         )
     return {"success": True, "data": user}
+
+
+@router.post("/api/auth/logout")
+async def auth_logout(request: Request):
+    """Revoke the presented token so it stops working immediately, not at expiry."""
+    payload = getattr(request.state, "user", None)
+    if not AUTH_ENABLED or not payload:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "error": "Not authenticated"},
+        )
+    revoke_token(payload)
+    return {"success": True}
