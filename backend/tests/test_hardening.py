@@ -42,6 +42,13 @@ class TestHardening(unittest.TestCase):
                                     headers={"content-type": "application/json"})
         self.assertEqual(resp.status_code, 413)
 
+    def test_chunked_body_rejected(self):
+        def gen():
+            yield b'{"id": "a"}'
+        resp = self.client.post("/api/entities", content=gen(),
+                                headers={"content-type": "application/json"})
+        self.assertEqual(resp.status_code, 411)
+
     def test_demo_users_can_be_disabled(self):
         with patch.dict(os.environ, {"SKYDASH_DISABLE_DEMO_USERS": "1"}):
             auth.UserStore()

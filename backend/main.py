@@ -157,6 +157,12 @@ async def hardening_middleware(request: Request, call_next):
             status_code=413,
             content={"success": False, "error": "Request body too large"},
         )
+    if "chunked" in request.headers.get("transfer-encoding", "").lower():
+        # The size cap relies on Content-Length; a chunked body would skip it.
+        return JSONResponse(
+            status_code=411,
+            content={"success": False, "error": "Content-Length required"},
+        )
     wait = ratelimit.check(client_ip(request), request.url.path)
     if wait is not None:
         return JSONResponse(
