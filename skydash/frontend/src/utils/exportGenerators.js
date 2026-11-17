@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { escapeHtml } from './sanitize';
+import { escapeXml } from './sanitize';
 
 const TIMESTAMP = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
 const SEPARATOR = '='.repeat(60);
@@ -12,10 +12,6 @@ const THREAT_KML_COLORS = {
   high: 'ff0000ff',
   critical: 'ff0000ff',
 };
-
-function escapeXml(str) {
-  return escapeHtml(String(str));
-}
 
 // Text that starts with = + - @ is read as a formula by Excel and Sheets.
 // Plain numbers (negative coordinates) are left alone.

@@ -1,6 +1,8 @@
 // Cursor on Target (CoT) XML interop for ATAK / WinTAK / TAK Server.
 // Export: one <event> per geo-located entity. Import: one entity per <event> with a valid point.
 
+import { escapeXml } from './sanitize';
+
 const TYPE_TO_COT = {
   vehicle: 'G-E-V',
   person: 'G-U-C',
@@ -10,9 +12,7 @@ const TYPE_TO_COT = {
 
 const STALE_MS = 15 * 60 * 1000;
 
-const esc = (v) => String(v ?? '')
-  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+const esc = escapeXml;
 
 /** Hostile for high/critical threats, unknown for medium, neutral otherwise. */
 export function affiliationFor(threatLevel) {
@@ -22,14 +22,15 @@ export function affiliationFor(threatLevel) {
 }
 
 export function cotTypeFor(entity) {
-  const dim = TYPE_TO_COT[entity.type] || 'G';
+  const dim = Object.hasOwn(TYPE_TO_COT, entity.type) ? TYPE_TO_COT[entity.type] : 'G';
   return `a-${affiliationFor(entity.threatLevel)}-${dim}`;
 }
 
 export function generateCoT(entities, now = Date.now()) {
   const events = (entities || [])
-    .filter((e) => Array.isArray(e.coordinates)
-      && Number.isFinite(e.coordinates[0]) && Number.isFinite(e.coordinates[1]))
+    .filter((e) => Array.isArray(e?.coordinates)
+      && Number.isFinite(e.coordinates[0]) && Number.isFinite(e.coordinates[1])
+      && Math.abs(e.coordinates[0]) <= 90 && Math.abs(e.coordinates[1]) <= 180)
     .map((e) => {
       const time = new Date(now).toISOString();
       const stale = new Date(now + STALE_MS).toISOString();
