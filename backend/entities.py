@@ -124,6 +124,15 @@ class EntityStore:
             self.add_relationship(from_id, to_id, rel_type, confidence)
         self._remove_legacy_demo_rows()
 
+    def reset_demo(self) -> None:
+        """Wipe entities, relationships and events, then restore the demo seed."""
+        conn = db.get_connection()
+        with db.get_lock():
+            for table in ("events", "relationships", "entities"):
+                conn.execute(f"DELETE FROM {table}")
+            conn.commit()
+        self._seed()
+
     def _remove_legacy_demo_rows(self):
         legacy_rows = db.get_connection().execute(
             """

@@ -25,6 +25,7 @@ Ordered from lowest to highest: viewer, analyst, operator, commander.
 | Create, change or delete entities, missions, notes, imports | analyst |
 | Send drone commands, reset the simulation | operator |
 | Read the audit trail (`GET /api/audit`) | commander |
+| Reset demo data (`POST /api/demo/reset`) | commander |
 
 Self-registration always creates an analyst. Closing it entirely is a setting
 (`SKYDASH_ALLOW_REGISTRATION=false`). Requests below the required role get

@@ -35,6 +35,7 @@ from routes.vision import router as vision_router
 from routes.auth_routes import router as auth_router
 from routes.connectors import router as connectors_router
 from routes.export import router as export_router
+from routes.demo import router as demo_router
 
 log = logging.getLogger("skydash")
 
@@ -95,6 +96,7 @@ app.include_router(vision_router)
 app.include_router(auth_router)
 app.include_router(connectors_router)
 app.include_router(export_router)
+app.include_router(demo_router)
 
 # ── Auth middleware ──────────────────────────────────────────
 

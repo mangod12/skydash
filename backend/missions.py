@@ -19,6 +19,14 @@ def _safe_json_loads(value, fallback):
 
 
 class MissionStore:
+    def clear_all(self) -> None:
+        """Delete every mission and its linked entities, notes and detections."""
+        conn = db.get_connection()
+        with db.get_lock():
+            for table in ("mission_detections", "mission_notes", "mission_entities", "missions"):
+                conn.execute(f"DELETE FROM {table}")
+            conn.commit()
+
     def __init__(self):
         self._init_tables()
 
