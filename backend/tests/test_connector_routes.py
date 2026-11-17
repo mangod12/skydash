@@ -1,10 +1,13 @@
+import asyncio
 import os
+import threading
 import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
 import database
 from deps import entity_store
@@ -41,6 +44,42 @@ class TestConnectorRoutes(unittest.TestCase):
         self.assertTrue(body["success"])
         self.assertTrue(body["data"]["opensky"]["available"])
         self.assertIn(body["data"]["shodan"]["mode"], ("live", "mock"))
+
+    def test_slow_upstream_does_not_block_other_api_requests(self):
+        cases = (
+            ("get", "/api/connectors/adsb", connector_routes.opensky, "fetch_aircraft"),
+            ("get", "/api/connectors/adsb/entities", connector_routes.opensky, "fetch_aircraft"),
+            ("post", "/api/connectors/adsb/ingest", connector_routes.opensky, "fetch_aircraft"),
+            ("get", "/api/connectors/shodan", connector_routes.shodan, "search"),
+            ("get", "/api/connectors/shodan/entities", connector_routes.shodan, "search"),
+            ("post", "/api/connectors/shodan/ingest", connector_routes.shodan, "search"),
+        )
+        for method, path, connector, name in cases:
+            with self.subTest(path=path):
+                entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+
+                def slow(*args, **kwargs):
+                    entered.set()
+                    try:
+                        release.wait(3)
+                        return []
+                    finally:
+                        finished.set()
+
+                async def exercise():
+                    async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as client:
+                        pending = asyncio.create_task(getattr(client, method)(path))
+                        try:
+                            self.assertTrue(await asyncio.to_thread(entered.wait, 2))
+                            status = await client.get("/api/connectors/status")
+                            self.assertEqual(status.status_code, 200)
+                            self.assertFalse(finished.is_set(), "Upstream request blocked the server event loop")
+                        finally:
+                            release.set()
+                            response = await pending
+                        self.assertTrue(response.json()["success"])
+                with patch.object(connector, name, side_effect=slow):
+                    asyncio.run(exercise())
 
     def test_adsb_passes_bbox_and_reports_count(self):
         with patch.object(connector_routes.opensky, "fetch_aircraft", return_value=[{"icao24": "a"}, {"icao24": "b"}]) as fetch:

@@ -1,3 +1,6 @@
+import concurrent.futures
+import threading
+import time
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -21,6 +24,24 @@ def response(status=200, body=None):
 
 
 class TestOpenSky(unittest.TestCase):
+    def test_simultaneous_same_region_refreshes_only_fetch_once(self):
+        connector = OpenSkyConnector()
+        barrier = threading.Barrier(8)
+
+        def upstream(*args, **kwargs):
+            time.sleep(0.02)
+            return response(200, {"states": [state()]})
+
+        def fetch(_):
+            barrier.wait(timeout=5)
+            return connector.fetch_aircraft([1, 2, 3, 4])
+
+        with patch("connectors.requests.get", side_effect=upstream) as get:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+                results = list(pool.map(fetch, range(8)))
+        self.assertEqual(get.call_count, 1)
+        self.assertTrue(all(result[0]["icao24"] == "abc123" for result in results))
+
     def test_parses_states_and_skips_rows_without_position(self):
         rows = [state(), state(icao="nopos", lon=None)]
         with patch("connectors.requests.get", return_value=response(200, {"states": rows})):

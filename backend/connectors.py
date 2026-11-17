@@ -9,6 +9,7 @@ import logging
 import math
 import random
 import time
+import threading
 from typing import Dict, List, Optional
 
 import requests
@@ -28,6 +29,7 @@ class OpenSkyConnector:
         self.cache: List[Dict] = []
         self.cache_ttl = 15  # seconds
         self.cache_bbox = None
+        self._fetch_lock = threading.Lock()
 
     def fetch_aircraft(self, bbox: Optional[List[float]] = None) -> List[Dict]:
         """Fetch aircraft states.
@@ -38,6 +40,12 @@ class OpenSkyConnector:
         Returns:
             List of aircraft dicts with position and flight data.
         """
+        # Requests can run in separate API worker threads. Keep region/cache state
+        # together and coalesce simultaneous refreshes for the same region.
+        with self._fetch_lock:
+            return self._fetch_aircraft(bbox)
+
+    def _fetch_aircraft(self, bbox: Optional[List[float]]) -> List[Dict]:
         now = time.time()
         bbox_key = tuple(bbox) if bbox else None
         same_region = bbox_key == self.cache_bbox
