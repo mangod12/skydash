@@ -33,6 +33,40 @@ class TestBuildEvents(unittest.TestCase):
         bad = [{"id": "x", "coordinates": None}, {"id": "y", "coordinates": [200, 0]}]
         self.assertEqual(cot_stream.build_events(bad, [{"drone_id": "d", "gps": {}}], NOW), [])
 
+    def test_bad_drone_numeric_fields_do_not_drop_other_events(self):
+        from copy import deepcopy
+
+        for value in (None, "invalid", float("nan"), float("inf"), True, '\"/><invalid/>'):
+            with self.subTest(value=repr(value)):
+                bad = deepcopy(DRONE)
+                bad["drone_id"] = "BAD"
+                bad["gps"]["altitude"] = value
+                bad["attitude"]["yaw"] = value
+                bad["ground_speed"] = value
+                events = cot_stream.build_events([ENTITY], [bad, DRONE], NOW)
+                self.assertEqual(len(events), 3)
+                root = ET.fromstring(events[0])
+                self.assertEqual(root.find("point").get("hae"), "9999999.0")
+                self.assertIsNone(root.find("detail/track"))
+                self.assertIsNone(root.find("invalid"))
+                self.assertEqual(ET.fromstring(events[1]).get("uid"), "skydash-drone-ALPHA-1")
+                self.assertEqual(ET.fromstring(events[2]).get("uid"), ENTITY["id"])
+
+    def test_zero_altitude_and_null_attitude_are_supported(self):
+        from copy import deepcopy
+
+        drone = deepcopy(DRONE)
+        drone["gps"]["altitude"] = 0
+        drone["attitude"] = None
+        root = ET.fromstring(cot_stream.build_events([], [drone], NOW)[0])
+        self.assertEqual(root.find("point").get("hae"), "0.0")
+        self.assertIsNone(root.find("detail/track").get("course"))
+
+    def test_boolean_and_nonfinite_positions_are_rejected(self):
+        for coords in ([True, 1], [1, False], [float("nan"), 1], [1, float("inf")]):
+            with self.subTest(coords=coords):
+                self.assertEqual(cot_stream.build_events([{**ENTITY, "coordinates": coords}], [], NOW), [])
+
 
 class TestTarget(unittest.TestCase):
     def test_parse_target(self):
