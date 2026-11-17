@@ -153,6 +153,25 @@ class TestShodan(unittest.TestCase):
         self.assertEqual(get.call_args.kwargs["params"]["query"], "cam")
         self.assertEqual(results, [{"ip": "1.2.3.4", "port": 80, "org": "Org", "product": "Cam", "lat": 1.5, "lon": 2.5}])
 
+    def test_malformed_shodan_rows_do_not_discard_valid_batch(self):
+        body = {"matches": [
+            {"ip_str": "1.2.3.4", "location": {"latitude": 0, "longitude": 0}},
+            None, [], "bad row", {}, {"ip_str": None}, {"ip_str": 123}, {"ip_str": "  "},
+            {"ip_str": " 5.6.7.8 ", "location": None},
+            {"ip_str": "9.10.11.12", "location": "unknown"},
+            {"ip_str": "13.14.15.16", "location": []},
+        ]}
+        conn = ShodanConnector(api_key="test-key")
+        with patch("connectors.requests.get", return_value=response(200, body)):
+            results = conn.search("cam", 50)
+        self.assertEqual([row["ip"] for row in results], [
+            "1.2.3.4", "5.6.7.8", "9.10.11.12", "13.14.15.16",
+        ])
+        entities = conn.to_entities(results)
+        self.assertEqual(entities[0]["coordinates"], [0, 0])
+        self.assertTrue(all(entity["coordinates"] is None for entity in entities[1:]))
+        self.assertEqual(entities[-1]["id"], "shodan-13_14_15_16")
+
     def test_live_mode_failure_returns_empty(self):
         conn = ShodanConnector(api_key="test-key")
         with patch("connectors.requests.get", return_value=response(500)):
