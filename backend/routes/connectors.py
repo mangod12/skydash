@@ -3,6 +3,7 @@
 import logging
 
 from fastapi import APIRouter, HTTPException, Query
+from starlette.concurrency import run_in_threadpool
 
 from deps import entity_store, opensky, shodan
 
@@ -21,8 +22,8 @@ async def get_adsb_aircraft(
     if lat_min > lat_max or lon_min > lon_max:
         raise HTTPException(status_code=422, detail="Bounding box minimums must not exceed maximums")
     try:
-        aircraft = opensky.fetch_aircraft(
-            bbox=[lat_min, lon_min, lat_max, lon_max]
+        aircraft = await run_in_threadpool(
+            opensky.fetch_aircraft, bbox=[lat_min, lon_min, lat_max, lon_max]
         )
         return {
             "success": True,
@@ -38,7 +39,7 @@ async def get_adsb_aircraft(
 async def get_adsb_entities():
     """Fetch ADS-B aircraft as SkyDash entities."""
     try:
-        aircraft = opensky.fetch_aircraft()
+        aircraft = await run_in_threadpool(opensky.fetch_aircraft)
         entities = opensky.to_entities(aircraft)
         return {"success": True, "data": entities}
     except Exception as exc:
@@ -58,8 +59,8 @@ async def ingest_adsb_entities(
     if lat_min > lat_max or lon_min > lon_max:
         raise HTTPException(status_code=422, detail="Bounding box minimums must not exceed maximums")
     try:
-        aircraft = opensky.fetch_aircraft(
-            bbox=[lat_min, lon_min, lat_max, lon_max]
+        aircraft = await run_in_threadpool(
+            opensky.fetch_aircraft, bbox=[lat_min, lon_min, lat_max, lon_max]
         )
         candidates = opensky.to_entities(aircraft)
         existing_ids = set(entity_store.entities.keys())
@@ -89,7 +90,7 @@ async def search_shodan(
 ):
     """Search Shodan for IoT devices."""
     try:
-        results = shodan.search(query, limit)
+        results = await run_in_threadpool(shodan.search, query, limit)
         return {
             "success": True,
             "data": results,
@@ -110,7 +111,7 @@ async def get_shodan_entities(
 ):
     """Search Shodan and return results as SkyDash entities."""
     try:
-        results = shodan.search(query, limit)
+        results = await run_in_threadpool(shodan.search, query, limit)
         entities = shodan.to_entities(results)
         return {"success": True, "data": entities}
     except Exception as exc:
@@ -126,7 +127,7 @@ async def ingest_shodan_entities(
 ):
     """Preview or import Shodan results as SkyDash entities."""
     try:
-        results = shodan.search(query, limit)
+        results = await run_in_threadpool(shodan.search, query, limit)
         candidates = shodan.to_entities(results)
         existing_ids = set(entity_store.entities.keys())
         data = candidates if dry_run else [entity_store.upsert_entity(e) for e in candidates]

@@ -3,6 +3,7 @@
 import os
 import math
 import tempfile
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -31,6 +32,7 @@ class RTDETRDetector:
         self.confidence = confidence
         self._model = None
         self._load_error = None
+        self._inference_lock = threading.Lock()
 
     def status(self) -> VisionStatus:
         if self._model is not None:
@@ -46,34 +48,36 @@ class RTDETRDetector:
 
     def analyze_image(self, image_bytes: bytes, filename: str, content_type: str) -> Dict:
         self._validate_upload(image_bytes, content_type)
-        self._load_model()
+        # Model loading and prediction share mutable state and must not overlap.
+        with self._inference_lock:
+            self._load_model()
 
-        suffix = Path(filename or "frame.jpg").suffix.lower()
-        if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
-            suffix = ".jpg"
+            suffix = Path(filename or "frame.jpg").suffix.lower()
+            if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
+                suffix = ".jpg"
 
-        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-            tmp.write(image_bytes)
-            tmp_path = tmp.name
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                tmp.write(image_bytes)
+                tmp_path = tmp.name
 
-        try:
-            results = self._model.predict(tmp_path, conf=self.confidence, verbose=False)
-            detections = self._serialize_results(results)
-        finally:
             try:
-                os.remove(tmp_path)
-            except OSError:
-                pass
+                results = self._model.predict(tmp_path, conf=self.confidence, verbose=False)
+                detections = self._serialize_results(results)
+            finally:
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
 
-        return {
-            "model": self.model_name,
-            "confidence_threshold": self.confidence,
-            "source_name": filename or "uploaded-frame",
-            "content_type": content_type,
-            "analyzed_at": datetime.now(timezone.utc).isoformat(),
-            "detections": detections,
-            "summary": self._summarize(detections),
-        }
+            return {
+                "model": self.model_name,
+                "confidence_threshold": self.confidence,
+                "source_name": filename or "uploaded-frame",
+                "content_type": content_type,
+                "analyzed_at": datetime.now(timezone.utc).isoformat(),
+                "detections": detections,
+                "summary": self._summarize(detections),
+            }
 
     def analyze_sample_frame(self) -> Dict:
         image_path = self._sample_image_path()

@@ -4,16 +4,17 @@ import logging
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, Response, StreamingResponse
+from starlette.concurrency import run_in_threadpool
 
 from deps import mission_store
-from vision import detector
+from vision import MAX_UPLOAD_BYTES, detector
 
 log = logging.getLogger("skydash")
 router = APIRouter()
 
 
 @router.get("/api/vision/status")
-async def get_vision_status():
+def get_vision_status():
     status = detector.status()
     return {
         "success": True,
@@ -26,7 +27,7 @@ async def get_vision_status():
 
 
 @router.get("/api/vision/sample-feed")
-async def get_sample_vision_feed():
+def get_sample_vision_feed():
     status = detector.status()
     if not status.available:
         raise HTTPException(
@@ -40,7 +41,7 @@ async def get_sample_vision_feed():
 
 
 @router.get("/api/vision/sample-viewer")
-async def get_sample_vision_viewer():
+def get_sample_vision_viewer():
     status = detector.status()
     if not status.available:
         raise HTTPException(
@@ -98,7 +99,7 @@ async def get_sample_vision_viewer():
 
 
 @router.get("/api/vision/sample-frame")
-async def get_sample_vision_frame():
+def get_sample_vision_frame():
     status = detector.status()
     if not status.available:
         raise HTTPException(
@@ -121,16 +122,19 @@ async def analyze_mission_frame(mission_id: str, image: UploadFile = File(...)):
     if not mission_store.get_mission(mission_id):
         raise HTTPException(status_code=404, detail="Mission not found")
 
-    status = detector.status()
+    status = await run_in_threadpool(detector.status)
     if not status.available:
         raise HTTPException(
             status_code=503,
             detail=status.error or "RT-DETR detector is not available",
         )
 
-    image_bytes = await image.read()
+    image_bytes = await image.read(MAX_UPLOAD_BYTES + 1)
+    if len(image_bytes) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail=f"Uploaded image exceeds {MAX_UPLOAD_BYTES} bytes.")
     try:
-        result = detector.analyze_image(
+        result = await run_in_threadpool(
+            detector.analyze_image,
             image_bytes=image_bytes,
             filename=image.filename or "mission-frame.jpg",
             content_type=image.content_type or "",
@@ -150,7 +154,7 @@ async def analyze_mission_frame(mission_id: str, image: UploadFile = File(...)):
 
 
 @router.post("/api/missions/{mission_id}/detections/sample-monitor", status_code=201)
-async def analyze_sample_monitor_frame(mission_id: str):
+def analyze_sample_monitor_frame(mission_id: str):
     if not mission_store.get_mission(mission_id):
         raise HTTPException(status_code=404, detail="Mission not found")
 

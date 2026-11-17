@@ -1,3 +1,7 @@
+import concurrent.futures
+import os
+import threading
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -47,3 +51,51 @@ def test_valid_boxes_are_sorted_and_zero_confidence_and_origin_are_preserved():
     assert [item['confidence'] for item in detections] == [1, 0]
     assert detections[1]['bbox_xyxy'] == [0, 0, 1, 1]
     assert RTDETRDetector._summarize(detections)['labels'] == {'person': 2}
+
+
+def test_concurrent_inference_is_serialized_and_temp_files_are_removed():
+    detector = RTDETRDetector()
+    state_lock = threading.Lock()
+    active = 0
+    peak = 0
+    paths = []
+
+    def predict(path, **kwargs):
+        nonlocal active, peak
+        with state_lock:
+            active += 1
+            peak = max(peak, active)
+            paths.append(path)
+        try:
+            assert os.path.exists(path)
+            time.sleep(0.005)
+            return []
+        finally:
+            with state_lock:
+                active -= 1
+
+    detector._model = SimpleNamespace(predict=predict)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(lambda _: detector.analyze_image(b'frame', 'frame.jpg', 'image/jpeg'), range(8)))
+    assert peak == 1
+    assert len(paths) == 8
+    assert all(not os.path.exists(path) for path in paths)
+    assert all(result['summary']['total'] == 0 for result in results)
+
+
+def test_prediction_failure_removes_temp_file_and_releases_model_lock():
+    detector = RTDETRDetector()
+    paths = []
+
+    def fail(path, **kwargs):
+        paths.append(path)
+        raise RuntimeError('inference failed')
+
+    detector._model = SimpleNamespace(predict=fail)
+    with pytest.raises(RuntimeError, match='inference failed'):
+        detector.analyze_image(b'frame', 'frame.jpg', 'image/jpeg')
+    assert not os.path.exists(paths[0])
+    assert detector._inference_lock.acquire(blocking=False)
+    detector._inference_lock.release()
+    detector._model.predict = lambda *args, **kwargs: []
+    assert detector.analyze_image(b'frame', 'frame.jpg', 'image/jpeg')['summary']['total'] == 0
