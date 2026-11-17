@@ -143,6 +143,39 @@ class TestTarget(unittest.TestCase):
                 self.assertEqual(cot_stream.interval_from_env(), expected)
 
 
+class TestStreamRecovery(unittest.IsolatedAsyncioTestCase):
+    async def test_stalled_write_times_out_and_reconnects(self):
+        from unittest.mock import AsyncMock, Mock, patch
+
+        cancelled = asyncio.Event()
+
+        async def blocked_drain():
+            try:
+                await asyncio.Event().wait()
+            finally:
+                cancelled.set()
+
+        stalled = Mock(drain=AsyncMock(side_effect=blocked_drain))
+        recovered = Mock(drain=AsyncMock())
+        connect = AsyncMock(side_effect=[(None, stalled), (None, recovered)])
+        # First sleep is error backoff. Second sleep follows successful delivery.
+        sleep = AsyncMock(side_effect=[None, asyncio.CancelledError])
+        with patch.object(cot_stream, 'WRITE_TIMEOUT_SECONDS', 0.01), \
+                patch.object(cot_stream.asyncio, 'open_connection', connect), \
+                patch.object(cot_stream.asyncio, 'sleep', sleep):
+            with self.assertRaises(asyncio.CancelledError):
+                await cot_stream.run_stream(
+                    lambda: [ENTITY], lambda: [DRONE], ('tcp', 'tak.local', 8087), 5)
+
+        self.assertTrue(cancelled.is_set())
+        self.assertEqual(connect.await_count, 2)
+        stalled.close.assert_called_once()
+        recovered.close.assert_called_once()
+        self.assertEqual(recovered.write.call_count, 2)
+        recovered.drain.assert_awaited_once()
+        self.assertEqual([call.args[0] for call in sleep.await_args_list], [1.0, 5])
+
+
 class TestUdpStream(unittest.TestCase):
     def test_streams_events_over_udp(self):
         rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
