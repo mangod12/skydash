@@ -3,7 +3,11 @@
 export function normalizeFrames(samples) {
   if (!Array.isArray(samples)) return [];
   return samples
-    .filter((s) => s && Number.isFinite(Number(s.timestamp)))
+    .filter((s) => {
+      const time = s?.timestamp;
+      const numeric = typeof time === 'number' || (typeof time === 'string' && time.trim() !== '');
+      return numeric && Number.isFinite(Number(time) * 1000);
+    })
     .map((s) => ({
       t: Number(s.timestamp) * 1000,
       altitude: s.altitude ?? null,
