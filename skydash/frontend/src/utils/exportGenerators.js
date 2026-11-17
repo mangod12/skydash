@@ -27,7 +27,7 @@ export function neutraliseFormula(val) {
 
 function escapeCsv(val) {
   const str = neutraliseFormula(val);
-  return str.includes(',') || str.includes('"') || str.includes('\n')
+  return str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')
     ? `"${str.replace(/"/g, '""')}"` : str;
 }
 
