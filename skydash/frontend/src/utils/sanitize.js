@@ -21,3 +21,11 @@ export function sanitizeLabel(str) {
   // Strip tags first, then escape
   return escapeHtml(str.replace(/<[^>]*>/g, ''));
 }
+
+/**
+ * Escaped, truncated label for map markers (entity names are user-controlled).
+ */
+export function shortLabel(name, max = 14) {
+  const text = String(name ?? '');
+  return sanitizeLabel(text.length > max ? text.slice(0, max) + '\u2026' : text);
+}
