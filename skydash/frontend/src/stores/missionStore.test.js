@@ -111,6 +111,40 @@ describe('missionStore', () => {
     }
   });
 
+  it.each([
+    ['addEntityToMission', [1, 'b'], false],
+    ['removeEntityFromMission', [1, 'a'], false],
+    ['addNote', [1, 'new note'], null],
+    ['deleteNote', [1, 'n1'], false],
+    ['analyzeMissionImage', [1, new Blob(['image'])], null],
+    ['monitorSampleVideo', [1], null],
+    ['deleteDetection', [1, 'd1'], false],
+  ])('preserves child state for failed or malformed %s acknowledgements', async (action, args, failure) => {
+    const original = [mission(1, { entityIds: ['a'], notes: [{ id: 'n1' }], detections: [{ id: 'd1' }] })];
+    useMissionStore.setState({ missions: original, activeMissionId: 1 });
+    for (const [body, ok] of [
+      [{ success: true, data: { id: 'new' } }, false],
+      [{ success: 'true', data: { id: 'new' } }, true],
+      [{ success: false }, true], [null, true],
+    ]) {
+      apiFetch.mockReturnValueOnce(reply(body, ok));
+      expect(await useMissionStore.getState()[action](...args)).toBe(failure);
+      expect(useMissionStore.getState().missions).toEqual(original);
+    }
+  });
+
+  it.each([
+    ['addNote', [1, 'note']], ['analyzeMissionImage', [1, new Blob(['image'])]], ['monitorSampleVideo', [1]],
+  ])('rejects unusable created child data from %s', async (action, args) => {
+    const original = [mission(1)];
+    useMissionStore.setState({ missions: original });
+    for (const data of [undefined, null, {}, [], 'invalid']) {
+      apiFetch.mockReturnValueOnce(reply({ success: true, data }));
+      expect(await useMissionStore.getState()[action](...args)).toBeNull();
+      expect(useMissionStore.getState().missions).toEqual(original);
+    }
+  });
+
   it('returns null or false when the API reports failure', async () => {
     apiFetch.mockReturnValue(reply({ success: false }));
     expect(await useMissionStore.getState().createMission({})).toBeNull();
