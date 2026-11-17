@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useTelemetry } from './useTelemetry';
 import { telemetrySocketUrl } from '../utils/telemetrySocketUrl';
 import { apiFetch } from '../utils/api';
+import { useTelemetryStore } from '../stores/telemetryStore';
 
 vi.mock('../utils/runtimeConfig', () => ({ API_BASE: 'https://test', API_CONFIGURED: true, WS_BASE: 'wss://test', WS_CONFIGURED: true }));
 vi.mock('../utils/telemetrySocketUrl', () => ({ telemetrySocketUrl: vi.fn() }));
@@ -26,7 +27,7 @@ beforeEach(() => {
   telemetrySocketUrl.mockResolvedValue('wss://test/ws/telemetry?ticket=one');
   apiFetch.mockResolvedValue({ ok: true, json: async () => ({ data: [] }) });
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 const settle = async () => { await act(async () => { await Promise.resolve(); }); };
 
 describe('telemetry connection lifecycle', () => {
@@ -61,6 +62,37 @@ describe('telemetry connection lifecycle', () => {
     await act(async () => { reject(new Error('late network failure')); });
     expect(apiFetch).not.toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('does not overlap slow HTTP fallback requests', async () => {
+    let resolvePoll;
+    apiFetch.mockReturnValue(new Promise((resolve) => { resolvePoll = resolve; }));
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    act(() => FakeSocket.instances[0].close());
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+    expect(apiFetch).toHaveBeenCalledOnce();
+    await act(async () => { resolvePoll({ ok: true, json: async () => ({ data: [] }) }); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+    expect(apiFetch).toHaveBeenCalledTimes(2);
+    unmount();
+  });
+
+  it('ignores an HTTP response after the WebSocket has recovered', async () => {
+    let resolvePoll;
+    apiFetch.mockReturnValue(new Promise((resolve) => { resolvePoll = resolve; }));
+    const update = vi.spyOn(useTelemetryStore.getState(), 'updateTelemetry');
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    act(() => FakeSocket.instances[0].close());
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    act(() => FakeSocket.instances[1].onopen());
+    await act(async () => {
+      resolvePoll({ ok: true, json: async () => ({ data: { drone_id: 'stale-http', altitude: 123 } }) });
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+    unmount();
   });
 
   it('still retries an active connection and stops polling on open', async () => {
