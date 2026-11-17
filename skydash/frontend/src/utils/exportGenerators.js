@@ -17,8 +17,16 @@ function escapeXml(str) {
   return escapeHtml(String(str));
 }
 
+// Text that starts with = + - @ is read as a formula by Excel and Sheets.
+// Plain numbers (negative coordinates) are left alone.
+export function neutraliseFormula(val) {
+  if (typeof val !== 'string') return String(val ?? '');
+  if (/^[=+\-@\t\r]/.test(val) && !/^-?\d+(\.\d+)?$/.test(val)) return `'${val}`;
+  return val;
+}
+
 function escapeCsv(val) {
-  const str = String(val ?? '');
+  const str = neutraliseFormula(val);
   return str.includes(',') || str.includes('"') || str.includes('\n')
     ? `"${str.replace(/"/g, '""')}"` : str;
 }
