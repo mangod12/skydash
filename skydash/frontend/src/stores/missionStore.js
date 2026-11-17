@@ -5,6 +5,7 @@ import { API_BASE, API_CONFIGURED } from '../utils/runtimeConfig';
 
 const API = API_BASE;
 let missionRefreshGeneration = 0;
+const missionDetailGenerations = new Map();
 const requireApi = () => {
   if (API_CONFIGURED) return true;
   toast('Backend API not configured', 'warning');
@@ -125,9 +126,13 @@ export const useMissionStore = create((set, get) => ({
 
   fetchMissionDetail: async (id) => {
     if (!API_CONFIGURED) return null;
+    const generation = Symbol();
+    missionDetailGenerations.set(id, generation);
+    const current = () => missionDetailGenerations.get(id) === generation;
     try {
       const res = await apiFetch(`${API}/api/missions/${id}`);
       const json = await res.json();
+      if (!current()) return null;
       const detail = json?.data;
       const validDetail = detail && typeof detail === 'object' && !Array.isArray(detail)
         && Array.isArray(detail.entities) && Array.isArray(detail.notes) && Array.isArray(detail.detections);
@@ -152,7 +157,9 @@ export const useMissionStore = create((set, get) => ({
         return json.data;
       }
     } catch (e) {
-      console.error('Failed to fetch mission detail', e);
+      if (current()) console.error('Failed to fetch mission detail', e);
+    } finally {
+      if (current()) missionDetailGenerations.delete(id);
     }
     return null;
   },

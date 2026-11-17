@@ -3,6 +3,8 @@ import { logProvenance } from './provenanceStore';
 import { apiFetch } from '../utils/api';
 
 const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
+let intelRefreshGeneration = 0;
+const entityUpdateGenerations = new Map();
 
 function normalizeEpoch(value) {
   if (value == null) return value;
@@ -169,6 +171,7 @@ export const useIntelStore = create((set, get) => ({
   }),
 
   fetchIntel: async () => {
+    const generation = ++intelRefreshGeneration;
     set({ loading: true, syncError: null });
     try {
       const [entitiesResult, graphResult, timelineResult] = await Promise.allSettled([
@@ -177,6 +180,7 @@ export const useIntelStore = create((set, get) => ({
         readJson('/api/timeline?limit=200'),
       ]);
 
+      if (generation !== intelRefreshGeneration) return false;
       const entities = entitiesResult.status === 'fulfilled' && Array.isArray(entitiesResult.value)
         ? entitiesResult.value : null;
       const graphValue = graphResult.status === 'fulfilled' ? graphResult.value : null;
@@ -203,10 +207,11 @@ export const useIntelStore = create((set, get) => ({
       }
       return true;
     } catch (error) {
+      if (generation !== intelRefreshGeneration) return false;
       set({ syncError: error.message || 'Intel sync failed' });
       return false;
     } finally {
-      set({ loading: false });
+      if (generation === intelRefreshGeneration) set({ loading: false });
     }
   },
 
@@ -246,12 +251,18 @@ export const useIntelStore = create((set, get) => ({
   },
 
   updateEntity: (id, updates) => {
+    const generation = Symbol();
+    entityUpdateGenerations.set(id, generation);
+    const current = () => entityUpdateGenerations.get(id) === generation;
     const detail = Object.keys(updates).map((k) => `${k} changed`).join(', ');
     logProvenance(id, 'updated', detail, 'analyst');
     set((s) => ({
       entities: s.entities.map((e) => (e.id === id ? { ...e, ...updates } : e)),
     }));
-    if (!canPersistIntelChanges()) return;
+    if (!canPersistIntelChanges()) {
+      entityUpdateGenerations.delete(id);
+      return;
+    }
     return apiFetch(`${API}/api/entities/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -262,6 +273,7 @@ export const useIntelStore = create((set, get) => ({
         return res.json();
       })
       .then((json) => {
+        if (!current()) return;
         const saved = json?.data;
         if (json?.success !== true || !saved || typeof saved !== 'object'
             || Array.isArray(saved) || saved.id !== id) {
@@ -274,10 +286,16 @@ export const useIntelStore = create((set, get) => ({
           syncError: null,
         }));
       })
-      .catch((error) => set({ syncError: error.message || 'Entity update failed' }));
+      .catch((error) => {
+        if (current()) set({ syncError: error.message || 'Entity update failed' });
+      })
+      .finally(() => {
+        if (current()) entityUpdateGenerations.delete(id);
+      });
   },
 
   deleteEntity: (id) => {
+    entityUpdateGenerations.delete(id);
     set((s) => ({
       entities: s.entities.filter((e) => e.id !== id),
       relationships: s.relationships.filter((r) => r.from !== id && r.to !== id),
