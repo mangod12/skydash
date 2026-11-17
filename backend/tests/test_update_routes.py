@@ -64,6 +64,25 @@ class TestUpdateRoutes(unittest.TestCase):
         self.assertEqual(len(got["entities"]), 1)
         self.assertEqual(self.client.delete(f"{url}/{self.eid}").status_code, 200)
 
+    def test_note_delete_is_scoped_to_mission(self):
+        other = self.client.post("/api/missions", json={"name": "Other"}).json()["data"]["id"]
+        note = self.client.post(
+            f"/api/missions/{self.mid}/notes", json={"content": "Keep this note"}
+        ).json()["data"]
+        original = mission_store.get_mission(self.mid)["updated_at"]
+        other_original = mission_store.get_mission(other)["updated_at"]
+        for wrong_mission in (other, "missing-mission"):
+            response = self.client.delete(f"/api/missions/{wrong_mission}/notes/{note['id']}")
+            self.assertEqual(response.status_code, 404)
+            self.assertEqual(mission_store.get_notes(self.mid), [note])
+            self.assertEqual(mission_store.get_mission(self.mid)["updated_at"], original)
+            self.assertEqual(mission_store.get_mission(other)["updated_at"], other_original)
+
+        url = f"/api/missions/{self.mid}/notes/{note['id']}"
+        self.assertEqual(self.client.delete(url).status_code, 200)
+        self.assertEqual(mission_store.get_notes(self.mid), [])
+        self.assertEqual(self.client.delete(url).status_code, 404)
+
 
 if __name__ == "__main__":
     unittest.main()
