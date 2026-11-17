@@ -13,19 +13,26 @@ DB_PATH = os.getenv("SKYDASH_DB_PATH", "skydash.db")
 DB_TYPE = os.getenv("SKYDASH_DB_TYPE", "sqlite")  # Future: "postgresql"
 
 _lock = threading.Lock()
+_connection_lock = threading.Lock()
 _connection = None
 
 
 def get_connection():
     """Get the shared database connection (thread-safe)."""
     global _connection
-    if _connection is None:
-        _connection = sqlite3.connect(DB_PATH, check_same_thread=False)
-        _connection.row_factory = sqlite3.Row
-        _connection.execute("PRAGMA journal_mode=WAL")
-        _connection.execute("PRAGMA foreign_keys=ON")
-        log.info(f"Database connected: {DB_PATH} (WAL mode)")
-    return _connection
+    with _connection_lock:
+        if _connection is None:
+            connection = sqlite3.connect(DB_PATH, check_same_thread=False)
+            try:
+                connection.row_factory = sqlite3.Row
+                connection.execute("PRAGMA journal_mode=WAL")
+                connection.execute("PRAGMA foreign_keys=ON")
+            except BaseException:
+                connection.close()
+                raise
+            _connection = connection
+            log.info(f"Database connected: {DB_PATH} (WAL mode)")
+        return _connection
 
 
 def get_lock():
@@ -46,19 +53,21 @@ def executemany(query, params_list, commit=True):
     """Execute many with shared lock."""
     conn = get_connection()
     with _lock:
-        result = conn.executemany(query, params_list)
         if commit:
-            conn.commit()
-        return result
+            # A failed batch must not leak successful prefix rows into a later write.
+            with conn:
+                return conn.executemany(query, params_list)
+        return conn.executemany(query, params_list)
 
 
 def close():
     """Close the shared connection. Used for testing and shutdown."""
     global _connection
-    if _connection is not None:
-        _connection.close()
-        _connection = None
-        log.info("Database connection closed")
+    with _connection_lock:
+        if _connection is not None:
+            _connection.close()
+            _connection = None
+            log.info("Database connection closed")
 
 
 def reset(db_path=None):
