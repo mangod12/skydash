@@ -238,21 +238,22 @@ class EntityStore:
     _MUTABLE_FIELDS = {"type", "name", "coordinates", "properties", "confidence", "source", "tags", "threatLevel"}
 
     def update_entity(self, entity_id: str, data: Dict) -> Optional[Dict]:
-        existing = self.get_entity(entity_id)
-        if not existing:
-            return None
-        safe_data = {k: v for k, v in data.items() if k in self._MUTABLE_FIELDS}
-        existing.update(safe_data)
-        existing["lastSeen"] = time.time()
         conn = db.get_connection()
-        with db.get_lock():
+        # Serialize the read/merge/write cycle so concurrent partial updates cannot
+        # overwrite fields from a newer record. Roll back failed writes before unlock.
+        with db.get_lock(), conn:
+            existing = self.get_entity(entity_id)
+            if not existing:
+                return None
+            safe_data = {k: v for k, v in data.items() if k in self._MUTABLE_FIELDS}
+            existing.update(safe_data)
+            existing["lastSeen"] = time.time()
             conn.execute(
                 "UPDATE entities SET type=?, name=?, coordinates=?, properties=?, confidence=?, source=?, tags=?, threatLevel=?, lastSeen=? WHERE id=?",
                 (existing["type"], existing["name"], json.dumps(existing["coordinates"]),
                  json.dumps(existing["properties"]), existing["confidence"], existing["source"],
                  json.dumps(existing["tags"]), existing["threatLevel"], existing["lastSeen"], entity_id),
             )
-            conn.commit()
         return existing
 
     def delete_entity(self, entity_id: str) -> bool:
