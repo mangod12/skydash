@@ -4,6 +4,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Query, HTTPException
+from fastapi.responses import JSONResponse
 
 from deps import entity_store
 from entities import EntityAlreadyExists
@@ -23,7 +24,7 @@ async def list_entities(
         return {"success": True, "data": data, "metadata": {"count": len(data)}}
     except Exception as exc:
         log.error(f"Error listing entities: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error"})
 
 
 @router.get("/api/entities/graph")
@@ -40,7 +41,7 @@ async def get_intel_graph():
         }
     except Exception as exc:
         log.error(f"Error fetching intel graph: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error"})
 
 
 @router.get("/api/entities/{entity_id}")
@@ -100,7 +101,7 @@ async def get_entity_graph(entity_id: str):
         return {"success": True, "data": graph}
     except Exception as exc:
         log.error(f"Error fetching entity graph: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error"})
 
 
 # ── Timeline & Events ───────────────────────────────────────
@@ -120,7 +121,7 @@ async def get_timeline(
         }
     except Exception as exc:
         log.error(f"Error fetching timeline: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error"})
 
 
 @router.post("/api/events", status_code=201)
