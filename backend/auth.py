@@ -121,12 +121,11 @@ class UserStore:
         if not self.get_user(user_id):
             return None
         conn = db.get_connection()
-        with db.get_lock():
+        with db.get_lock(), conn:
             if role is not None:
                 conn.execute("UPDATE users SET role=? WHERE id=?", (role, user_id))
             if disabled is not None:
                 conn.execute("UPDATE users SET disabled=? WHERE id=?", (1 if disabled else 0, user_id))
-            conn.commit()
         return next(u for u in self.list_users() if u["id"] == user_id)
 
     def get_user(self, user_id):

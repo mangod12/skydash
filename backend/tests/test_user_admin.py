@@ -78,3 +78,26 @@ class TestUserAdmin(unittest.TestCase):
         self.assertEqual(self.client.patch(f"/api/users/{self.ids['commander']}", json={"role": "viewer"}, headers=c).status_code, 409)
         self.assertEqual(self.client.patch(f"/api/users/{self.ids['viewer']}", json={"role": "god"}, headers=c).status_code, 422)
         self.assertEqual(self.client.patch("/api/users/nope", json={"role": "viewer"}, headers=c).status_code, 404)
+
+    def test_partial_account_update_rolls_back_before_unrelated_commit(self):
+        import sqlite3
+
+        uid = self.ids["viewer"]
+        token = self.hdr("viewer")["Authorization"].removeprefix("Bearer ")
+        before = next(u for u in self.users.list_users() if u["id"] == uid)
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_account_disable BEFORE UPDATE OF disabled ON users
+                        BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END""")
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.users.update_user(uid, role="commander", disabled=True)
+        self.assertFalse(conn.in_transaction)
+        entity_store.add_event({"description": "Unrelated commit"})
+        self.assertEqual(next(u for u in self.users.list_users() if u["id"] == uid), before)
+        self.assertEqual(auth.verify_token(token)["role"], "viewer")
+        conn.execute("DROP TRIGGER reject_account_disable")
+        conn.commit()
+        updated = self.users.update_user(uid, role="analyst", disabled=True)
+        self.assertEqual(updated["role"], "analyst")
+        self.assertTrue(updated["disabled"])
+        self.assertIsNone(auth.verify_token(token))
