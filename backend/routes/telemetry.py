@@ -145,6 +145,9 @@ async def get_telemetry_stats():
 # ── WebSocket ────────────────────────────────────────────────
 
 
+WS_RECHECK_SECONDS = 5.0
+
+
 @router.websocket("/ws/telemetry")
 async def ws_telemetry(websocket: WebSocket):
     ws_token = websocket.query_params.get("token", "")
@@ -158,8 +161,15 @@ async def ws_telemetry(websocket: WebSocket):
             return
     await websocket.accept()
     log.info(f"WebSocket client connected: {websocket.client}")
+    last_check = time.monotonic()
     try:
         while True:
+            # A token revoked (logout), expired or disabled mid-stream must end the stream.
+            if AUTH_ENABLED and time.monotonic() - last_check >= WS_RECHECK_SECONDS:
+                last_check = time.monotonic()
+                if not verify_token(ws_token):
+                    await websocket.close(code=4001, reason="Session ended")
+                    return
             payload = fleet.get_all_telemetry()
             await websocket.send_json(
                 {"type": "telemetry", "data": payload, "timestamp": time.time()}
