@@ -76,3 +76,12 @@
 [data-theme="midnight"] .text-red-400 { color: #e57a74; }
 [data-theme="midnight"] .text-cyan-400,
 [data-theme="midnight"] .text-cyan-300 { color: #7dbbd0; }
+
+/* Offline basemap: with no tiles the map reads as a plain graticule, not a void */
+[data-theme="midnight"] .leaflet-container {
+  background-color: #0b0d10 !important;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+}

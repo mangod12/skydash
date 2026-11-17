@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
@@ -115,6 +115,13 @@ export default function MapView({ variant = 'operations' }) {
   const { center, zoom, flightPath, layers, dronePosition, drawingGeofence, geofenceMode, stopDrawGeofence } = useMapStore();
   const data = useTelemetryStore((s) => s.data);
   const mapRef = useRef(null);
+  // Basemap health: 3 tile errors in a row with no successful tile means offline.
+  const [tileErrors, setTileErrors] = useState(0);
+  const basemapOffline = tileErrors >= 3;
+  const tileHandlers = useMemo(() => ({
+    tileerror: () => setTileErrors((n) => n + 1),
+    tileload: () => setTileErrors(0),
+  }), []);
 
   const interactions = useMapInteractions();
   const deckLayers = useDeckLayers();
@@ -141,12 +148,22 @@ export default function MapView({ variant = 'operations' }) {
         <MapContextHandler onContextMenu={interactions.openMapMenu} />
 
         <TileLayer
+          eventHandlers={tileHandlers}
           url={tileConfig.url}
           attribution={tileConfig.attribution}
           className={tileConfig.className}
           maxZoom={tileConfig.maxZoom}
           maxNativeZoom={tileConfig.maxNativeZoom}
         />
+
+        {basemapOffline && (
+          <div
+            role="status"
+            className="absolute top-[96px] left-1/2 -translate-x-1/2 z-[1000] px-2.5 py-1 rounded border border-amber-500/30 bg-[#0f1216] text-[10px] font-mono tracking-[0.08em] text-amber-400"
+          >
+            BASEMAP OFFLINE · OVERLAYS STILL LIVE
+          </div>
+        )}
 
         <DeckGlOverlay layers={deckLayers} />
 
