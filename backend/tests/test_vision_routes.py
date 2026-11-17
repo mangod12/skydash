@@ -1,4 +1,6 @@
+import asyncio
 import os
+import threading
 import shutil
 import tempfile
 import unittest
@@ -6,9 +8,10 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
 import database
-from deps import mission_store
+from deps import entity_store, mission_store
 import main
 
 
@@ -99,6 +102,60 @@ class TestVisionRoutes(unittest.TestCase):
         detail_response = self.client.get(f"/api/missions/{mission_id}")
         self.assertEqual(detail_response.status_code, 200)
         self.assertEqual(len(detail_response.json()["data"]["detections"]), 1)
+
+    def test_upload_rejects_over_limit_before_running_inference(self):
+        mission_id = self._create_mission()
+        detector = _FakeDetector()
+        with patch("routes.vision.MAX_UPLOAD_BYTES", 4):
+            response = self._analyze_payload(mission_id, detector)
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(detector.calls, [])
+        response = self.client.get(f"/api/missions/{mission_id}/detections")
+        self.assertEqual(response.json()["metadata"]["count"], 0)
+
+    def test_upload_accepts_exact_limit(self):
+        mission_id = self._create_mission()
+        with patch("routes.vision.MAX_UPLOAD_BYTES", len(b"fake-bytes")):
+            response = self._analyze_payload(mission_id, _FakeDetector())
+        self.assertEqual(response.status_code, 201)
+
+    def test_slow_inference_does_not_block_health_requests(self):
+        entity_store._init_tables()
+        mission_id = self._create_mission()
+        for suffix in ("analyze", "sample-monitor"):
+            with self.subTest(endpoint=suffix):
+                entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+                detector = _FakeDetector()
+                analyze = detector.analyze_image
+                sample = detector.analyze_sample_frame
+
+                def slow(callback, **kwargs):
+                    entered.set()
+                    try:
+                        release.wait(3)
+                        return callback(**kwargs)
+                    finally:
+                        finished.set()
+
+                detector.analyze_image = lambda **kwargs: slow(analyze, **kwargs)
+                detector.analyze_sample_frame = lambda: slow(sample)
+
+                async def exercise():
+                    async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as client:
+                        kwargs = {"files": {"image": ("frame.jpg", b"fake-bytes", "image/jpeg")}} if suffix == "analyze" else {}
+                        pending = asyncio.create_task(client.post(
+                            f"/api/missions/{mission_id}/detections/{suffix}", **kwargs))
+                        try:
+                            self.assertTrue(await asyncio.to_thread(entered.wait, 2))
+                            health = await client.get("/health")
+                            self.assertEqual(health.status_code, 200)
+                            self.assertFalse(finished.is_set(), "Inference blocked the server event loop")
+                        finally:
+                            release.set()
+                            response = await pending
+                        self.assertEqual(response.status_code, 201)
+                with patch("routes.vision.detector", detector):
+                    asyncio.run(exercise())
 
     def test_sample_monitor_stores_detection(self):
         mission_id = self._create_mission()
