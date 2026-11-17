@@ -7,6 +7,28 @@ describe('scenarioStore', () => {
     useScenarioStore.getState().resetLab();
   });
 
+  it('clears old injections when starting a new run after completion', () => {
+    const store = useScenarioStore.getState();
+    store.start();
+    store.tick(50);
+    store.injectEvent('signal-loss');
+    store.tick(999);
+    store.start();
+    expect(useScenarioStore.getState().elapsedSeconds).toBe(0);
+    expect(useScenarioStore.getState().injectedEvents).toEqual([]);
+    expect(useScenarioStore.getState().injectEvent('signal-loss')).toBe(true);
+  });
+
+  it.each([NaN, Infinity, '10', null])('ignores invalid seek and tick input %s', (value) => {
+    const store = useScenarioStore.getState();
+    store.start();
+    store.tick(20);
+    store.seek(value);
+    store.tick(value);
+    expect(useScenarioStore.getState().elapsedSeconds).toBe(20);
+    expect(useScenarioStore.getState().status).toBe('running');
+  });
+
   it('selects a scenario and resets mission runtime state', () => {
     const store = useScenarioStore.getState();
 
