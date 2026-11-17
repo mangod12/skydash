@@ -41,9 +41,19 @@ def _iso(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%dT%H:%M:%S.") + f"{dt.microsecond // 1000:03d}Z"
 
 
+def _xml_text(value: str) -> str:
+    """Replace characters XML 1.0 cannot represent, including lone surrogates."""
+    return "".join(
+        char if (char in "\t\n\r" or 0x20 <= ord(char) <= 0xD7FF
+                 or 0xE000 <= ord(char) <= 0xFFFD or 0x10000 <= ord(char) <= 0x10FFFF)
+        else "\uFFFD" for char in value
+    )
+
+
 def _event(uid: str, cot_type: str, lat: float, lon: float, now: datetime,
            callsign: str, remarks: str = "", hae: float = 9999999.0, extra: str = "") -> bytes:
     stale = now + timedelta(seconds=STALE_SECONDS)
+    uid, cot_type, callsign, remarks = map(_xml_text, (uid, cot_type, callsign, remarks))
     xml = (
         f'<event version="2.0" uid={quoteattr(uid)} type={quoteattr(cot_type)} how="m-g" '
         f'time="{_iso(now)}" start="{_iso(now)}" stale="{_iso(stale)}">'
