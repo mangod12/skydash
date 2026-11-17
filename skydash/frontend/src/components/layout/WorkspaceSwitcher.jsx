@@ -12,7 +12,7 @@ export default function WorkspaceSwitcher() {
   const setWorkspace = useUIStore((s) => s.setWorkspace);
 
   return (
-    <div className="flex items-center bg-zinc-900/60 border border-white/[0.06] rounded-lg p-0.5 gap-0.5">
+    <div role="group" aria-label="Workspace layout" title="Workspace layout (your account role is shown at top right)" className="flex items-center bg-zinc-900/60 border border-white/[0.06] rounded-lg p-0.5 gap-0.5">
       {WORKSPACES.map(({ id, label, icon: Icon }) => {
         const active = workspace === id;
         return (
