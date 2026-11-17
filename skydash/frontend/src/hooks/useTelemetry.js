@@ -11,6 +11,9 @@ const HTTP_URL = API_CONFIGURED ? `${API_BASE}/telemetry` : '';
 const RECONNECT_BASE = 1000;
 const RECONNECT_MAX = 10000;
 
+const isDroneRecord = (value) => value !== null && typeof value === 'object'
+  && !Array.isArray(value) && typeof value.drone_id === 'string' && value.drone_id.trim();
+
 export function useTelemetry() {
   const updateTelemetry = useTelemetryStore((s) => s.updateTelemetry);
   const setDisconnected = useTelemetryStore((s) => s.setDisconnected);
@@ -27,6 +30,14 @@ export function useTelemetry() {
   const pollingGenerationRef = useRef(0);
 
   const processData = useCallback((droneData) => {
+    if (Array.isArray(droneData)) {
+      const valid = droneData.filter(isDroneRecord);
+      // A truly empty snapshot clears the fleet; malformed records do not.
+      if (droneData.length && !valid.length) return;
+      droneData = valid;
+    } else if (!isDroneRecord(droneData)) {
+      return;
+    }
     const telemetryState = useTelemetryStore.getState();
     // Array messages are complete fleet snapshots, including one or zero drones.
     // Replace membership before selecting data so removed drones cannot linger.
@@ -69,18 +80,8 @@ export function useTelemetry() {
         if (!live()) return;
         const latency = Math.round(performance.now() - start);
         const data = json.data || json;
-        if (Array.isArray(data)) {
-          processData(data);
-          useTelemetryStore.getState().setLatency(latency);
-        } else {
-          updateTelemetry(data, latency);
-          if (data.gps) {
-            updateDronePosition(
-              data.gps.latitude, data.gps.longitude,
-              data.altitude, data.attitude?.yaw ?? 0
-            );
-          }
-        }
+        processData(data);
+        useTelemetryStore.getState().setLatency(latency);
       } catch {
         if (live()) setDisconnected();
       } finally {
@@ -90,7 +91,7 @@ export function useTelemetry() {
 
     fetchData();
     fallbackRef.current = setInterval(fetchData, 200);
-  }, [processData, updateTelemetry, updateDronePosition, setDisconnected]);
+  }, [processData, setDisconnected]);
 
   useEffect(() => { fallbackFnRef.current = startHttpFallback; }, [startHttpFallback]);
 
