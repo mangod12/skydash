@@ -241,21 +241,23 @@ export const useIntelStore = create((set, get) => ({
       entities: s.entities.map((e) => (e.id === id ? { ...e, ...updates } : e)),
     }));
     if (!canPersistIntelChanges()) return;
-    apiFetch(`${API}/api/entities/${id}`, {
+    return apiFetch(`${API}/api/entities/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     })
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => {
+        if (!res.ok) throw new Error(`Entity update failed (HTTP ${res.status})`);
+        return res.json();
+      })
       .then((json) => {
-        if (json?.success && json.data) {
-          set((s) => ({
-            entities: s.entities.map((e) =>
-              e.id === id ? normalizeIntelEntity(json.data) : e,
-            ),
-            syncError: null,
-          }));
-        }
+        if (!json?.success || !json.data) throw new Error('Entity update was not saved');
+        set((s) => ({
+          entities: s.entities.map((e) =>
+            e.id === id ? normalizeIntelEntity(json.data) : e,
+          ),
+          syncError: null,
+        }));
       })
       .catch((error) => set({ syncError: error.message || 'Entity update failed' }));
   },
