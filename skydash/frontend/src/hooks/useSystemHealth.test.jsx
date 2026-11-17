@@ -83,13 +83,13 @@ describe('health drone presence counts', () => {
   it('counts disarmed fleet members as present but not active', () => {
     const { result } = renderHook(() => useSystemHealth());
     act(() => useTelemetryStore.getState().updateFleet([
-      { drone_id: 'one', is_armed: false }, { drone_id: 'two', is_armed: false },
+      { drone_id: 'one', armed: false }, { drone_id: 'two', armed: false },
     ]));
     expect(result.current.pipeline.activeDrones).toBe(0);
     expect(result.current.pipeline.total).toBe(2);
     expect(result.current.status).toBe('degraded');
     act(() => useTelemetryStore.getState().updateFleet([
-      { drone_id: 'one', is_armed: true }, { drone_id: 'two', is_armed: false },
+      { drone_id: 'one', armed: true }, { drone_id: 'two', armed: false },
     ]));
     expect(result.current.pipeline.activeDrones).toBe(1);
     expect(result.current.pipeline.total).toBe(2);
@@ -98,10 +98,24 @@ describe('health drone presence counts', () => {
 
   it('supports single-record telemetry without inferring presence from connectivity', () => {
     const { result } = renderHook(() => useSystemHealth());
-    act(() => useTelemetryStore.getState().updateTelemetry({ ...frame, is_armed: false }, 0));
+    act(() => useTelemetryStore.getState().updateTelemetry({ ...frame, armed: false }, 0));
     expect(result.current.pipeline.activeDrones).toBe(0);
     expect(result.current.pipeline.total).toBe(1);
-    act(() => useTelemetryStore.getState().updateTelemetry({ ...frame, is_armed: true }, 0));
+    act(() => useTelemetryStore.getState().updateTelemetry({ ...frame, armed: true }, 0));
+    expect(result.current.pipeline.activeDrones).toBe(1);
+  });
+});
+
+
+describe('health arming evidence', () => {
+  it('does not classify absent or malformed arming values as active', () => {
+    const { result } = renderHook(() => useSystemHealth());
+    act(() => useTelemetryStore.getState().updateFleet([
+      { drone_id: 'missing' }, { drone_id: 'null', armed: null },
+      { drone_id: 'string', armed: 'false' }, { drone_id: 'numeric', armed: 1 },
+      { drone_id: 'armed', armed: true }, { drone_id: 'disarmed', armed: false },
+    ]));
+    expect(result.current.pipeline.total).toBe(6);
     expect(result.current.pipeline.activeDrones).toBe(1);
   });
 });

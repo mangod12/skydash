@@ -81,7 +81,8 @@ export function useSystemHealth() {
   }, [fetchUp]);
 
   const drones = fleet.length > 0 ? fleet : (data ? [data] : []);
-  const active = drones.filter((d) => d.is_armed !== false).length;
+  // Simulator, MAVLink and DJI records expose the boolean `armed` field.
+  const active = drones.filter((d) => d.armed === true).length;
 
   return {
     status: deriveStatus(isConnected, latency, active),
