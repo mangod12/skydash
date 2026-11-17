@@ -204,3 +204,27 @@ def verify_token(token):
         return _apply_current_account(payload)
     except Exception:
         return None
+
+
+# ── Short-lived WebSocket tickets ────────────────────────────
+# Browsers cannot set headers on a WebSocket, so the session token used to travel in the
+# URL (and end up in proxy logs). A ticket is a one-time, 30 second stand-in for it.
+WS_TICKET_TTL_SECONDS = 30
+_ws_tickets = {}
+
+
+def issue_ws_ticket(token):
+    now = time.monotonic()
+    for k in [k for k, (_, exp) in _ws_tickets.items() if exp < now]:
+        _ws_tickets.pop(k, None)
+    ticket = secrets.token_urlsafe(24)
+    _ws_tickets[ticket] = (token, now + WS_TICKET_TTL_SECONDS)
+    return ticket
+
+
+def redeem_ws_ticket(ticket):
+    """Return the session token behind a ticket (single use), or None."""
+    entry = _ws_tickets.pop(ticket, None)
+    if not entry or entry[1] < time.monotonic():
+        return None
+    return entry[0]

@@ -83,43 +83,60 @@ export function useTelemetry() {
     }
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    try {
-      const token = useAuthStore.getState().token;
-      const wsUrl = token ? `${WS_URL}?token=${token}` : WS_URL;
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
+    const token = useAuthStore.getState().token;
 
-      ws.onopen = () => {
-        retryRef.current = 0;
-        if (fallbackRef.current) {
-          clearInterval(fallbackRef.current);
-          fallbackRef.current = null;
+    // Keep the session token out of the URL: trade it for a one-time ticket first.
+    // If the server has no ticket endpoint, fall back to the token parameter.
+    const urlFor = async () => {
+      if (!token) return WS_URL;
+      try {
+        const res = await apiFetch(`${API_BASE}/api/auth/ws-ticket`, { method: 'POST' });
+        if (res.ok) {
+          const ticket = (await res.json())?.data?.ticket;
+          if (ticket) return `${WS_URL}?ticket=${encodeURIComponent(ticket)}`;
         }
-      };
+      } catch { /* fall through */ }
+      return `${WS_URL}?token=${token}`;
+    };
 
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'telemetry') {
-            processData(msg.data);
+    const open = (wsUrl) => {
+      try {
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+        ws.onopen = () => {
+          retryRef.current = 0;
+          if (fallbackRef.current) {
+            clearInterval(fallbackRef.current);
+            fallbackRef.current = null;
           }
-        } catch { /* ignore parse errors */ }
-      };
+        };
 
-      ws.onclose = () => {
-        setDisconnected();
-        const delay = Math.min(RECONNECT_BASE * Math.pow(2, retryRef.current), RECONNECT_MAX);
-        retryRef.current += 1;
-        setTimeout(() => connectRef.current?.(), delay);
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'telemetry') {
+              processData(msg.data);
+            }
+          } catch { /* ignore parse errors */ }
+        };
+
+        ws.onclose = () => {
+          setDisconnected();
+          const delay = Math.min(RECONNECT_BASE * Math.pow(2, retryRef.current), RECONNECT_MAX);
+          retryRef.current += 1;
+          setTimeout(() => connectRef.current?.(), delay);
+          fallbackFnRef.current?.();
+        };
+
+        ws.onerror = () => {
+          ws.close();
+        };
+      } catch {
         fallbackFnRef.current?.();
-      };
+      }
+    };
 
-      ws.onerror = () => {
-        ws.close();
-      };
-    } catch {
-      fallbackFnRef.current?.();
-    }
+    urlFor().then(open);
   }, [processData, setDisconnected]);
 
   useEffect(() => { connectRef.current = connectWS; }, [connectWS]);

@@ -7,7 +7,7 @@ from typing import Dict, Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException
 
-from auth import verify_token
+from auth import redeem_ws_ticket, verify_token
 from deps import (
     API_KEY,
     AUTH_ENABLED,
@@ -151,6 +151,9 @@ WS_RECHECK_SECONDS = 5.0
 @router.websocket("/ws/telemetry")
 async def ws_telemetry(websocket: WebSocket):
     ws_token = websocket.query_params.get("token", "")
+    ticket = websocket.query_params.get("ticket", "")
+    if ticket and AUTH_ENABLED:
+        ws_token = redeem_ws_ticket(ticket) or ""
     if AUTH_ENABLED:
         if not ws_token or not verify_token(ws_token):
             await websocket.close(code=4001, reason="Unauthorized")

@@ -45,6 +45,14 @@ until its natural expiry, so a copied token stops working immediately. Tokens
 issued before this change have no `jti` and simply expire. Tokens last 24 hours
 by default; set `SKYDASH_TOKEN_TTL_MINUTES` (for example `60`) for shorter sessions.
 
+## WebSocket sessions
+
+The dashboard opens the telemetry WebSocket with a one-time, 30 second ticket from
+`POST /api/auth/ws-ticket`, so the session token does not appear in URLs or proxy
+logs. The stream re-checks the session every 5 seconds and closes (code 4001) if
+it was signed out, expired or the account was disabled. The older `?token=`
+parameter still works for scripts.
+
 ## Behind a reverse proxy
 
 The bundled `nginx.conf` sends the same security headers as the Static Web Apps

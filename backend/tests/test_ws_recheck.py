@@ -12,7 +12,7 @@ import auth
 import database
 import main
 from deps import entity_store, mission_store
-from routes import telemetry
+from routes import auth_routes, telemetry
 
 
 class TestWsRecheck(unittest.TestCase):
@@ -26,6 +26,9 @@ class TestWsRecheck(unittest.TestCase):
         self.token = auth.create_token(self.users.get_user(uid))
         self.patches = [
             patch.object(telemetry, "AUTH_ENABLED", True),
+            patch.object(main, "AUTH_ENABLED", True),
+            patch.object(main, "API_KEY", ""),
+            patch.object(auth_routes, "AUTH_ENABLED", True),
             patch.object(telemetry, "WS_RECHECK_SECONDS", 0.0),
         ]
         for p in self.patches:
@@ -51,3 +54,20 @@ class TestWsRecheck(unittest.TestCase):
         with self.assertRaises(WebSocketDisconnect):
             with self.client.websocket_connect("/ws/telemetry") as ws:
                 ws.receive_json()
+
+
+class TestWsTicket(TestWsRecheck):
+    def test_ticket_connects_once(self):
+        r = self.client.post(
+            "/api/auth/ws-ticket", headers={"Authorization": f"Bearer {self.token}"}
+        )
+        self.assertEqual(r.status_code, 200, r.text)
+        ticket = r.json()["data"]["ticket"]
+        with self.client.websocket_connect(f"/ws/telemetry?ticket={ticket}") as ws:
+            self.assertEqual(ws.receive_json()["type"], "telemetry")
+        with self.assertRaises(WebSocketDisconnect):
+            with self.client.websocket_connect(f"/ws/telemetry?ticket={ticket}") as ws:
+                ws.receive_json()
+
+    def test_ticket_needs_auth(self):
+        self.assertEqual(self.client.post("/api/auth/ws-ticket").status_code, 401)
