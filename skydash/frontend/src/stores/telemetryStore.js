@@ -2,28 +2,30 @@ import { create } from 'zustand';
 
 const MAX_HISTORY = 200;
 
+const isReading = (value) => typeof value === 'number' && Number.isFinite(value);
+
 const ALERT_RULES = [
   {
     id: 'battery-warning',
-    check: (d) => d.battery_voltage < 15.0 && d.battery_voltage >= 14.5,
+    check: (d) => isReading(d.battery_voltage) && d.battery_voltage < 15.0 && d.battery_voltage >= 14.5,
     severity: 'warning',
     message: 'Low Battery — RTL Recommended',
   },
   {
     id: 'battery-critical',
-    check: (d) => d.battery_voltage < 14.5,
+    check: (d) => isReading(d.battery_voltage) && d.battery_voltage < 14.5,
     severity: 'critical',
     message: 'Critical Battery — Emergency Landing',
   },
   {
     id: 'signal-weak',
-    check: (d) => d.signal_strength < 50,
+    check: (d) => isReading(d.signal_strength) && d.signal_strength < 50,
     severity: 'warning',
     message: 'Weak Signal — Connection Unstable',
   },
   {
     id: 'gps-poor',
-    check: (d) => d.gps?.satellites < 6,
+    check: (d) => isReading(d.gps?.satellites) && d.gps.satellites < 6,
     severity: 'warning',
     message: 'Poor GPS — Position Unreliable',
   },

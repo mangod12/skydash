@@ -77,3 +77,32 @@ describe('empty fleet snapshot', () => {
     expect(useTelemetryStore.getState().history).toHaveLength(1);
   });
 });
+
+
+describe('telemetry alert numeric readings', () => {
+  it.each([null, undefined, '', '0', false, true, [], {}, NaN, Infinity, -Infinity])(
+    'does not turn malformed readings into emergency alerts: %j', (value) => {
+      useTelemetryStore.getState().updateTelemetry({
+        ...sample, battery_voltage: value, signal_strength: value, gps: { satellites: value },
+      }, 0);
+      expect(useTelemetryStore.getState().alerts).toEqual([]);
+    },
+  );
+
+  it('still warns for genuine zero readings', () => {
+    useTelemetryStore.getState().updateTelemetry({
+      ...sample, battery_voltage: 0, signal_strength: 0, gps: { satellites: 0 },
+    }, 0);
+    expect(useTelemetryStore.getState().alerts.map((alert) => alert.id)).toEqual([
+      'battery-critical', 'signal-weak', 'gps-poor',
+    ]);
+  });
+
+  it('retains warning thresholds and clears stale alerts on unknown readings', () => {
+    const store = useTelemetryStore.getState();
+    store.updateTelemetry({ ...sample, battery_voltage: 14.7 }, 0);
+    expect(useTelemetryStore.getState().alerts.map((alert) => alert.id)).toEqual(['battery-warning']);
+    store.updateTelemetry({ ...sample, battery_voltage: null }, 0);
+    expect(useTelemetryStore.getState().alerts).toEqual([]);
+  });
+});
