@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { buildSatelliteBasemap, DARK_BASEMAP } from './basemap';
+import { resolveStandardBasemap } from './basemap';
 
-describe('buildSatelliteBasemap', () => {
-  it('falls back to the standard basemap without a key', () => {
-    expect(buildSatelliteBasemap('')).toBe(DARK_BASEMAP);
+describe('resolveStandardBasemap', () => {
+  it('uses OpenStreetMap by default', () => {
+    const b = resolveStandardBasemap({});
+    expect(b.url).toContain('tile.openstreetmap.org');
+    expect(b.attribution).toContain('OpenStreetMap');
   });
-
-  it('uses Esri World Imagery with the key and attribution', () => {
-    const layer = buildSatelliteBasemap('abc 123');
-    expect(layer.url).toContain('World_Imagery/MapServer/tile/{z}/{y}/{x}');
-    expect(layer.url).toContain('token=abc%20123');
-    expect(layer.attribution).toContain('Esri');
+  it('uses an internal tile server when VITE_TILE_URL is set', () => {
+    const b = resolveStandardBasemap({ VITE_TILE_URL: ' http://tiles.local/{z}/{x}/{y}.png ' });
+    expect(b.url).toBe('http://tiles.local/{z}/{x}/{y}.png');
+    expect(b.attribution).toBe('');
   });
 });

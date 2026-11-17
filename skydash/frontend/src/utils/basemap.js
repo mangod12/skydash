@@ -1,13 +1,25 @@
 // Key-less basemap. Carto's dark_all endpoint now returns an "API KEY REQUIRED"
 // watermark tile, so use OpenStreetMap standard tiles and darken them with CSS
 // (see .basemap-dark in index.css). OSM tile policy: attribution required, light use.
-export const DARK_BASEMAP = {
-  url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  maxZoom: 19,
-  maxNativeZoom: 19,
-  className: 'basemap-dark',
-};
+const OSM_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+/**
+ * Standard basemap. For air-gapped or on-prem sites set VITE_TILE_URL (at build
+ * time) to an internal {z}/{x}/{y} tile server; VITE_TILE_ATTRIBUTION is optional.
+ */
+export function resolveStandardBasemap(env = import.meta.env) {
+  const custom = env?.VITE_TILE_URL?.trim();
+  return {
+    url: custom || OSM_URL,
+    attribution: custom ? (env.VITE_TILE_ATTRIBUTION?.trim() || '') : OSM_ATTRIBUTION,
+    maxZoom: 19,
+    maxNativeZoom: 19,
+    className: 'basemap-dark',
+  };
+}
+
+export const DARK_BASEMAP = resolveStandardBasemap();
 
 // Satellite imagery: Esri World Imagery through the ArcGIS basemap tile service.
 // Needs a basemap-scoped API key (restricted to our origins) in VITE_ESRI_API_KEY.

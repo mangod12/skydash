@@ -46,8 +46,11 @@ Notes:
 - The backend has no required external calls. OpenSky (ADS-B) and Shodan are
   used only when their connector endpoints are called.
 - The frontend loads web fonts and map tiles from public hosts by default. For
-  an air-gapped site, serve fonts locally and point the basemap at an internal
-  tile server (see `frontend/src/utils/basemap.js`).
+  an air-gapped site, serve fonts locally and build the frontend with
+  `VITE_TILE_URL=http://tiles.internal/{z}/{x}/{y}.png` (and optionally
+  `VITE_TILE_ATTRIBUTION`) to use an internal tile server. If tiles cannot be
+  fetched, the map shows a graticule and a "BASEMAP OFFLINE" chip while all
+  overlays keep working.
 - If the backend becomes unreachable, the frontend falls back to HTTP polling
   and shows a connection-lost state instead of failing silently.
 
