@@ -233,7 +233,7 @@ async def health():
         "status": "healthy",
         "uptime": round(time.time() - start_time, 1),
         "drones": len(fleet.drones),
-        "entities": len(entity_store.entities),
+        "entities": entity_store.count(),
         "missions": mission_store.count(),
         "telemetry_samples": len(telemetry_history),
         "connectors": {
