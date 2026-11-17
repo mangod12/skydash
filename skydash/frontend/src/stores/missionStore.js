@@ -6,6 +6,11 @@ import { API_BASE, API_CONFIGURED } from '../utils/runtimeConfig';
 const API = API_BASE;
 let missionRefreshGeneration = 0;
 const missionDetailGenerations = new Map();
+const missionUpdateGenerations = new Map();
+const validMissionId = (id) => (typeof id === 'string' && id.length > 0)
+  || (typeof id === 'number' && Number.isFinite(id));
+const validMission = (mission) => mission && typeof mission === 'object'
+  && !Array.isArray(mission) && validMissionId(mission.id);
 const requireApi = () => {
   if (API_CONFIGURED) return true;
   toast('Backend API not configured', 'warning');
@@ -30,7 +35,7 @@ export const useMissionStore = create((set, get) => ({
       const res = await apiFetch(`${API}/api/missions`);
       const json = await res.json();
       if (generation !== missionRefreshGeneration) return;
-      if (!res.ok || json?.success !== true || !Array.isArray(json.data)) {
+      if (!res.ok || json?.success !== true || (!Array.isArray(json.data) || !json.data.every(validMission))) {
         throw new Error('Invalid mission list response');
       }
       if (json.success) {
@@ -61,7 +66,7 @@ export const useMissionStore = create((set, get) => ({
         body: JSON.stringify(data),
       });
       const json = await res.json();
-      if (!res.ok || json?.success !== true || !json.data || typeof json.data !== 'object' || Array.isArray(json.data)) {
+      if (!res.ok || json?.success !== true || !validMission(json.data)) {
         throw new Error('Failed to create mission');
       }
       if (json.success) {
@@ -77,6 +82,9 @@ export const useMissionStore = create((set, get) => ({
 
   updateMission: async (id, data) => {
     if (!requireApi()) return null;
+    const generation = Symbol();
+    missionUpdateGenerations.set(id, generation);
+    const current = () => missionUpdateGenerations.get(id) === generation;
     try {
       const res = await apiFetch(`${API}/api/missions/${id}`, {
         method: 'PUT',
@@ -84,7 +92,8 @@ export const useMissionStore = create((set, get) => ({
         body: JSON.stringify(data),
       });
       const json = await res.json();
-      if (!res.ok || json?.success !== true || !json.data || typeof json.data !== 'object' || Array.isArray(json.data)) {
+      if (!current()) return null;
+      if (!res.ok || json?.success !== true || !validMission(json.data) || json.data.id !== id) {
         throw new Error('Failed to update mission');
       }
       if (json.success) {
@@ -94,8 +103,12 @@ export const useMissionStore = create((set, get) => ({
         return json.data;
       }
     } catch (e) {
-      console.error('Failed to update mission', e);
-      toast('Failed to update mission', 'error');
+      if (current()) {
+        console.error('Failed to update mission', e);
+        toast('Failed to update mission', 'error');
+      }
+    } finally {
+      if (current()) missionUpdateGenerations.delete(id);
     }
     return null;
   },
@@ -109,6 +122,8 @@ export const useMissionStore = create((set, get) => ({
         throw new Error('Failed to delete mission');
       }
       if (json.success) {
+        missionUpdateGenerations.delete(id);
+        missionDetailGenerations.delete(id);
         set((s) => ({
           missions: s.missions.filter((m) => m.id !== id),
           activeMissionId: s.activeMissionId === id ? null : s.activeMissionId,
