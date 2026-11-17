@@ -102,11 +102,11 @@ class UserStore:
         # Migrate legacy SHA-256 hash to PBKDF2 on successful login
         if '$' not in user['password_hash']:
             new_hash = self._hash_password(password)
-            with db.get_lock():
-                db.get_connection().execute(
+            conn = db.get_connection()
+            with db.get_lock(), conn:
+                conn.execute(
                     "UPDATE users SET password_hash=? WHERE id=?", (new_hash, user['id'])
                 )
-                db.get_connection().commit()
         return user
 
     def list_users(self):
