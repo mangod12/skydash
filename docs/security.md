@@ -53,6 +53,13 @@ logs. The stream re-checks the session every 5 seconds and closes (code 4001) if
 it was signed out, expired or the account was disabled. The older `?token=`
 parameter still works for scripts.
 
+## Input validation
+
+Request bodies are validated on the server: threat levels must be one of none, low,
+medium, high or critical; coordinates must be 2 or 3 finite numbers; mission latitude,
+longitude and zoom are range-checked; tags, descriptions, notes and identifiers have
+length limits. Invalid input gets `422` before anything is stored.
+
 ## Rate limiting
 
 Failed logins are throttled per client and username (5 per minute). For a general cap,

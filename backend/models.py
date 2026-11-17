@@ -2,7 +2,35 @@
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+import math
+
+from pydantic import BaseModel, Field, field_validator
+
+THREAT_LEVELS = ("none", "low", "medium", "high", "critical")
+
+
+def _check_coordinates(v):
+    if v is None:
+        return v
+    if len(v) not in (2, 3) or not all(math.isfinite(x) for x in v):
+        raise ValueError("coordinates must be 2 or 3 finite numbers")
+    if abs(v[0]) > 180 or abs(v[1]) > 180:
+        raise ValueError("coordinates out of range")
+    return v
+
+
+def _check_tags(v):
+    if v is None:
+        return v
+    if len(v) > 50 or any(len(t) > 64 for t in v):
+        raise ValueError("at most 50 tags of up to 64 characters")
+    return v
+
+
+def _check_threat(v):
+    if v is not None and v not in THREAT_LEVELS:
+        raise ValueError(f"threatLevel must be one of {', '.join(THREAT_LEVELS)}")
+    return v
 
 
 class AuthLogin(BaseModel):
@@ -17,8 +45,8 @@ class AuthRegister(BaseModel):
 
 
 class EntityCreate(BaseModel):
-    id: Optional[str] = None
-    type: str = "event"
+    id: Optional[str] = Field(default=None, max_length=128)
+    type: str = Field(default="event", min_length=1, max_length=64)
     name: str = Field(min_length=1, max_length=200)
     coordinates: Optional[List[float]] = None
     properties: Dict = {}
@@ -27,10 +55,14 @@ class EntityCreate(BaseModel):
     tags: List[str] = []
     threatLevel: str = "none"
 
+    _coords = field_validator("coordinates")(_check_coordinates)
+    _tags = field_validator("tags")(_check_tags)
+    _threat = field_validator("threatLevel")(_check_threat)
+
 
 class EntityUpdate(BaseModel):
     """Partial entity update. Unknown keys are ignored."""
-    type: Optional[str] = None
+    type: Optional[str] = Field(default=None, min_length=1, max_length=64)
     name: Optional[str] = Field(default=None, min_length=1, max_length=200)
     coordinates: Optional[List[float]] = None
     properties: Optional[Dict] = None
@@ -39,42 +71,50 @@ class EntityUpdate(BaseModel):
     tags: Optional[List[str]] = None
     threatLevel: Optional[str] = None
 
+    _coords = field_validator("coordinates")(_check_coordinates)
+    _tags = field_validator("tags")(_check_tags)
+    _threat = field_validator("threatLevel")(_check_threat)
+
 
 class RelationshipCreate(BaseModel):
-    to_entity: str
-    type: str
-    confidence: int = 50
+    to_entity: str = Field(min_length=1, max_length=128)
+    type: str = Field(min_length=1, max_length=64)
+    confidence: int = Field(default=50, ge=0, le=100)
 
 
 class MissionCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
-    description: str = ""
-    status: str = "active"
-    center_lat: Optional[float] = None
-    center_lng: Optional[float] = None
-    zoom_level: Optional[int] = None
+    description: str = Field(default="", max_length=5000)
+    status: str = Field(default="active", min_length=1, max_length=32)
+    center_lat: Optional[float] = Field(default=None, ge=-90, le=90)
+    center_lng: Optional[float] = Field(default=None, ge=-180, le=180)
+    zoom_level: Optional[int] = Field(default=None, ge=0, le=24)
     tags: List[str] = []
+
+    _tags = field_validator("tags")(_check_tags)
 
 
 class MissionUpdate(BaseModel):
     """Partial mission update. Unknown keys are ignored."""
     name: Optional[str] = Field(default=None, min_length=1, max_length=200)
-    description: Optional[str] = None
-    status: Optional[str] = None
-    center_lat: Optional[float] = None
-    center_lng: Optional[float] = None
-    zoom_level: Optional[int] = None
+    description: Optional[str] = Field(default=None, max_length=5000)
+    status: Optional[str] = Field(default=None, min_length=1, max_length=32)
+    center_lat: Optional[float] = Field(default=None, ge=-90, le=90)
+    center_lng: Optional[float] = Field(default=None, ge=-180, le=180)
+    zoom_level: Optional[int] = Field(default=None, ge=0, le=24)
     tags: Optional[List[str]] = None
+
+    _tags = field_validator("tags")(_check_tags)
 
 
 class MissionEntityAdd(BaseModel):
-    entity_id: str
+    entity_id: str = Field(min_length=1, max_length=128)
 
 
 class MissionNoteAdd(BaseModel):
-    content: str
+    content: str = Field(min_length=1, max_length=10000)
 
 
 class DroneCommand(BaseModel):
-    command: str
+    command: str = Field(min_length=1, max_length=64)
     params: Dict[str, Any] = {}
