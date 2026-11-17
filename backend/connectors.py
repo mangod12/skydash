@@ -234,6 +234,12 @@ class ShodanConnector:
         random.shuffle(all_mocks)
         return all_mocks[:limit]
 
+    @staticmethod
+    def _valid_position(lat, lon):
+        return (type(lat) in (int, float) and type(lon) in (int, float)
+                and math.isfinite(lat) and math.isfinite(lon)
+                and abs(lat) <= 90 and abs(lon) <= 180)
+
     def to_entities(self, results: List[Dict]) -> List[Dict]:
         """Convert Shodan results to SkyDash entity format."""
         return [
@@ -242,7 +248,7 @@ class ShodanConnector:
                 "type": "device",
                 "name": f"{r.get('product', 'Unknown')} @ {r.get('ip', '')}",
                 "coordinates": (
-                    [r["lat"], r["lon"]] if r.get("lat") is not None and r.get("lon") is not None else None
+                    [r["lat"], r["lon"]] if self._valid_position(r.get("lat"), r.get("lon")) else None
                 ),
                 "properties": {
                     "ip": r.get("ip"),
