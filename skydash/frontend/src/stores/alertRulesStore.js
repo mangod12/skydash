@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+let nextRuleId = 0;
+
 const DEFAULT_RULE_IDS = new Set([
   'bat-30', 'bat-15', 'sig-50', 'alt-120', 'spd-15', 'geo-any',
 ]);
@@ -48,23 +50,23 @@ export const useAlertRulesStore = create((set, get) => ({
   rules: DEFAULT_RULES,
 
   addRule: (rule) => set((s) => ({
-    rules: [...s.rules, { ...rule, id: `rule-${Date.now()}`, lastTriggered: 0 }],
+    rules: [...s.rules, { ...rule, id: `rule-${Date.now()}-${++nextRuleId}`, lastTriggered: 0 }],
   })),
 
   removeRule: (id) => set((s) => ({
-    rules: s.rules.filter((r) => r.id !== id),
+    rules: s.rules.filter((r) => r?.id !== id),
   })),
 
   updateRule: (id, patch) => set((s) => ({
-    rules: s.rules.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+    rules: s.rules.map((r) => (r?.id === id ? { ...r, ...patch, id: r.id } : r)),
   })),
 
   toggleRule: (id) => set((s) => ({
-    rules: s.rules.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)),
+    rules: s.rules.map((r) => (r?.id === id ? { ...r, enabled: !r.enabled } : r)),
   })),
 
   setLastTriggered: (id, time) => set((s) => ({
-    rules: s.rules.map((r) => (r.id === id ? { ...r, lastTriggered: time } : r)),
+    rules: s.rules.map((r) => (r?.id === id ? { ...r, lastTriggered: time } : r)),
   })),
 
   getRules: () => get().rules,
