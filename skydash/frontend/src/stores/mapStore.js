@@ -78,6 +78,7 @@ export const useMapStore = create((set) => ({
   setZoom: (zoom) => set({ zoom }),
 
   updateDronePosition: (lat, lng, alt, heading) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
     set((s) => ({
       dronePosition: { lat, lng, alt, heading },
       flightPath: [...s.flightPath, { lat, lng, alt, time: Date.now() }].slice(-500),
