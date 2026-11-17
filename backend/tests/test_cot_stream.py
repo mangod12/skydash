@@ -110,6 +110,16 @@ class TestBuildEvents(unittest.TestCase):
                 self.assertEqual(ET.fromstring(events[1]).get("uid"), "skydash-drone-ALPHA-1")
                 self.assertEqual(ET.fromstring(events[2]).get("uid"), ENTITY["id"])
 
+    def test_malformed_entity_types_cannot_break_valid_batch(self):
+        for bad_type in ([], {}, ["vehicle"], {"type": "vehicle"}, None, 42):
+            with self.subTest(entity_type=repr(bad_type)):
+                events = cot_stream.build_events([{**ENTITY, "type": bad_type}, ENTITY], [DRONE], NOW)
+                self.assertEqual(len(events), 3)
+                roots = [ET.fromstring(event) for event in events]
+                self.assertEqual(roots[0].get("uid"), "skydash-drone-ALPHA-1")
+                self.assertEqual(roots[1].get("type"), "a-h-G")
+                self.assertEqual(roots[2].get("type"), "a-h-G-E-V")
+
     def test_boolean_and_nonfinite_positions_are_rejected(self):
         for coords in ([True, 1], [1, False], [float("nan"), 1], [1, float("inf")]):
             with self.subTest(coords=coords):
