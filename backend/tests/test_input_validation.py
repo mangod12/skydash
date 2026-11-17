@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from models import (
-    DroneCommand, EntityCreate, EntityUpdate, MissionCreate, MissionNoteAdd, RelationshipCreate,
+    DroneCommand, EntityCreate, EntityUpdate, MissionCreate, MissionUpdate, MissionNoteAdd, RelationshipCreate,
 )
 
 
@@ -40,6 +40,17 @@ def test_mission_bounds():
     for bad in ({"center_lat": 91}, {"center_lng": -181}, {"zoom_level": 40}, {"description": "d" * 5001}, {"status": ""}):
         with pytest.raises(ValidationError):
             MissionCreate(name="m", **bad)
+
+
+def test_mission_map_compatibility():
+    for model in (MissionCreate, MissionUpdate):
+        kwargs = {"name": "Map"} if model is MissionCreate else {}
+        result = model(center_lat=0, center_lng=0, zoom_level=0, **kwargs)
+        assert (result.center_lat, result.center_lng, result.zoom_level) == (0, 0, 0)
+        result = model(center_lat="20.5", center_lng="80.5", zoom_level="12", **kwargs)
+        assert (result.center_lat, result.center_lng, result.zoom_level) == (20.5, 80.5, 12)
+        result = model(center_lat=None, center_lng=None, zoom_level=None, **kwargs)
+        assert result.center_lat is None and result.center_lng is None and result.zoom_level is None
 
 
 def test_other_bodies():
