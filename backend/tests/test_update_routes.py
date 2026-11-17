@@ -92,6 +92,29 @@ class TestUpdateRoutes(unittest.TestCase):
         for field in map_fields:
             self.assertIsNone(response.json()["data"][field])
 
+    def test_note_changes_roll_back_when_mission_timestamp_update_fails(self):
+        import sqlite3
+
+        note = mission_store.add_note(self.mid, "Original note")
+        before = mission_store.get_mission(self.mid)
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_note_timestamp BEFORE UPDATE ON missions
+                        BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END""")
+        conn.commit()
+        for operation in (lambda: mission_store.add_note(self.mid, "Failed addition"),
+                          lambda: mission_store.delete_note(self.mid, note["id"])):
+            with self.assertRaises(sqlite3.IntegrityError):
+                operation()
+            self.assertFalse(conn.in_transaction)
+            entity_store.add_event({"description": "Unrelated commit"})
+            self.assertEqual(mission_store.get_notes(self.mid), [note])
+            self.assertEqual(mission_store.get_mission(self.mid), before)
+        conn.execute("DROP TRIGGER reject_note_timestamp")
+        conn.commit()
+        self.assertTrue(mission_store.delete_note(self.mid, note["id"]))
+        self.assertEqual(mission_store.get_notes(self.mid), [])
+        self.assertIsNotNone(mission_store.add_note(self.mid, "Retry addition"))
+
     def test_failed_entity_delete_restores_relationships_and_events(self):
         import sqlite3
 

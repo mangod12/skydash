@@ -234,7 +234,7 @@ class MissionStore:
         nid = self._new_id()
         now = self._now_iso()
         conn = db.get_connection()
-        with db.get_lock():
+        with db.get_lock(), conn:
             conn.execute(
                 "INSERT INTO mission_notes (id, mission_id, content, created_at) VALUES (?,?,?,?)",
                 (nid, mission_id, content, now),
@@ -243,7 +243,6 @@ class MissionStore:
                 "UPDATE missions SET updated_at = ? WHERE id = ?",
                 (now, mission_id),
             )
-            conn.commit()
         return {"id": nid, "mission_id": mission_id, "content": content, "created_at": now}
 
     def get_notes(self, mission_id: str) -> list:
@@ -256,19 +255,17 @@ class MissionStore:
     def delete_note(self, mission_id: str, note_id: str) -> bool:
         """Delete only a note belonging to the mission named by the caller."""
         conn = db.get_connection()
-        with db.get_lock():
+        with db.get_lock(), conn:
             result = conn.execute(
                 "DELETE FROM mission_notes WHERE id = ? AND mission_id = ?",
                 (note_id, mission_id),
             )
             if not result.rowcount:
-                conn.commit()
                 return False
             conn.execute(
                 "UPDATE missions SET updated_at = ? WHERE id = ?",
                 (self._now_iso(), mission_id),
             )
-            conn.commit()
         return True
 
     # Mission detections
