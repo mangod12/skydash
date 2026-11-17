@@ -150,25 +150,24 @@ class MissionStore:
         return [self._row_to_mission(r) for r in rows]
 
     def update_mission(self, mission_id: str, data: dict) -> Optional[dict]:
-        existing = self.get_mission(mission_id)
-        if not existing:
-            return None
-
-        updatable = ["name", "description", "status", "center_lat", "center_lng", "zoom_level", "tags"]
-        for key in updatable:
-            if key in data:
-                existing[key] = data[key]
-        existing["updated_at"] = self._now_iso()
-
         conn = db.get_connection()
-        with db.get_lock():
+        # Read and merge under the same lock as the write to preserve newer fields.
+        # The connection context rolls back failures before another writer can commit.
+        with db.get_lock(), conn:
+            existing = self.get_mission(mission_id)
+            if not existing:
+                return None
+            updatable = ["name", "description", "status", "center_lat", "center_lng", "zoom_level", "tags"]
+            for key in updatable:
+                if key in data:
+                    existing[key] = data[key]
+            existing["updated_at"] = self._now_iso()
             conn.execute(
                 "UPDATE missions SET name=?, description=?, status=?, updated_at=?, center_lat=?, center_lng=?, zoom_level=?, tags=? WHERE id=?",
                 (existing["name"], existing["description"], existing["status"],
                  existing["updated_at"], existing["center_lat"], existing["center_lng"],
                  existing["zoom_level"], json.dumps(existing["tags"]), mission_id),
             )
-            conn.commit()
         return existing
 
     def delete_mission(self, mission_id: str) -> bool:
