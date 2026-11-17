@@ -1,16 +1,18 @@
+import { finiteReading } from '../../utils/telemetryReadings';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
 export default function AttitudeIndicator() {
   const data = useTelemetryStore((s) => s.data);
-  const roll = data?.attitude?.roll ?? 0;
-  const pitch = data?.attitude?.pitch ?? 0;
+  const available = finiteReading(data?.attitude?.roll) && finiteReading(data?.attitude?.pitch);
+  const roll = available ? data.attitude.roll % 360 : 0;
+  const pitch = available ? data.attitude.pitch : 0;
 
   // Clamp pitch for display
   const pitchOffset = Math.max(-30, Math.min(30, pitch)) * 2;
 
   return (
     <div className="w-full aspect-square max-w-[200px] mx-auto relative">
-      <svg viewBox="0 0 200 200" className="w-full h-full">
+      <svg viewBox="0 0 200 200" className="w-full h-full" style={{ opacity: available ? 1 : 0.2 }}>
         <defs>
           <clipPath id="horizon-clip">
             <circle cx="100" cy="100" r="90" />
@@ -78,6 +80,7 @@ export default function AttitudeIndicator() {
           transform={`rotate(${-roll}, 100, 100)`}
         />
       </svg>
+      {!available && <span className="absolute inset-0 flex items-center justify-center text-[10px] font-mono text-zinc-400">ATTITUDE UNAVAILABLE</span>}
     </div>
   );
 }

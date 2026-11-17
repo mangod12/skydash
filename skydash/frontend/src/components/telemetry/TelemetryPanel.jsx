@@ -1,3 +1,4 @@
+import { formatReading } from '../../utils/telemetryReadings';
 import GlassCard from '../common/GlassCard';
 import MetricDisplay from '../common/MetricDisplay';
 import StatusBadge from '../common/StatusBadge';
@@ -27,7 +28,7 @@ export default function TelemetryPanel() {
             </span>
             <StatusBadge
               status={data?.armed ? 'armed' : 'idle'}
-              label={data?.flight_mode ?? '--'}
+              label={typeof data?.flight_mode === 'string' ? data.flight_mode : '--'}
             />
           </div>
         </div>
@@ -45,7 +46,7 @@ export default function TelemetryPanel() {
             <div className="w-10 h-24 rounded border border-white/[0.06] bg-zinc-900/60 relative overflow-hidden">
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-[11px] font-mono font-bold tabular-nums text-blue-400 bg-zinc-900/90 px-1 rounded z-10">
-                  {data?.ground_speed?.toFixed(1) ?? '--'}
+                  {formatReading(data?.ground_speed, 1)}
                 </span>
               </div>
             </div>
@@ -63,7 +64,7 @@ export default function TelemetryPanel() {
             <div className="w-10 h-24 rounded border border-white/[0.06] bg-zinc-900/60 relative overflow-hidden">
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-[11px] font-mono font-bold tabular-nums text-emerald-400 bg-zinc-900/90 px-1 rounded z-10">
-                  {data?.altitude?.toFixed(1) ?? '--'}
+                  {formatReading(data?.altitude, 1)}
                 </span>
               </div>
             </div>
@@ -74,15 +75,15 @@ export default function TelemetryPanel() {
         {/* Attitude numbers below */}
         <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/[0.04]">
           <MetricDisplay
-            label="ROLL" value={data?.attitude?.roll?.toFixed(1)}
+            label="ROLL" value={formatReading(data?.attitude?.roll, 1)}
             unit={"\u00B0"} color="text-cyan-400" size="sm"
           />
           <MetricDisplay
-            label="PITCH" value={data?.attitude?.pitch?.toFixed(1)}
+            label="PITCH" value={formatReading(data?.attitude?.pitch, 1)}
             unit={"\u00B0"} color="text-blue-400" size="sm"
           />
           <MetricDisplay
-            label="YAW" value={data?.attitude?.yaw?.toFixed(0)}
+            label="YAW" value={formatReading(data?.attitude?.yaw, 0)}
             unit={"\u00B0"} color="text-zinc-400" size="sm"
           />
         </div>

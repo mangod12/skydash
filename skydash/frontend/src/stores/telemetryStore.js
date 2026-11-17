@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { normalizeTelemetry } from '../utils/telemetryReadings';
 
 const MAX_HISTORY = 200;
 
@@ -42,6 +43,8 @@ export const useTelemetryStore = create((set, get) => ({
   activeDroneId: null,
 
   updateTelemetry: (data, latency) => {
+    data = normalizeTelemetry(data);
+    if (!data) return;
     const state = get();
     // Never join one drone's chart trail to another drone's telemetry.
     const previousId = state.data?.drone_id;
@@ -76,11 +79,17 @@ export const useTelemetryStore = create((set, get) => ({
     });
   },
 
-  updateFleet: (fleetData) => set({
+  updateFleet: (fleetData) => {
+    if (!Array.isArray(fleetData)) return;
+    const normalized = fleetData.map(normalizeTelemetry).filter(Boolean);
+    if (fleetData.length && !normalized.length) return;
+    fleetData = normalized;
+    set({
     fleet: fleetData, isConnected: true, hasEverConnected: true, lastUpdate: Date.now(),
     // An authoritative empty fleet is not a fresh reading of the last drone.
     ...(fleetData.length === 0 ? { data: null, activeDroneId: null, history: [], alerts: [] } : {}),
-  }),
+    });
+  },
 
   setLatency: (latency) => set({ latency }),
 

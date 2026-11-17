@@ -1,3 +1,4 @@
+import { satelliteReading } from '../../utils/telemetryReadings';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
 /**
@@ -6,10 +7,11 @@ import { useTelemetryStore } from '../../stores/telemetryStore';
  */
 export default function GpsSkyView() {
   const data = useTelemetryStore((s) => s.data);
-  const satCount = data?.gps?.satellites ?? 0;
+  const satCount = data?.gps?.satellites;
+  const available = satelliteReading(satCount);
 
   // Generate deterministic satellite positions from count
-  const satellites = Array.from({ length: satCount }).map((_, i) => {
+  const satellites = Array.from({ length: available ? Math.min(satCount, 32) : 0 }).map((_, i) => {
     const angle = (i * 137.5) * Math.PI / 180; // Golden angle distribution
     const r = 12 + (i % 3) * 10; // Varying radius
     return {
@@ -19,6 +21,7 @@ export default function GpsSkyView() {
   });
 
   const getColor = () => {
+    if (!available) return { text: 'text-zinc-500', dot: '#71717a' };
     if (satCount >= 10) return { text: 'text-emerald-400', dot: '#10b981' };
     if (satCount >= 6) return { text: 'text-cyan-400', dot: '#22d3ee' };
     return { text: 'text-amber-400', dot: '#f59e0b' };
@@ -33,7 +36,7 @@ export default function GpsSkyView() {
           GPS CONSTELLATION
         </span>
         <span className={`shrink-0 whitespace-nowrap text-xs font-mono tabular-nums font-bold ${colors.text}`}>
-          {satCount} SATS
+          {available ? satCount : '--'} SATS
         </span>
       </div>
 
