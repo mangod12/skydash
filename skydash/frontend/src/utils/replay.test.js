@@ -17,6 +17,16 @@ describe('replay helpers', () => {
     expect(frames[0].lat).toBeNull();
   });
 
+  it.each([null, undefined, '', '  ', false, true, [], {}, [12], NaN, Infinity, 1e308])(
+    'does not turn invalid time into a replay frame: %j', (timestamp) => {
+      expect(normalizeFrames([{ timestamp, altitude: 50 }])).toEqual([]);
+    },
+  );
+
+  it('preserves zero timestamps and finite numeric strings', () => {
+    expect(normalizeFrames([{ timestamp: '12.5' }, { timestamp: 0 }]).map((frame) => frame.t)).toEqual([0, 12500]);
+  });
+
   it('returns no frames for non-arrays', () => {
     expect(normalizeFrames(undefined)).toEqual([]);
   });
