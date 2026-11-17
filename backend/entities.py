@@ -271,11 +271,11 @@ class EntityStore:
         conn = db.get_connection()
         with db.get_lock():
             existing = conn.execute(
-                "SELECT 1 FROM relationships WHERE from_entity = ? AND to_entity = ? AND type = ?",
+                "SELECT * FROM relationships WHERE from_entity = ? AND to_entity = ? AND type = ?",
                 (from_id, to_id, rel_type),
             ).fetchone()
             if existing:
-                return {"from": from_id, "to": to_id, "type": rel_type, "confidence": confidence}
+                return self._row_to_rel(existing)
             conn.execute(
                 "INSERT INTO relationships (from_entity, to_entity, type, confidence) VALUES (?,?,?,?)",
                 (from_id, to_id, rel_type, confidence),

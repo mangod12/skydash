@@ -92,6 +92,19 @@ class TestUpdateRoutes(unittest.TestCase):
         for field in map_fields:
             self.assertIsNone(response.json()["data"][field])
 
+    def test_duplicate_relationship_returns_stored_confidence(self):
+        other = self.client.post("/api/entities", json={"name": "Bravo"}).json()["data"]["id"]
+        url = f"/api/entities/{self.eid}/relate"
+        payload = {"to_entity": other, "type": "observed_with", "confidence": 25}
+        first = self.client.post(url, json=payload)
+        self.assertEqual(first.status_code, 200)
+        duplicate = self.client.post(url, json={**payload, "confidence": 95})
+        self.assertEqual(duplicate.status_code, 200)
+        self.assertEqual(duplicate.json()["data"], first.json()["data"])
+        graph = self.client.get(f"/api/entities/{self.eid}/graph").json()["data"]
+        self.assertEqual(graph["edges"], [first.json()["data"]])
+        self.assertEqual(graph["edges"][0]["confidence"], 25)
+
     def test_note_delete_is_scoped_to_mission(self):
         other = self.client.post("/api/missions", json={"name": "Other"}).json()["data"]["id"]
         note = self.client.post(
