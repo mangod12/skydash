@@ -23,6 +23,7 @@ export function useSystemHealth() {
   const isConnected = useTelemetryStore((s) => s.isConnected);
   const latency = useTelemetryStore((s) => s.latency);
   const fleet = useTelemetryStore((s) => s.fleet);
+  const data = useTelemetryStore((s) => s.data);
   const histLen = useTelemetryStore((s) => s.history).length;
   const entities = useIntelStore((s) => s.entities);
   const rels = useIntelStore((s) => s.relationships);
@@ -79,12 +80,13 @@ export function useSystemHealth() {
     };
   }, [fetchUp]);
 
-  const active = fleet.filter((d) => d.is_armed !== false).length || (isConnected ? 1 : 0);
+  const drones = fleet.length > 0 ? fleet : (data ? [data] : []);
+  const active = drones.filter((d) => d.is_armed !== false).length;
 
   return {
     status: deriveStatus(isConnected, latency, active),
     ws: { isConnected, latency },
-    pipeline: { activeDrones: active, total: fleet.length || (isConnected ? 1 : 0), dataPoints: histLen },
+    pipeline: { activeDrones: active, total: drones.length, dataPoints: histLen },
     database: { entities: entities.length, relationships: rels.length, events: events.length },
     memory: {
       historyUsed: histLen, historyMax: 200,
