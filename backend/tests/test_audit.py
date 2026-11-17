@@ -65,6 +65,15 @@ class TestAuditLog(unittest.TestCase):
         self.assertFalse(any(m == "GET" and p == "/api/entities" for _, m, p, _ in summary))
         self.assertNotIn("wrong-password-1", str(rows))
 
+    def test_failed_login_records_attempted_username_without_role(self):
+        self.client.post("/api/auth/login", json={"username": "intruder", "password": "wrong-password-1"})
+        rows = self.client.get("/api/audit", headers=self.h["commander"]).json()["data"]
+        hit = [r for r in rows if r["path"] == "/api/auth/login" and r["username"] == "intruder"]
+        self.assertEqual(len(hit), 1)
+        self.assertEqual(hit[0]["status"], 401)
+        self.assertIsNone(hit[0]["role"])
+        self.assertNotIn("wrong-password-1", str(rows))
+
     def test_audit_endpoint_is_commander_only(self):
         self.assertEqual(self.client.get("/api/audit", headers=self.h["operator"]).status_code, 403)
         self.assertEqual(self.client.get("/api/audit", headers=self.h["analyst"]).status_code, 403)

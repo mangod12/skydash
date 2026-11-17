@@ -178,8 +178,10 @@ async def audit_middleware(request: Request, call_next):
                          request.client.host if request.client else None)
         raise
     if audited:
-        audit.record(request.method, path, response.status_code,
-                     getattr(request.state, "user", None),
+        who = getattr(request.state, "user", None)
+        if not who and getattr(request.state, "attempted_username", None):
+            who = {"username": request.state.attempted_username}
+        audit.record(request.method, path, response.status_code, who,
                      request.client.host if request.client else None)
     return response
 
