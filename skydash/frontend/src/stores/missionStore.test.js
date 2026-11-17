@@ -97,6 +97,51 @@ describe('missionStore', () => {
     expect(useMissionStore.getState().missions.map((m) => m.id)).toEqual([2]);
   });
 
+  it.each([{}, { id: null }, { id: '' }, { id: {} }, null])('rejects list records without a usable mission identity: %j', async (bad) => {
+    const original = [mission(1)];
+    useMissionStore.setState({ missions: original, activeMissionId: 1 });
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: [mission(2), bad] }));
+    await useMissionStore.getState().fetchMissions();
+    expect(useMissionStore.getState().missions).toEqual(original);
+    expect(useMissionStore.getState().activeMissionId).toBe(1);
+    expect(useMissionStore.getState().fetchError).toBe(true);
+    expect(useMissionStore.getState().loading).toBe(false);
+  });
+
+  it('rejects a save acknowledgement for the wrong mission', async () => {
+    useMissionStore.setState({ missions: [mission(1)] });
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: mission(2) }));
+    expect(await useMissionStore.getState().updateMission(1, { name: 'New' })).toBeNull();
+    expect(useMissionStore.getState().missions).toEqual([mission(1)]);
+  });
+
+  it.each(['success', 'network failure'])('ignores older mission update %s after a newer save', async (outcome) => {
+    useMissionStore.setState({ missions: [mission(1)] });
+    let finishOld;
+    apiFetch.mockReturnValueOnce(new Promise((resolve, reject) => { finishOld = outcome === 'success' ? resolve : reject; }));
+    const older = useMissionStore.getState().updateMission(1, { name: 'Older' });
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: mission(1, { name: 'Newer' }) }));
+    await useMissionStore.getState().updateMission(1, { name: 'Newer' });
+    if (outcome === 'success') finishOld(await reply({ success: true, data: mission(1, { name: 'Older' }) }));
+    else finishOld(new Error('Old failure'));
+    expect(await older).toBeNull();
+    expect(useMissionStore.getState().missions[0].name).toBe('Newer');
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('invalidates old updates when a mission is deleted and later recreated locally', async () => {
+    useMissionStore.setState({ missions: [mission(1)] });
+    let finish;
+    apiFetch.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    const older = useMissionStore.getState().updateMission(1, { name: 'Old' });
+    apiFetch.mockReturnValueOnce(reply({ success: true }));
+    await useMissionStore.getState().deleteMission(1);
+    useMissionStore.setState({ missions: [mission(1, { name: 'Replacement' })] });
+    finish(await reply({ success: true, data: mission(1, { name: 'Old' }) }));
+    expect(await older).toBeNull();
+    expect(useMissionStore.getState().missions[0].name).toBe('Replacement');
+  });
+
   it('createMission prepends, updateMission merges, deleteMission clears active', async () => {
     useMissionStore.setState({ missions: [mission(1)], activeMissionId: 1 });
     apiFetch.mockReturnValueOnce(reply({ success: true, data: mission(2) }));
