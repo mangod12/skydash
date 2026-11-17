@@ -46,16 +46,25 @@ describe('authStore', () => {
       expect(useAuthStore.getState().error).toBe('Cannot reach server');
     });
 
-    it('checkAuth enables auth only on a 401', async () => {
+    it('checkAuth detects protected and open responses', async () => {
       mockFetch(() => json({}, 401));
       await useAuthStore.getState().checkAuth();
       expect(useAuthStore.getState().authEnabled).toBe(true);
       mockFetch(() => json({}, 200));
       await useAuthStore.getState().checkAuth();
       expect(useAuthStore.getState().authEnabled).toBe(false);
+    });
+
+    it.each([null, true, false])('preserves auth mode %s on unsuccessful probes', async (authEnabled) => {
+      useAuthStore.setState({ authEnabled });
+      for (const status of [403, 404, 429, 500, 503]) {
+        mockFetch(() => json({}, status));
+        await useAuthStore.getState().checkAuth();
+        expect(useAuthStore.getState().authEnabled).toBe(authEnabled);
+      }
       mockFetch(() => Promise.reject(new Error('down')));
       await useAuthStore.getState().checkAuth();
-      expect(useAuthStore.getState().authEnabled).toBe(false);
+      expect(useAuthStore.getState().authEnabled).toBe(authEnabled);
     });
   });
 });
