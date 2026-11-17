@@ -31,9 +31,16 @@ function escapeCsv(val) {
     ? `"${str.replace(/"/g, '""')}"` : str;
 }
 
+function hasValidPosition(entity) {
+  const coords = entity.coordinates;
+  return Array.isArray(coords) && coords.length >= 2
+    && Number.isFinite(coords[0]) && Number.isFinite(coords[1])
+    && Math.abs(coords[0]) <= 90 && Math.abs(coords[1]) <= 180;
+}
+
 export function generateGeoJSON(entities) {
   const features = entities
-    .filter((e) => e.coordinates)
+    .filter(hasValidPosition)
     .map((e) => ({
       type: 'Feature',
       geometry: {
@@ -41,6 +48,7 @@ export function generateGeoJSON(entities) {
         coordinates: [e.coordinates[1], e.coordinates[0]],
       },
       properties: {
+        ...e.properties,
         id: e.id,
         name: e.name,
         type: e.type,
@@ -48,7 +56,6 @@ export function generateGeoJSON(entities) {
         confidence: e.confidence,
         source: e.source,
         tags: e.tags,
-        ...e.properties,
       },
     }));
 
@@ -73,8 +80,7 @@ export function generateKML(entities) {
     const placemarks = ents.map((e) => {
       const lat = e.coordinates?.[0];
       const lon = e.coordinates?.[1];
-      const located = Number.isFinite(lat) && Number.isFinite(lon)
-        && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+      const located = hasValidPosition(e);
       const geometry = located ? `<Point><coordinates>${lon},${lat},0</coordinates></Point>` : '';
       const desc = `Threat: ${(e.threatLevel || 'none').toUpperCase()} | Confidence: ${e.confidence}%`;
       return `      <Placemark>

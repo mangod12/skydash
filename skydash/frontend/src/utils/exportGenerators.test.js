@@ -57,6 +57,24 @@ describe('generateGeoJSON', () => {
     expect(props.threatLevel).toBe('medium');
   });
 
+  it('keeps canonical identity and threat fields ahead of custom properties', () => {
+    const entity = { ...ENTITIES[0], properties: { id: 'other', name: 'Wrong', threatLevel: 'none', plate: 'ABC' } };
+    const feature = JSON.parse(generateGeoJSON([entity])).features[0];
+    expect(feature.properties.id).toBe(entity.id);
+    expect(feature.properties.name).toBe(entity.name);
+    expect(feature.properties.threatLevel).toBe(entity.threatLevel);
+    expect(feature.properties.plate).toBe('ABC');
+  });
+
+  it('omits invalid positions instead of serializing null or impossible geometry', () => {
+    const invalid = [null, [], [37], [NaN, 1], [1, Infinity], [91, 1], [1, -181], ['37', 1]];
+    const entities = invalid.map((coordinates) => ({ ...ENTITIES[0], coordinates }));
+    entities.push({ ...ENTITIES[1], coordinates: [0, 0] });
+    const features = JSON.parse(generateGeoJSON(entities)).features;
+    expect(features).toHaveLength(1);
+    expect(features[0].geometry.coordinates).toEqual([0, 0]);
+  });
+
   it('returns empty FeatureCollection for empty input', () => {
     const json = JSON.parse(generateGeoJSON([]));
     expect(json.type).toBe('FeatureCollection');
