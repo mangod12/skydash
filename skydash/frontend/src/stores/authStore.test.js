@@ -34,6 +34,22 @@ describe('authStore', () => {
       expect([s.token, s.user.username, s.error]).toEqual(['t1', 'op', null]);
     });
 
+    it.each([
+      [500, { success: true, data: { token: 'bad', user: { username: 'op' } } }],
+      [200, { success: true }],
+      [200, { success: true, data: { token: '', user: { username: 'op' } } }],
+      [200, { success: true, data: { token: 't', user: null } }],
+      [200, { success: true, data: { token: 't', user: [] } }],
+      [200, { success: true, data: { token: 't', user: { username: '' } } }],
+      [200, null],
+    ])('rejects unsuccessful or incomplete login responses (%s, %j)', async (status, body) => {
+      mockFetch(() => json(body, status));
+      expect(await useAuthStore.getState().login('op', 'pw')).toBe(false);
+      expect(useAuthStore.getState().token).toBeNull();
+      expect(useAuthStore.getState().user).toBeNull();
+      expect(useAuthStore.getState().error).toBe('Login failed');
+    });
+
     it('login reports the server error on failure', async () => {
       mockFetch(() => json({ success: false, error: 'Bad credentials' }, 401));
       expect(await useAuthStore.getState().login('op', 'x')).toBe(false);
