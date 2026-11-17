@@ -215,7 +215,7 @@ class EntityStore:
             "lastSeen": data.get("lastSeen", now),
         }
         conn = db.get_connection()
-        with db.get_lock():
+        with db.get_lock(), conn:
             if conn.execute("SELECT 1 FROM entities WHERE id = ?", (eid,)).fetchone():
                 raise EntityAlreadyExists("Entity ID already exists")
             conn.execute(
@@ -224,8 +224,7 @@ class EntityStore:
                  json.dumps(entity["properties"]), entity["confidence"], entity["source"],
                  json.dumps(entity["tags"]), entity["threatLevel"], entity["firstSeen"], entity["lastSeen"]),
             )
-            self.add_event({"type": "detection", "description": f"Entity created: {entity['name']}", "entityId": eid, "severity": "info"})
-            conn.commit()
+            self._insert_event(conn, {"type": "detection", "description": f"Entity created: {entity['name']}", "entityId": eid, "severity": "info"})
         return entity
 
     def upsert_entity(self, data: Dict) -> Dict:
@@ -316,14 +315,18 @@ class EntityStore:
         return [self._row_to_event(r) for r in rows]
 
     def add_event(self, event: Dict) -> Dict:
+        conn = db.get_connection()
+        with db.get_lock(), conn:
+            return self._insert_event(conn, event)
+
+    def _insert_event(self, conn, event: Dict) -> Dict:
+        """Insert within the caller's locked transaction; never commit here."""
         eid = str(uuid.uuid4())[:8]
         now = time.time()
-        conn = db.get_connection()
         conn.execute(
             "INSERT INTO events (id, time, type, description, entityId, severity) VALUES (?,?,?,?,?,?)",
             (eid, now, event.get("type"), event.get("description"), event.get("entityId"), event.get("severity", "info")),
         )
-        conn.commit()
         return {
             "id": eid,
             "time": now,
