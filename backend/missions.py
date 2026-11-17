@@ -188,7 +188,7 @@ class MissionStore:
             return False
         conn = db.get_connection()
         try:
-            with db.get_lock():
+            with db.get_lock(), conn:
                 conn.execute(
                     "INSERT INTO mission_entities (mission_id, entity_id) VALUES (?,?)",
                     (mission_id, entity_id),
@@ -197,14 +197,13 @@ class MissionStore:
                     "UPDATE missions SET updated_at = ? WHERE id = ?",
                     (self._now_iso(), mission_id),
                 )
-                conn.commit()
             return True
         except sqlite3.IntegrityError:
             return False
 
     def remove_entity_from_mission(self, mission_id: str, entity_id: str) -> bool:
         conn = db.get_connection()
-        with db.get_lock():
+        with db.get_lock(), conn:
             cursor = conn.execute(
                 "DELETE FROM mission_entities WHERE mission_id = ? AND entity_id = ?",
                 (mission_id, entity_id),
@@ -215,7 +214,6 @@ class MissionStore:
                 "UPDATE missions SET updated_at = ? WHERE id = ?",
                 (self._now_iso(), mission_id),
             )
-            conn.commit()
         return True
 
     def get_mission_entities(self, mission_id: str) -> list:
