@@ -102,7 +102,10 @@ async def get_entity_graph(entity_id: str):
 
 
 @router.get("/api/timeline")
-async def get_timeline(limit: int = 50, offset: int = 0):
+async def get_timeline(
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0, le=9223372036854775807),
+):
     try:
         events = entity_store.get_timeline(limit, offset)
         return {
