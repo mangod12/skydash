@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { generateGeoJSON, generateKML, generateCSV, neutraliseFormula } from './exportGenerators';
+import { describe, it, expect, vi } from 'vitest';
+import { generateGeoJSON, generateKML, generateCSV, neutraliseFormula, generateDossier, generateMissionBrief } from './exportGenerators';
 
 const ENTITIES = [
   {
@@ -171,5 +171,20 @@ describe('neutraliseFormula', () => {
   it('is applied to CSV cells', () => {
     const csv = generateCSV([{ ...ENTITIES[0], name: '=cmd|calc' }], []);
     expect(csv).toContain("'=cmd|calc");
+  });
+});
+
+
+describe('UTC export generation timestamps', () => {
+  it('uses UTC for dossier and mission brief generation labels', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-11-17T18:20:30+05:30'));
+      const expected = 'Generated: 2026-11-17 12:50:30 UTC';
+      expect(generateDossier(ENTITIES[0], [], [], ENTITIES)).toContain(expected);
+      expect(generateMissionBrief({ name: 'Test' }, [], [], [])).toContain(expected);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
