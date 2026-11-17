@@ -35,6 +35,14 @@ class TestEntitiesCsvExport(unittest.TestCase):
         resp = self.client.get("/api/export/entities/csv")
         self.assertIn("20.3,85.8", resp.text)
 
+    def test_formula_cells_are_neutralised(self):
+        self.client.post("/api/entities", json={
+            "name": "=HYPERLINK(\"http://evil\")", "tags": ["@sum"], "coordinates": [-20.3, 85.8]})
+        resp = self.client.get("/api/export/entities/csv")
+        self.assertIn("'=HYPERLINK", resp.text)
+        self.assertIn("'@sum", resp.text)
+        self.assertIn("-20.3,85.8", resp.text)
+
 
 if __name__ == "__main__":
     unittest.main()

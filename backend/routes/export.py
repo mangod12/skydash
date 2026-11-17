@@ -9,6 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
+from audit import _safe_cell
 from deps import entity_store, fleet, telemetry_history
 
 log = logging.getLogger("skydash")
@@ -144,16 +145,16 @@ async def export_entities_csv():
             tags = ", ".join(entity.get("tags") or [])
 
             row = [
-                entity.get("id", ""),
-                entity.get("name", ""),
-                entity.get("type", ""),
-                entity.get("threatLevel", ""),
+                _safe_cell(entity.get("id", "")),
+                _safe_cell(entity.get("name", "")),
+                _safe_cell(entity.get("type", "")),
+                _safe_cell(entity.get("threatLevel", "")),
                 entity.get("confidence", ""),
                 coords[0] if len(coords) > 0 else "",
                 coords[1] if len(coords) > 1 else "",
-                tags,
-                entity.get("source", ""),
-                entity.get("lastSeen", ""),
+                _safe_cell(tags),
+                _safe_cell(entity.get("source", "")),
+                _safe_cell(entity.get("lastSeen", "")),
             ]
             writer.writerow(row)
 
