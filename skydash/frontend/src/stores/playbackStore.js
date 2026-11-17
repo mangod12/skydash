@@ -45,10 +45,11 @@ export const usePlaybackStore = create((set, get) => ({
   intervalId: null,
 
   loadHistory: (data) => {
+    // Ignore missing history without cancelling an active replay.
+    if (!Array.isArray(data) || data.length === 0) return;
+
     const state = get();
     if (state.intervalId) clearInterval(state.intervalId);
-
-    if (!data || data.length === 0) return;
 
     set({
       history: data,

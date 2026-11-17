@@ -26,6 +26,35 @@ describe('playbackStore', () => {
     expect(usePlaybackStore.getState().active).toBe(false);
   });
 
+  it.each([[], null, undefined, {}])('preserves a running replay when history is invalid: %j', (data) => {
+    const store = usePlaybackStore.getState();
+    store.loadHistory(snaps);
+    store.play();
+    const timer = usePlaybackStore.getState().intervalId;
+    vi.advanceTimersByTime(1000);
+    store.loadHistory(data);
+    const state = usePlaybackStore.getState();
+    expect(state.history).toBe(snaps);
+    expect(state.isPlaying).toBe(true);
+    expect(state.intervalId).toBe(timer);
+    expect(state.currentTime).toBe(1000);
+    vi.advanceTimersByTime(1000);
+    expect(usePlaybackStore.getState().currentTime).toBe(2000);
+  });
+
+  it('replaces a running replay and cancels its old timer', () => {
+    const store = usePlaybackStore.getState();
+    store.loadHistory(snaps);
+    store.play();
+    const replacement = [{ timestamp: 5000, positions: [] }, { timestamp: 6000, positions: [] }];
+    store.loadHistory(replacement);
+    expect(usePlaybackStore.getState().isPlaying).toBe(false);
+    expect(usePlaybackStore.getState().intervalId).toBeNull();
+    vi.advanceTimersByTime(2000);
+    expect(usePlaybackStore.getState().currentTime).toBe(5000);
+    expect(usePlaybackStore.getState().history).toBe(replacement);
+  });
+
   it('builds a 5 minute demo history', () => {
     usePlaybackStore.getState().loadDemo();
     const s = usePlaybackStore.getState();
