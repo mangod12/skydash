@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from auth import verify_token
 from client_ip import client_ip
+import ratelimit
 from deps import (
     API_KEY,
     AUTH_ENABLED,
@@ -155,6 +156,13 @@ async def hardening_middleware(request: Request, call_next):
         return JSONResponse(
             status_code=413,
             content={"success": False, "error": "Request body too large"},
+        )
+    wait = ratelimit.check(client_ip(request), request.url.path)
+    if wait is not None:
+        return JSONResponse(
+            status_code=429,
+            headers={"Retry-After": str(wait)},
+            content={"success": False, "error": "Rate limit exceeded, slow down"},
         )
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
