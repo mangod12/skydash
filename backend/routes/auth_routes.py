@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from auth import create_token
 from deps import AUTH_ENABLED, user_store
 from models import AuthLogin, AuthRegister
+from password_policy import check_password
 
 log = logging.getLogger("skydash")
 router = APIRouter()
@@ -82,6 +83,9 @@ async def auth_register(body: AuthRegister):
             status_code=400,
             content={"success": False, "error": "Auth not enabled"},
         )
+    problem = check_password(body.username, body.password)
+    if problem:
+        return JSONResponse(status_code=422, content={"success": False, "error": problem})
     if user_store.username_exists(body.username):
         return JSONResponse(
             status_code=409,
