@@ -9,6 +9,10 @@ from typing import Dict, List, Optional
 import database as db
 
 
+class EntityAlreadyExists(ValueError):
+    """The requested entity ID is already in use."""
+
+
 class EntityStore:
     def __init__(self):
         self._init_tables()
@@ -212,6 +216,8 @@ class EntityStore:
         }
         conn = db.get_connection()
         with db.get_lock():
+            if conn.execute("SELECT 1 FROM entities WHERE id = ?", (eid,)).fetchone():
+                raise EntityAlreadyExists("Entity ID already exists")
             conn.execute(
                 "INSERT INTO entities (id, type, name, coordinates, properties, confidence, source, tags, threatLevel, firstSeen, lastSeen) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (eid, entity["type"], entity["name"], json.dumps(entity["coordinates"]),

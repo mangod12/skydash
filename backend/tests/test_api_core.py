@@ -177,6 +177,21 @@ class TestTimelinePagination(_ApiTestCase):
 
 
 class TestEntities(_ApiTestCase):
+    def test_duplicate_id_returns_conflict_without_overwriting_or_adding_events(self):
+        original = self.client.post("/api/entities", json={
+            "id": "stable-contact", "name": "Original", "confidence": 25
+        }).json()["data"]
+        timeline = self.client.get("/api/timeline").json()["data"]
+        response = self.client.post("/api/entities", json={
+            "id": "stable-contact", "name": "Replacement", "confidence": 99
+        })
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(self.client.get("/api/entities/stable-contact").json()["data"], original)
+        self.assertEqual(self.client.get("/api/timeline").json()["data"], timeline)
+        self.assertEqual(entity_store.count(), 1)
+        # A rejected duplicate must not poison subsequent database writes.
+        self.assertEqual(self.client.post("/api/entities", json={"name": "Next"}).status_code, 201)
+
     def test_entity_crud_roundtrip(self):
         payload = {"name": "Test Contact", "type": "vehicle"}
         r = self.client.post("/api/entities", json=payload)
