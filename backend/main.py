@@ -158,24 +158,26 @@ async def hardening_middleware(request: Request, call_next):
     """Reject oversized bodies and add baseline security headers to every response."""
     length = request.headers.get("content-length")
     if length and length.isdigit() and int(length) > MAX_BODY_BYTES:
-        return JSONResponse(
+        response = JSONResponse(
             status_code=413,
             content={"success": False, "error": "Request body too large"},
         )
-    if "chunked" in request.headers.get("transfer-encoding", "").lower():
+    elif "chunked" in request.headers.get("transfer-encoding", "").lower():
         # The size cap relies on Content-Length; a chunked body would skip it.
-        return JSONResponse(
+        response = JSONResponse(
             status_code=411,
             content={"success": False, "error": "Content-Length required"},
         )
-    wait = ratelimit.check(client_ip(request), request.url.path)
-    if wait is not None:
-        return JSONResponse(
-            status_code=429,
-            headers={"Retry-After": str(wait)},
-            content={"success": False, "error": "Rate limit exceeded, slow down"},
-        )
-    response = await call_next(request)
+    else:
+        wait = ratelimit.check(client_ip(request), request.url.path)
+        if wait is not None:
+            response = JSONResponse(
+                status_code=429,
+                headers={"Retry-After": str(wait)},
+                content={"success": False, "error": "Rate limit exceeded, slow down"},
+            )
+        else:
+            response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
