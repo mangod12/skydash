@@ -54,6 +54,36 @@ class TestHealthAndTelemetry(_ApiTestCase):
         self.assertEqual(r.status_code, 422)
 
 
+class TestTimelinePagination(_ApiTestCase):
+    def test_invalid_pagination_does_not_reach_store(self):
+        from unittest.mock import patch
+
+        with patch.object(entity_store, "get_timeline") as query:
+            for params in ({"limit": -1}, {"limit": 0}, {"limit": 1001},
+                           {"offset": -1}, {"offset": 9223372036854775808}):
+                with self.subTest(params=params):
+                    response = self.client.get("/api/timeline", params=params)
+                    self.assertEqual(response.status_code, 422)
+            query.assert_not_called()
+
+    def test_pages_are_bounded_and_newest_first(self):
+        database.executemany(
+            "INSERT INTO events (id, time, description) VALUES (?,?,?)",
+            [(f"event-{i}", i, "Timeline test") for i in range(1005)],
+        )
+        default = self.client.get("/api/timeline").json()
+        self.assertEqual(len(default["data"]), 50)
+        self.assertEqual(default["metadata"], {"limit": 50, "offset": 0})
+        maximum = self.client.get("/api/timeline?limit=1000").json()["data"]
+        self.assertEqual(len(maximum), 1000)
+        first = self.client.get("/api/timeline?limit=2&offset=0").json()["data"]
+        second = self.client.get("/api/timeline?limit=2&offset=2").json()["data"]
+        self.assertEqual([row["time"] for row in first + second], [1004, 1003, 1002, 1001])
+        empty = self.client.get("/api/timeline?offset=9223372036854775807")
+        self.assertEqual(empty.status_code, 200)
+        self.assertEqual(empty.json()["data"], [])
+
+
 class TestEntities(_ApiTestCase):
     def test_entity_crud_roundtrip(self):
         payload = {"name": "Test Contact", "type": "vehicle"}
