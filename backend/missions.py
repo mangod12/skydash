@@ -282,7 +282,7 @@ class MissionStore:
         detections = result.get("detections") or []
 
         conn = db.get_connection()
-        with db.get_lock():
+        with db.get_lock(), conn:
             conn.execute(
                 """
                 INSERT INTO mission_detections
@@ -303,7 +303,6 @@ class MissionStore:
                 "UPDATE missions SET updated_at = ? WHERE id = ?",
                 (now, mission_id),
             )
-            conn.commit()
 
         return {
             "id": detection_id,
@@ -332,11 +331,10 @@ class MissionStore:
         stored_mission_id = row["mission_id"]
         if mission_id and mission_id != stored_mission_id:
             return False
-        with db.get_lock():
+        with db.get_lock(), conn:
             conn.execute("DELETE FROM mission_detections WHERE id = ?", (detection_id,))
             conn.execute(
                 "UPDATE missions SET updated_at = ? WHERE id = ?",
                 (self._now_iso(), stored_mission_id),
             )
-            conn.commit()
         return True
