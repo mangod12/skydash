@@ -2,6 +2,7 @@ import { Marker } from 'react-leaflet';
 import L from 'leaflet';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMapStore } from '../../stores/mapStore';
+import { shortLabel } from '../../utils/sanitize';
 
 const TYPE_ABBR = {
   person: 'PER', vehicle: 'VEH', building: 'FAC',
@@ -49,7 +50,7 @@ function createLabelIcon(entity, distStr) {
           padding:1px 3px; border-radius:2px; font-size:7px; font-weight:700;
           letter-spacing:0.05em; background:${badge.bg}; color:${badge.text};
         ">${type}</span>
-        <span style="color:#d4d4d8; font-weight:600;">${entity.name.length > 14 ? entity.name.slice(0, 14) + '\u2026' : entity.name}</span>
+        <span style="color:#d4d4d8; font-weight:600;">${shortLabel(entity.name)}</span>
         <span style="color:#52525b; font-variant-numeric:tabular-nums;">${distStr}</span>
       </div>
     `,
