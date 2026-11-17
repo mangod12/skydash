@@ -11,6 +11,10 @@ describes what the code enforces today so a reviewer can assess it.
 - Passwords are stored as salted PBKDF2-SHA256. Legacy SHA-256 hashes are
   upgraded on next login.
 - Failed logins are throttled per client and username (5 failures per minute).
+  Tracking is limited to 10,000 client/username pairs. Expired entries are reclaimed
+  once per minute and successful logins remove their entry. At capacity, new pairs
+  receive `429` until space is available; active lockouts are never evicted.
+  Login usernames are limited to the registration maximum of 64 characters.
 - WebSocket telemetry requires the same token, passed as `?token=`.
 - Alternatively, `SKYDASH_API_KEY` protects the API with a single shared key
   (no per-user identity, roles or audit).
