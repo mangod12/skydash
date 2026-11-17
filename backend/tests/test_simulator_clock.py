@@ -48,3 +48,26 @@ def test_altitude_adjustment_uses_elapsed_clock():
         altitude.assert_called_once_with(25.0)
         assert state['altitude_target'] == 55.0
         assert state['last_command_at'] == -1000.0
+
+
+def test_parameter_commands_do_not_restart_rtl_progress():
+    with patch.object(simulation.time, 'monotonic', return_value=0.0):
+        drone = simulation.DroneSimulator('RTL-PARAMETERS')
+        drone.apply_command('set_mode', {'mode': 'RTL'})
+    position = (drone.base_lat + 0.01, drone.base_lng + 0.01, 90.0)
+    with patch.object(drone, '_pattern_position', return_value=position), \
+            patch.object(simulation.time, 'monotonic', return_value=20.0):
+        assert drone._compute_position(20.0) == (drone.base_lat, drone.base_lng, 90.0)
+        for command, params in (('adjust_yaw', {'delta': 10}), ('set_altitude', {'value': 50}),
+                                ('set_speed', {'value': 5}), ('set_orbit_radius', {'value': 500})):
+            drone.apply_command(command, params)
+            assert drone._compute_position(20.0) == (drone.base_lat, drone.base_lng, 90.0)
+        # Repeating the current mode must not send a homebound drone back out.
+        drone.apply_command('set_mode', {'mode': 'RTL'})
+        assert drone._compute_position(20.0) == (drone.base_lat, drone.base_lng, 90.0)
+    # A later genuine switch into RTL starts a new return segment.
+    with patch.object(drone, '_pattern_position', return_value=position), \
+            patch.object(simulation.time, 'monotonic', return_value=30.0):
+        drone.apply_command('set_mode', {'mode': 'ORBIT'})
+        drone.apply_command('set_mode', {'mode': 'RTL'})
+        assert drone._compute_position(30.0) == position
