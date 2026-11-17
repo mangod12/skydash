@@ -4,44 +4,8 @@ import {
   CartesianGrid, Tooltip,
 } from 'recharts';
 import GlassCard from '../common/GlassCard';
+import { bucketEvents } from '../../utils/eventBuckets';
 import { THREAT_COLORS } from '../../utils/designTokens';
-
-const BUCKET_COUNT = 12;
-const SEVERITY_MAP = { info: 'low', warning: 'medium', critical: 'critical' };
-
-function bucketEvents(events) {
-  if (events.length === 0) return [];
-
-  const now = Date.now();
-  const oldest = Math.min(...events.map((e) => e.time));
-  const span = Math.max(now - oldest, 60000);
-  const step = span / BUCKET_COUNT;
-
-  const buckets = Array.from({ length: BUCKET_COUNT }, (_, i) => ({
-    time: oldest + i * step,
-    label: formatBucketTime(oldest + i * step),
-    low: 0,
-    medium: 0,
-    high: 0,
-    critical: 0,
-  }));
-
-  events.forEach((evt) => {
-    const idx = Math.min(
-      Math.floor((evt.time - oldest) / step),
-      BUCKET_COUNT - 1,
-    );
-    const level = SEVERITY_MAP[evt.severity] || 'low';
-    buckets[idx][level]++;
-  });
-
-  return buckets;
-}
-
-function formatBucketTime(ts) {
-  const d = new Date(ts);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-}
 
 function ChartTooltip({ payload, label }) {
   if (!payload?.length) return null;
