@@ -11,6 +11,10 @@ def test_entity_defaults_and_valid_input_still_work():
     assert e.type == "event" and e.threatLevel == "high"
     EntityCreate(name="y", coordinates=[37.7, -122.4, 120.0])
     EntityCreate(name="z")  # no coordinates
+    assert EntityCreate(name="origin", coordinates=[0, 0]).coordinates == [0.0, 0.0]
+    assert EntityUpdate(coordinates=None).coordinates is None
+    assert EntityCreate(name="numeric", coordinates=["20.5", "80.5"]).coordinates == [20.5, 80.5]
+    assert EntityUpdate(coordinates=["20.5", "80.5"]).coordinates == [20.5, 80.5]
 
 
 @pytest.mark.parametrize("bad", [

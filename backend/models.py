@@ -9,6 +9,13 @@ from pydantic import BaseModel, Field, field_validator
 THREAT_LEVELS = ("none", "low", "medium", "high", "critical")
 
 
+def _reject_boolean_coordinates(v):
+    # Pydantic otherwise coerces true/false to 1.0/0.0 before range checks.
+    if isinstance(v, (list, tuple)) and any(isinstance(x, bool) for x in v):
+        raise ValueError('coordinates cannot contain booleans')
+    return v
+
+
 def _check_coordinates(v):
     if v is None:
         return v
@@ -62,6 +69,7 @@ class EntityCreate(BaseModel):
     tags: List[str] = []
     threatLevel: str = "none"
 
+    _raw_coords = field_validator("coordinates", mode="before")(_reject_boolean_coordinates)
     _coords = field_validator("coordinates")(_check_coordinates)
     _tags = field_validator("tags")(_check_tags)
     _threat = field_validator("threatLevel")(_check_threat)
@@ -82,6 +90,7 @@ class EntityUpdate(BaseModel):
         "type", "name", "properties", "confidence", "source", "tags", "threatLevel",
         mode="before",
     )(_reject_null)
+    _raw_coords = field_validator("coordinates", mode="before")(_reject_boolean_coordinates)
     _coords = field_validator("coordinates")(_check_coordinates)
     _tags = field_validator("tags")(_check_tags)
     _threat = field_validator("threatLevel")(_check_threat)
