@@ -7,9 +7,9 @@ from models import (
 
 
 def test_entity_defaults_and_valid_input_still_work():
-    e = EntityCreate(name="x", coordinates=[-122.4, 37.7], threatLevel="high", tags=["a"])
+    e = EntityCreate(name="x", coordinates=[37.7, -122.4], threatLevel="high", tags=["a"])
     assert e.type == "event" and e.threatLevel == "high"
-    EntityCreate(name="y", coordinates=[-122.4, 37.7, 120.0])
+    EntityCreate(name="y", coordinates=[37.7, -122.4, 120.0])
     EntityCreate(name="z")  # no coordinates
 
 
@@ -47,3 +47,9 @@ def test_other_bodies():
         RelationshipCreate(to_entity="e1", type="linked", confidence=150)
     with pytest.raises(ValidationError):
         DroneCommand(command="")
+
+
+@pytest.mark.parametrize("coords", [[90, 180], [-90, -180], [0, 0], [90, -180, 120.0]])
+def test_entity_accepts_latitude_longitude_boundaries(coords):
+    assert EntityCreate(name="x", coordinates=coords).coordinates == coords
+    assert EntityUpdate(coordinates=coords).coordinates == coords

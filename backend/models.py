@@ -14,7 +14,7 @@ def _check_coordinates(v):
         return v
     if len(v) not in (2, 3) or not all(math.isfinite(x) for x in v):
         raise ValueError("coordinates must be 2 or 3 finite numbers")
-    if abs(v[0]) > 180 or abs(v[1]) > 180:
+    if abs(v[0]) > 90 or abs(v[1]) > 180:
         raise ValueError("coordinates out of range")
     return v
 
