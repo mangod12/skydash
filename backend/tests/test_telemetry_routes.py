@@ -75,6 +75,41 @@ class TestTelemetryRoutes(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
+    def test_invalid_numeric_commands_are_rejected_without_changing_state(self):
+        from unittest.mock import patch
+        from routes import telemetry
+        from simulation import FleetSimulator
+
+        simulated = FleetSimulator()
+        drone = simulated.drones["ALPHA-1"]
+        cases = [("adjust_altitude", "delta"), ("set_altitude", "value"),
+                 ("set_altitude", "altitude"), ("adjust_yaw", "delta"),
+                 ("set_speed", "value"), ("set_speed", "speed"),
+                 ("set_orbit_radius", "value"), ("set_orbit_radius", "radius")]
+        with patch.object(telemetry, "fleet", simulated):
+            before = drone.get_command_state()
+            for command, key in cases:
+                for value in ("nan", "inf", "-inf", "1e999", None, True, [], {}):
+                    with self.subTest(command=command, key=key, value=value):
+                        response = self.client.post("/api/drone/ALPHA-1/command", json={
+                            "command": command, "params": {key: value},
+                        })
+                        self.assertEqual(response.status_code, 400)
+                        self.assertIn("finite number", response.json()["detail"])
+                        self.assertEqual(drone.get_command_state(), before)
+            self.assertEqual(self.client.get("/telemetry").status_code, 200)
+            # Valid zero/numeric strings and clamping remain backward compatible.
+            for command, params in (("set_altitude", {"value": 0}),
+                                    ("set_speed", {"value": "5.5"}),
+                                    ("adjust_yaw", {"delta": -10}),
+                                    ("set_orbit_radius", {"radius": 100000})):
+                self.assertEqual(self.client.post("/api/drone/ALPHA-1/command", json={
+                    "command": command, "params": params,
+                }).status_code, 200)
+            self.assertEqual(drone.commanded_altitude, 0)
+            self.assertEqual(drone.yaw_offset, 350)
+            self.assertEqual(drone.get_command_state()["orbit_radius_m"], 3000)
+
     def test_websocket_failure_closes_and_allows_reconnect(self):
         from unittest.mock import patch
         from starlette.websockets import WebSocketDisconnect

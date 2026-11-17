@@ -29,6 +29,19 @@ def _clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
 
+def _command_number(value) -> float:
+    """Reject malformed/nonfinite control values before changing simulator state."""
+    try:
+        if isinstance(value, bool):
+            raise ValueError
+        number = float(value)
+        if not math.isfinite(number):
+            raise ValueError
+        return number
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("Command parameter must be a finite number") from None
+
+
 class DroneSimulator:
     def __init__(self, drone_id: str, pattern: str = "orbit", base_lat: float = 37.7749, base_lng: float = -122.4194):
         self.drone_id = drone_id
@@ -242,32 +255,32 @@ class DroneSimulator:
 
         elif command == "adjust_altitude":
             current = self._compute_altitude(time.time() - self.start_time)
-            delta = float(params.get("delta", 0))
+            delta = _command_number(params.get("delta", 0))
             self.commanded_altitude = round(
                 _clamp(current + delta, MIN_ALTITUDE_M, MAX_ALTITUDE_M),
                 2,
             )
 
         elif command == "set_altitude":
-            value = float(params.get("value", params.get("altitude", 0)))
+            value = _command_number(params.get("value", params.get("altitude", 0)))
             self.commanded_altitude = round(
                 _clamp(value, MIN_ALTITUDE_M, MAX_ALTITUDE_M),
                 2,
             )
 
         elif command == "adjust_yaw":
-            delta = float(params.get("delta", 0))
+            delta = _command_number(params.get("delta", 0))
             self.yaw_offset = (self.yaw_offset + delta) % 360
 
         elif command == "set_speed":
-            value = float(params.get("value", params.get("speed", 5.0)))
+            value = _command_number(params.get("value", params.get("speed", 5.0)))
             self.speed_scale = round(
                 _clamp(value / 5.0, MIN_SPEED_SCALE, MAX_SPEED_SCALE),
                 2,
             )
 
         elif command == "set_orbit_radius":
-            value = float(params.get("value", params.get("radius", 600)))
+            value = _command_number(params.get("value", params.get("radius", 600)))
             radius_m = _clamp(value, MIN_RADIUS_M, MAX_RADIUS_M)
             self.orbit_radius = radius_m / 111_000
 
