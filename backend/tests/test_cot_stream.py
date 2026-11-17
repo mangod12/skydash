@@ -87,6 +87,29 @@ class TestBuildEvents(unittest.TestCase):
         self.assertEqual(root.find("point").get("hae"), "0.0")
         self.assertIsNone(root.find("detail/track").get("course"))
 
+    def test_bad_record_containers_do_not_discard_valid_batch(self):
+        for malformed in (None, [], "invalid", 42, True):
+            with self.subTest(record=repr(malformed)):
+                events = cot_stream.build_events([malformed, ENTITY], [malformed, DRONE], NOW)
+                self.assertEqual(len(events), 2)
+                self.assertEqual(ET.fromstring(events[0]).get("uid"), "skydash-drone-ALPHA-1")
+                self.assertEqual(ET.fromstring(events[1]).get("uid"), ENTITY["id"])
+
+    def test_bad_gps_is_skipped_and_bad_attitude_keeps_position(self):
+        for malformed in (None, [], "invalid", 42, True):
+            with self.subTest(value=repr(malformed)):
+                bad_gps = {**DRONE, "gps": malformed}
+                bad_attitude = {**DRONE, "drone_id": "NO-ATTITUDE", "attitude": malformed}
+                events = cot_stream.build_events([ENTITY], [bad_gps, bad_attitude, DRONE], NOW)
+                self.assertEqual(len(events), 3)
+                root = ET.fromstring(events[0])
+                self.assertEqual(root.get("uid"), "skydash-drone-NO-ATTITUDE")
+                self.assertEqual(root.find("point").get("lat"), "37.7")
+                self.assertIsNone(root.find("detail/track").get("course"))
+                self.assertEqual(root.find("detail/track").get("speed"), "5.5")
+                self.assertEqual(ET.fromstring(events[1]).get("uid"), "skydash-drone-ALPHA-1")
+                self.assertEqual(ET.fromstring(events[2]).get("uid"), ENTITY["id"])
+
     def test_boolean_and_nonfinite_positions_are_rejected(self):
         for coords in ([True, 1], [1, False], [float("nan"), 1], [1, float("inf")]):
             with self.subTest(coords=coords):
