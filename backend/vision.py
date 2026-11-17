@@ -1,6 +1,7 @@
 """Optional RT-DETR image analysis for mission debrief workflows."""
 
 import os
+import math
 import tempfile
 import time
 from dataclasses import dataclass
@@ -179,12 +180,27 @@ class RTDETRDetector:
             if boxes is None:
                 continue
             for box in boxes:
-                xyxy = [float(v) for v in box.xyxy[0].tolist()]
-                class_id = int(box.cls[0].item())
-                confidence = float(box.conf[0].item())
+                try:
+                    xyxy = [float(v) for v in box.xyxy[0].tolist()]
+                    raw_class = float(box.cls[0].item())
+                    confidence = float(box.conf[0].item())
+                except (AttributeError, TypeError, ValueError, IndexError, OverflowError):
+                    continue
+                if (len(xyxy) != 4 or not all(math.isfinite(v) for v in xyxy)
+                        or not math.isfinite(raw_class) or raw_class < 0 or not raw_class.is_integer()
+                        or not math.isfinite(confidence) or not 0 <= confidence <= 1
+                        or xyxy[0] < 0 or xyxy[1] < 0 or xyxy[2] <= xyxy[0] or xyxy[3] <= xyxy[1]):
+                    continue
+                class_id = int(raw_class)
+                if isinstance(names, dict):
+                    label = names.get(class_id, class_id)
+                elif isinstance(names, (list, tuple)) and class_id < len(names):
+                    label = names[class_id]
+                else:
+                    label = class_id
                 detections.append(
                     {
-                        "label": str(names.get(class_id, class_id)),
+                        "label": str(label),
                         "class_id": class_id,
                         "confidence": round(confidence, 4),
                         "bbox_xyxy": [round(v, 2) for v in xyxy],
