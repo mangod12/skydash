@@ -5,7 +5,10 @@ import { distanceBetween } from './coordinates';
  * Uses single-linkage clustering: if any member is within range, merge.
  */
 export function detectSpatialClusters(entities, radiusM = 500) {
-  const withCoords = entities.filter((e) => e.coordinates?.length === 2);
+  if (!Number.isFinite(radiusM) || radiusM < 0) return [];
+  const withCoords = entities.filter((e) => Array.isArray(e?.coordinates) && e.coordinates.length >= 2
+    && Number.isFinite(e.coordinates[0]) && Number.isFinite(e.coordinates[1])
+    && Math.abs(e.coordinates[0]) <= 90 && Math.abs(e.coordinates[1]) <= 180);
   const clusters = [];
   const assigned = new Set();
 
