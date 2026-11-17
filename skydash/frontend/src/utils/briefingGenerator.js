@@ -1,5 +1,3 @@
-import { format } from 'date-fns';
-
 const THREAT_LABELS = { critical: 'CRITICAL', high: 'HIGH', medium: 'MEDIUM', low: 'LOW', none: 'NONE' };
 const THREAT_PRIORITY = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
 
@@ -7,15 +5,19 @@ const THREAT_PRIORITY = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
  * Returns current Zulu time formatted string.
  */
 export function getBriefingTimestamp() {
-  return format(new Date(), "ddHHmm'Z' MMM yyyy").toUpperCase();
+  return toDTG(Date.now());
 }
 
 /**
  * Returns a DTG (Date-Time Group) from a timestamp.
  */
 function toDTG(ts) {
-  if (!ts) return 'N/A';
-  return format(new Date(ts), "ddHHmm'Z' MMM yyyy").toUpperCase();
+  if (ts == null || ts === '') return 'N/A';
+  const date = new Date(ts);
+  if (!Number.isFinite(date.getTime())) return 'N/A';
+  const pad = (value) => String(value).padStart(2, '0');
+  const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][date.getUTCMonth()];
+  return `${pad(date.getUTCDate())}${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}Z ${month} ${date.getUTCFullYear()}`;
 }
 
 /**
@@ -64,8 +66,10 @@ function buildSituation(entities, threats, maxThreat, mission) {
     ? `${entities.length} entities linked for operational monitoring. Types: ${[...new Set(entities.map((e) => e.type))].join(', ')}. Average confidence: ${Math.round(entities.reduce((s, e) => s + (e.confidence || 0), 0) / entities.length)}%.`
     : 'No entities currently linked to this mission.';
 
-  const areaOfOps = mission.center_lat != null
-    ? `AO centered at ${mission.center_lat.toFixed(4)}N, ${Math.abs(mission.center_lng).toFixed(4)}${mission.center_lng >= 0 ? 'E' : 'W'}. Zoom level ${mission.zoom_level || 'N/A'}.`
+  const located = Number.isFinite(mission.center_lat) && Number.isFinite(mission.center_lng)
+    && Math.abs(mission.center_lat) <= 90 && Math.abs(mission.center_lng) <= 180;
+  const areaOfOps = located
+    ? `AO centered at ${Math.abs(mission.center_lat).toFixed(4)}${mission.center_lat >= 0 ? 'N' : 'S'}, ${Math.abs(mission.center_lng).toFixed(4)}${mission.center_lng >= 0 ? 'E' : 'W'}. Zoom level ${mission.zoom_level ?? 'N/A'}.`
     : 'Area of operations not yet defined. Recommend establishing map context.';
 
   return { threatAssessment, entitySummary, areaOfOps };
