@@ -69,6 +69,40 @@ class TestHealthAndTelemetry(_ApiTestCase):
 
 
 class TestEventRecordIntegrity(_ApiTestCase):
+    def test_invalid_event_fields_are_rejected_without_writes(self):
+        from unittest.mock import patch
+
+        with patch.object(entity_store, "add_event") as write:
+            for payload in ({"type": {"nested": "object"}}, {"description": ["list"]},
+                            {"description": "x" * 10001}, {"entityId": ""},
+                            {"severity": None}, {"severity": "x" * 33}):
+                with self.subTest(payload_type=list(payload)):
+                    self.assertEqual(self.client.post("/api/events", json=payload).status_code, 422)
+            write.assert_not_called()
+
+    def test_missing_entity_reference_is_404_without_writes(self):
+        response = self.client.post("/api/events", json={"entityId": "missing"})
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(self.client.get("/api/timeline").json()["data"], [])
+
+    def test_linked_event_roundtrip(self):
+        entity = self.client.post("/api/entities", json={"name": "Contact"}).json()["data"]
+        response = self.client.post("/api/events", json={
+            "entityId": entity["id"], "description": "Contact updated", "severity": "warning"
+        })
+        self.assertEqual(response.status_code, 201)
+        event = response.json()["data"]
+        self.assertEqual(event["entityId"], entity["id"])
+        self.assertIn(event, self.client.get("/api/timeline").json()["data"])
+
+    def test_event_store_failure_is_not_reported_as_created(self):
+        from unittest.mock import patch
+
+        with patch.object(entity_store, "add_event", side_effect=RuntimeError("private error")):
+            response = self.client.post("/api/events", json={"description": "Valid"})
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn("private error", response.text)
+
     def test_client_cannot_override_generated_identity_or_timestamp(self):
         payload = {
             "id": "spoofed-event", "time": -1, "type": "test",

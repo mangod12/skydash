@@ -1,12 +1,12 @@
 """Entity routes: CRUD, relationships, graph, timeline, events."""
 
 import logging
-from typing import Dict, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Query, HTTPException
 
 from deps import entity_store
-from models import EntityCreate, EntityUpdate, RelationshipCreate
+from models import EntityCreate, EntityUpdate, EventCreate, RelationshipCreate
 
 log = logging.getLogger("skydash")
 router = APIRouter()
@@ -119,10 +119,12 @@ async def get_timeline(
 
 
 @router.post("/api/events", status_code=201)
-async def create_event(body: Dict):
+async def create_event(body: EventCreate):
+    if body.entityId is not None and not entity_store.get_entity(body.entityId):
+        raise HTTPException(status_code=404, detail="Entity not found")
     try:
-        event = entity_store.add_event(body)
+        event = entity_store.add_event(body.model_dump())
         return {"success": True, "data": event}
     except Exception as exc:
         log.error(f"Error creating event: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
