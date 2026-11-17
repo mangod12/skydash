@@ -54,6 +54,7 @@ async def send_drone_command(drone_id: str, body: DroneCommand):
 @router.post("/reset")
 async def reset_simulation():
     fleet.reset()
+    telemetry_history.clear()
     log.info("Simulation reset")
     return {"success": True, "data": {"message": "Simulation reset"}}
 
