@@ -6,6 +6,7 @@ Each connector fetches from external APIs and normalizes to SkyDash entity forma
 """
 
 import logging
+import math
 import random
 import time
 from typing import Dict, List, Optional
@@ -61,20 +62,31 @@ class OpenSkyConnector:
                 states = data.get("states", []) or []
                 aircraft = []
                 for s in states[:50]:
-                    if s[5] is not None and s[6] is not None:
-                        aircraft.append({
-                            "icao24": s[0],
-                            "callsign": (s[1] or "").strip(),
-                            "origin_country": s[2],
-                            "longitude": s[5],
-                            "latitude": s[6],
-                            "altitude": s[7] or s[13] or 0,
-                            "velocity": s[9] or 0,
-                            "heading": s[10] or 0,
-                            "vertical_rate": s[11] or 0,
-                            "on_ground": s[8],
-                            "last_contact": s[4],
-                        })
+                    # A malformed upstream row must not discard the valid batch.
+                    if not isinstance(s, (list, tuple)) or len(s) < 14:
+                        continue
+                    lon, lat = s[5], s[6]
+                    if (type(lat) not in (int, float) or type(lon) not in (int, float)
+                            or not math.isfinite(lat) or not math.isfinite(lon)
+                            or abs(lat) > 90 or abs(lon) > 180):
+                        continue
+                    if not isinstance(s[0], str) or not s[0]:
+                        continue
+                    if s[1] is not None and not isinstance(s[1], str):
+                        continue
+                    aircraft.append({
+                        "icao24": s[0],
+                        "callsign": (s[1] or "").strip(),
+                        "origin_country": s[2],
+                        "longitude": lon,
+                        "latitude": lat,
+                        "altitude": s[7] or s[13] or 0,
+                        "velocity": s[9] or 0,
+                        "heading": s[10] or 0,
+                        "vertical_rate": s[11] or 0,
+                        "on_ground": s[8],
+                        "last_contact": s[4],
+                    })
                 self.cache = aircraft
                 self.cache_bbox = bbox_key
                 self.last_fetch = now
