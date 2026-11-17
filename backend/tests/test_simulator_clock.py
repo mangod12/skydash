@@ -71,3 +71,22 @@ def test_parameter_commands_do_not_restart_rtl_progress():
         drone.apply_command('set_mode', {'mode': 'ORBIT'})
         drone.apply_command('set_mode', {'mode': 'RTL'})
         assert drone._compute_position(30.0) == position
+
+
+def test_repeated_hold_or_stop_does_not_move_stationary_drone():
+    for first, repeat in (('hold', 'hold'), ('stop', 'stop'), ('stop', 'hold')):
+        drone = simulation.DroneSimulator('HOLD-IDEMPOTENT')
+
+        def command(kind):
+            if kind == 'stop':
+                return drone.apply_command('emergency_stop')
+            return drone.apply_command('set_mode', {'mode': 'HOLD'})
+
+        command(first)
+        initial = drone._compute_position(10.0)
+        command(repeat)
+        assert drone._compute_position(20.0) == initial
+        # A genuine move and later hold must capture a fresh position.
+        drone.apply_command('set_mode', {'mode': 'ORBIT'})
+        command('hold')
+        assert drone._compute_position(30.0) != initial
