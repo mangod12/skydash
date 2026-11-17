@@ -1,14 +1,20 @@
+import { nonNegativeReading, percentReading, formatReading } from '../../utils/telemetryReadings';
 import { clsx } from 'clsx';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
 export default function BatteryGauge() {
   const data = useTelemetryStore((s) => s.data);
-  const voltage = data?.battery_voltage ?? 0;
+  const voltage = data?.battery_voltage;
+  const voltageAvailable = nonNegativeReading(voltage);
+  const reportedPercent = percentReading(data?.battery_percentage);
+  const available = reportedPercent || voltageAvailable;
 
   // 4S LiPo: 14.0V (empty) to 16.8V (full)
-  const percent = Math.max(0, Math.min(100, ((voltage - 14.0) / 2.8) * 100));
+  const percent = reportedPercent ? data.battery_percentage : voltageAvailable
+    ? Math.max(0, Math.min(100, ((voltage - 14.0) / 2.8) * 100)) : null;
 
   const getColor = () => {
+    if (!available) return { bar: 'bg-zinc-700', text: 'text-zinc-500', glow: '' };
     if (percent > 50) return { bar: 'bg-emerald-500', text: 'text-emerald-400', glow: 'shadow-[0_0_12px_rgba(16,185,129,0.3)]' };
     if (percent > 25) return { bar: 'bg-amber-500', text: 'text-amber-400', glow: 'shadow-[0_0_12px_rgba(245,158,11,0.3)]' };
     return { bar: 'bg-red-500', text: 'text-red-400', glow: 'shadow-[0_0_12px_rgba(239,68,68,0.3)]' };
@@ -23,7 +29,7 @@ export default function BatteryGauge() {
           BATTERY
         </span>
         <span className={clsx('text-xs font-mono tabular-nums font-bold', colors.text)}>
-          {Math.round(percent)}%
+          {available ? `${Math.round(percent)}%${reportedPercent ? '' : ' EST'}` : '--'}
         </span>
       </div>
 
@@ -31,13 +37,13 @@ export default function BatteryGauge() {
       <div className="h-2 rounded-full bg-zinc-800/80 overflow-hidden">
         <div
           className={clsx('h-full rounded-full transition-all duration-500', colors.bar, colors.glow)}
-          style={{ width: `${percent}%` }}
+          style={{ width: `${percent ?? 0}%` }}
         />
       </div>
 
       {/* Voltage */}
       <div className={clsx('text-2xl font-bold font-mono tabular-nums', colors.text)}>
-        {voltage.toFixed(2)}
+        {formatReading(voltageAvailable ? voltage : null, 2)}
         <span className="text-zinc-500 text-sm ml-1 font-sans font-normal">V</span>
       </div>
     </div>

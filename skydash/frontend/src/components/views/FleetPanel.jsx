@@ -1,12 +1,13 @@
+import { finiteReading, percentReading, nonNegativeReading, formatReading } from '../../utils/telemetryReadings';
 import PanelState from '../common/PanelState';
 import { Plane, Battery, Signal } from 'lucide-react';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
 function DroneCard({ drone }) {
-  const battery = drone.battery_percentage ?? Math.round(((drone.battery_voltage ?? 16.8) / 16.8) * 100);
-  const batteryColor = battery > 60 ? 'text-emerald-400' : battery > 30 ? 'text-amber-400' : 'text-red-400';
-  const signal = drone.signal_strength ?? 0;
-  const signalColor = signal > 70 ? 'text-emerald-400' : signal > 40 ? 'text-amber-400' : 'text-red-400';
+  const battery = percentReading(drone.battery_percentage) ? drone.battery_percentage : null;
+  const batteryColor = battery == null ? 'text-zinc-500' : battery > 60 ? 'text-emerald-400' : battery > 30 ? 'text-amber-400' : 'text-red-400';
+  const signal = percentReading(drone.signal_strength) ? drone.signal_strength : null;
+  const signalColor = signal == null ? 'text-zinc-500' : signal > 70 ? 'text-emerald-400' : signal > 40 ? 'text-amber-400' : 'text-red-400';
 
   return (
     <div className="border border-white/[0.08] rounded-xl bg-zinc-900/60 backdrop-blur-sm p-4 space-y-3">
@@ -18,7 +19,7 @@ function DroneCard({ drone }) {
           </span>
         </div>
         <span className="text-[10px] font-mono tracking-wider text-zinc-500 uppercase">
-          {drone.pattern || 'idle'}
+          {typeof drone.pattern === 'string' && drone.pattern ? drone.pattern : '--'}
         </span>
       </div>
 
@@ -26,25 +27,25 @@ function DroneCard({ drone }) {
         <div className="space-y-1">
           <span className="text-[9px] tracking-[0.15em] text-zinc-500">ALTITUDE</span>
           <div className="text-lg font-mono font-bold text-cyan-400">
-            {Math.round(drone.altitude ?? 0)}m
+            {finiteReading(drone.altitude) ? Math.round(drone.altitude) : '--'}m
           </div>
         </div>
         <div className="space-y-1">
           <span className="text-[9px] tracking-[0.15em] text-zinc-500">SPEED</span>
           <div className="text-lg font-mono font-bold text-zinc-100">
-            {(drone.ground_speed ?? 0).toFixed(1)} m/s
+            {formatReading(nonNegativeReading(drone.ground_speed) ? drone.ground_speed : null)} m/s
           </div>
         </div>
         <div className="space-y-1">
           <span className="text-[9px] tracking-[0.15em] text-zinc-500">BATTERY</span>
           <div className={`text-lg font-mono font-bold ${batteryColor} flex items-center gap-1`}>
-            <Battery size={14} /> {battery}%
+            <Battery size={14} /> {battery == null ? '--' : `${battery}%`}
           </div>
         </div>
         <div className="space-y-1">
           <span className="text-[9px] tracking-[0.15em] text-zinc-500">SIGNAL</span>
           <div className={`text-lg font-mono font-bold ${signalColor} flex items-center gap-1`}>
-            <Signal size={14} /> {signal}%
+            <Signal size={14} /> {signal == null ? '--' : `${signal}%`}
           </div>
         </div>
       </div>

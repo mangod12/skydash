@@ -1,3 +1,4 @@
+import { percentReading } from '../../utils/telemetryReadings';
 import { clsx } from 'clsx';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
@@ -5,10 +6,12 @@ const BAR_COUNT = 5;
 
 export default function SignalMeter() {
   const data = useTelemetryStore((s) => s.data);
-  const strength = data?.signal_strength ?? 0;
-  const activeBars = Math.ceil((strength / 100) * BAR_COUNT);
+  const strength = data?.signal_strength;
+  const available = percentReading(strength);
+  const activeBars = (available ? Math.ceil((strength / 100) * BAR_COUNT) : 0);
 
   const getColor = () => {
+    if (!available) return { bar: 'bg-zinc-700', text: 'text-zinc-500' };
     if (strength >= 70) return { bar: 'bg-emerald-500', text: 'text-emerald-400' };
     if (strength >= 40) return { bar: 'bg-amber-500', text: 'text-amber-400' };
     return { bar: 'bg-red-500', text: 'text-red-400' };
@@ -23,7 +26,7 @@ export default function SignalMeter() {
           SIGNAL
         </span>
         <span className={clsx('text-xs font-mono tabular-nums font-bold', colors.text)}>
-          {strength}%
+          {available ? `${strength}%` : '--'}
         </span>
       </div>
 
