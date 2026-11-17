@@ -4,6 +4,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import useNotificationStore from '../../stores/notificationStore';
 import WorkspaceSwitcher from './WorkspaceSwitcher';
+import AccountChip from './AccountChip';
 import { BRAND } from '../../brand';
 
 function UtcClock() {
@@ -95,6 +96,7 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
           )}
         </button>
         <UtcClock />
+        <AccountChip />
       </div>
     </header>
   );
