@@ -247,15 +247,14 @@ class DroneSimulator:
             mode = str(params.get("mode", "")).upper()
             if mode not in SUPPORTED_MODES:
                 raise ValueError(f"Unsupported mode: {mode}")
+            hold_position = self._compute_position(time.monotonic() - self.start_time) if mode == "HOLD" else None
             if mode == "RTL" and self.mode != "RTL":
                 self._rtl_started_at = time.monotonic()
             elif mode != "RTL":
                 self._rtl_started_at = None
-            keep_hold = mode == "HOLD" and (self.mode == "HOLD" or self.emergency_stopped)
             self.mode = mode
             self.emergency_stopped = False
-            if not keep_hold:
-                self.hold_position = None
+            self.hold_position = hold_position
             if mode in {"ORBIT", "GRID", "WAYPOINT"}:
                 self.pattern = mode.lower()
             if mode == "LAND":
@@ -293,8 +292,7 @@ class DroneSimulator:
             self.orbit_radius = radius_m / 111_000
 
         elif command == "emergency_stop":
-            if self.mode != "HOLD" and not self.emergency_stopped:
-                self.hold_position = None
+            self.hold_position = self._compute_position(time.monotonic() - self.start_time)
             self.mode = "HOLD"
             self.emergency_stopped = True
             self.speed_scale = MIN_SPEED_SCALE

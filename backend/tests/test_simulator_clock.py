@@ -90,3 +90,22 @@ def test_repeated_hold_or_stop_does_not_move_stationary_drone():
         drone.apply_command('set_mode', {'mode': 'ORBIT'})
         command('hold')
         assert drone._compute_position(30.0) != initial
+
+
+def test_hold_and_stop_capture_command_time_position_before_mode_changes():
+    for action in ('hold', 'stop'):
+        for mode in ('ORBIT', 'RTL'):
+            with patch.object(simulation.time, 'monotonic', return_value=0.0):
+                drone = simulation.DroneSimulator('FREEZE-COMMAND')
+                drone.apply_command('set_speed', {'value': 10})
+                if mode == 'RTL':
+                    drone.apply_command('set_mode', {'mode': mode})
+            with patch.object(simulation.time, 'monotonic', return_value=10.0):
+                expected = drone._compute_position(10.0)
+                if action == 'hold':
+                    drone.apply_command('set_mode', {'mode': 'HOLD'})
+                else:
+                    drone.apply_command('emergency_stop')
+            # No telemetry was read between the command and this delayed sample.
+            with patch.object(simulation.time, 'monotonic', return_value=20.0):
+                assert drone._compute_position(20.0) == expected
