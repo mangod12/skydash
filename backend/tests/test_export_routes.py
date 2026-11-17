@@ -120,6 +120,28 @@ class TestExportRoutes(unittest.TestCase):
         self.assertEqual(self.client.get("/api/export/telemetry/csv", params={"limit": 0}).status_code, 422)
         self.assertEqual(self.client.get("/api/export/telemetry/csv", params={"limit": 1001}).status_code, 422)
 
+    def test_entity_export_storage_failures_return_500_not_a_download(self):
+        from unittest.mock import patch
+
+        with patch.object(entity_store, "list_entities", side_effect=RuntimeError("private storage detail")):
+            for method, path in (("post", "/api/export/geojson"), ("get", "/api/export/entities/csv")):
+                with self.subTest(path=path):
+                    response = getattr(self.client, method)(path)
+                    self.assertEqual(response.status_code, 500)
+                    self.assertEqual(response.json(), {"success": False, "error": "Internal server error"})
+                    self.assertNotIn("content-disposition", response.headers)
+
+    def test_telemetry_export_failure_returns_500_without_private_details(self):
+        from unittest.mock import patch
+
+        sample = snapshot(1000, ["D1"])
+        telemetry_history.append(sample)
+        with patch("routes.export.csv.writer", side_effect=RuntimeError("private serialization detail")):
+            response = self.client.get("/api/export/telemetry/csv")
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json(), {"success": False, "error": "Internal server error"})
+        self.assertNotIn("content-disposition", response.headers)
+
     def test_entities_csv_joins_tags(self):
         self.client.post("/api/entities", json={"name": "Tagged", "tags": ["a", "b"], "coordinates": [1.5, 2.5]})
         rows = self.rows(self.client.get("/api/export/entities/csv"))

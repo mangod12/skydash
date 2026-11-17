@@ -7,7 +7,7 @@ import time
 from typing import Optional
 
 from fastapi import APIRouter, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from audit import _safe_cell
 from deps import entity_store, fleet, telemetry_history
@@ -45,7 +45,7 @@ async def export_geojson():
         return {"type": "FeatureCollection", "features": features}
     except Exception as exc:
         log.error(f"Error exporting GeoJSON: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error"})
 
 
 @router.get("/api/export/telemetry/csv")
@@ -125,7 +125,7 @@ async def export_telemetry_csv(
         )
     except Exception as exc:
         log.error(f"Error exporting telemetry CSV: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error"})
 
 
 @router.get("/api/export/entities/csv")
@@ -172,4 +172,4 @@ async def export_entities_csv():
         )
     except Exception as exc:
         log.error(f"Error exporting entities CSV: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error"})
