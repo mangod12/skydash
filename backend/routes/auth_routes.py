@@ -138,3 +138,41 @@ async def auth_logout(request: Request):
         )
     revoke_token(payload)
     return {"success": True}
+
+
+# ── User administration (commander only, enforced by rbac) ────────
+
+from typing import Optional  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
+
+VALID_ROLES = ("viewer", "analyst", "operator", "commander")
+
+
+class UserUpdate(BaseModel):
+    role: Optional[str] = None
+    disabled: Optional[bool] = None
+
+
+@router.get("/api/users")
+async def users_list():
+    if not user_store:
+        return JSONResponse(status_code=400, content={"success": False, "error": "Auth not enabled"})
+    return {"success": True, "data": user_store.list_users()}
+
+
+@router.patch("/api/users/{user_id}")
+async def users_update(user_id: str, body: UserUpdate, request: Request):
+    if not user_store:
+        return JSONResponse(status_code=400, content={"success": False, "error": "Auth not enabled"})
+    if body.role is not None and body.role not in VALID_ROLES:
+        return JSONResponse(status_code=422, content={"success": False, "error": "Unknown role"})
+    me = getattr(request.state, "user", None) or {}
+    if me.get("sub") == user_id and (body.disabled or (body.role and body.role != me.get("role"))):
+        return JSONResponse(
+            status_code=409,
+            content={"success": False, "error": "You cannot change your own role or disable yourself"},
+        )
+    updated = user_store.update_user(user_id, body.role, body.disabled)
+    if not updated:
+        return JSONResponse(status_code=404, content={"success": False, "error": "User not found"})
+    return {"success": True, "data": updated}
