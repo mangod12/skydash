@@ -5,9 +5,24 @@ import { detectCommunities } from './graphUtils';
  * from entities, relationships, and events.
  */
 export function generateNetworkSummary(entities, relationships, events) {
+  const validId = (id) => (typeof id === 'string' && id.length > 0)
+    || (typeof id === 'number' && Number.isFinite(id));
+  entities = [...new Map((Array.isArray(entities) ? entities : [])
+    .filter((e) => e && validId(e.id)).map((e) => [e.id, e])).values()];
+  const ids = new Set(entities.map((e) => e.id));
+  relationships = (Array.isArray(relationships) ? relationships : [])
+    .filter((r) => r && ids.has(r.from) && ids.has(r.to) && r.from !== r.to);
+  events = (Array.isArray(events) ? events : []).filter((e) => e && ids.has(e.entityId)
+    && Number.isFinite(e.time) && Math.abs(e.time) <= 8.64e15);
+
   const edges = relationships.map((r) => ({ source: r.from, target: r.to }));
   const nodeCount = entities.length;
-  const edgeCount = relationships.length;
+  const neighbors = new Map(entities.map((e) => [e.id, new Set()]));
+  relationships.forEach((r) => {
+    neighbors.get(r.from).add(r.to);
+    neighbors.get(r.to).add(r.from);
+  });
+  const edgeCount = [...neighbors.values()].reduce((sum, group) => sum + group.size, 0) / 2;
 
   // Network density: actual / possible connections
   const possibleConnections = nodeCount > 1 ? (nodeCount * (nodeCount - 1)) / 2 : 1;
@@ -15,11 +30,7 @@ export function generateNetworkSummary(entities, relationships, events) {
 
   // Degree per entity
   const degreeMap = new Map();
-  entities.forEach((e) => degreeMap.set(e.id, 0));
-  relationships.forEach((r) => {
-    degreeMap.set(r.from, (degreeMap.get(r.from) || 0) + 1);
-    degreeMap.set(r.to, (degreeMap.get(r.to) || 0) + 1);
-  });
+  entities.forEach((e) => degreeMap.set(e.id, neighbors.get(e.id).size));
 
   // Hub entities: top 3 by connection count
   const sorted = [...degreeMap.entries()].sort((a, b) => b[1] - a[1]);
@@ -79,7 +90,7 @@ function computePairStrength(relationships, events, entities) {
   const pairMap = new Map();
 
   relationships.forEach((r) => {
-    const key = [r.from, r.to].sort().join('::');
+    const key = JSON.stringify([r.from, r.to].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))));
     if (!pairMap.has(key)) {
       pairMap.set(key, { from: r.from, to: r.to, type: r.type, count: 0 });
     }
@@ -127,14 +138,13 @@ function groupByCommunity(entities, labels) {
 
 function computeThreatConcentration(communityGroups, _entities) {
   const THREAT_SCORES = { low: 1, medium: 2, high: 3, critical: 4 };
+  const score = (entity) => Object.hasOwn(THREAT_SCORES, entity.threatLevel) ? THREAT_SCORES[entity.threatLevel] : 0;
   const result = [];
 
   for (const [cid, members] of communityGroups) {
-    const totalThreat = members.reduce((sum, e) => sum + (THREAT_SCORES[e.threatLevel] || 0), 0);
+    const totalThreat = members.reduce((sum, e) => sum + score(e), 0);
     const avgThreat = members.length > 0 ? totalThreat / members.length : 0;
-    const topEntity = members.sort((a, b) =>
-      (THREAT_SCORES[b.threatLevel] || 0) - (THREAT_SCORES[a.threatLevel] || 0)
-    )[0];
+    const topEntity = [...members].sort((a, b) => score(b) - score(a))[0];
     result.push({
       communityId: cid,
       memberCount: members.length,
@@ -148,7 +158,7 @@ function computeThreatConcentration(communityGroups, _entities) {
 }
 
 function computeTemporalTrend(events) {
-  if (events.length < 3) return { direction: 'stable', label: 'Insufficient data' };
+  if (events.length < 4) return { direction: 'stable', label: 'Insufficient data' };
 
   const sorted = [...events].sort((a, b) => a.time - b.time);
   const midpoint = Math.floor(sorted.length / 2);
