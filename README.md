@@ -1,235 +1,206 @@
 # SkyDash
 
-SkyDash is a spatial intelligence OS for simulated drone fleet operations,
-geospatial entity tracking, OSINT-style analysis, mission debriefs, and
-operator QA workflows.
+SkyDash is a web-based common operating picture for unmanned fleets and
+geospatial intelligence. It shows a fleet, a map, entities, relationships and
+missions on one screen, and can stream positions to TAK clients. It is built to
+be inspected: small codebase, documented security model, no required cloud
+services.
 
-It is live on Azure and also runs locally through Docker or separate frontend
-and backend processes.
-
-- Live app: https://wonderful-cliff-0325f3800.7.azurestaticapps.net
-- Live API: https://skydash-api-38666.azurewebsites.net
-- API docs: https://skydash-api-38666.azurewebsites.net/docs
-- Current release status: [docs/current-status.md](docs/current-status.md)
-- Operations runbook: [docs/skydash-operations-runbook.md](docs/skydash-operations-runbook.md)
-- Safety boundary: [docs/safety-and-scope.md](docs/safety-and-scope.md)
+> **Status: engineering prototype.** All drone telemetry is simulated. SkyDash
+> is not accredited or certified for any classification level, is not a real
+> ground-control station, and is not a production investigation system. See
+> [Limits](#limits).
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
-## What It Does
+- Live demo (open, simulated data): https://wonderful-cliff-0325f3800.7.azurestaticapps.net
+- API docs: https://skydash-api-38666.azurewebsites.net/docs
+- Release status: [docs/current-status.md](docs/current-status.md)
 
-SkyDash combines four working surfaces:
+## Features
 
-- Real-time fleet monitoring: three simulated drones stream telemetry over a
-  WebSocket, with HTTP fallback and a live command acknowledgement path.
-- Spatial intelligence: map layers, entity markers, ADS-B/OpenSky connector
-  data, geofences, measurement tools, heatmaps, overlays, and coordinate
-  formats.
-- OSINT-style analysis: entities, relationships, events, provenance views,
-  natural-language filters, link analysis, threat matrices, comparison views,
-  exports, and Shodan connector hooks.
-- Mission workflow: mission workspaces, notes, entity linking, debrief tabs,
-  optional RT-DETR frame analysis, and briefing/report exports.
+**Fleet and telemetry**
+- Three simulated drones streamed over a WebSocket, with HTTP polling as a
+  fallback and a visible degraded-connection banner.
+- Command panel (flight mode, altitude, yaw, emergency stop) with a command
+  acknowledgement path.
+- Scenario Lab: run named scenarios at different speeds and read a scorecard
+  (coverage, risk reduced, battery, detections).
 
-The system is built to be inspectable. It is not a real surveillance product,
-not a production investigation system, and not a real drone ground-control
-station. The public demo uses simulated telemetry.
+**Map**
+- Leaflet map with deck.gl overlays: drones, entities, geofences, heatmap,
+  measurement and annotation tools, several coordinate formats, saved views.
+- Self-hostable basemap tiles. If tiles cannot be loaded the map says
+  "BASEMAP OFFLINE" and all overlays keep working.
 
-## Production Demo Status
+**Intelligence**
+- Entities, relationships and events with provenance, filters, bookmarks,
+  link analysis, threat matrix, comparison and timeline views.
+- OpenSky (ADS-B) and Shodan connectors with preview and ingest. Shodan returns
+  mock data until `SHODAN_API_KEY` is set.
 
-The current public deployment is:
+**Missions**
+- Mission workspaces with notes, linked entities, briefing and debrief tabs and
+  report export.
+- Optional RT-DETR frame analysis when the vision dependencies are installed
+  (`backend/requirements-vision.txt`).
 
-- Frontend: Azure Static Web Apps, hosted at
-  `wonderful-cliff-0325f3800.7.azurestaticapps.net`.
-- Backend: Azure App Service for Linux, hosted at
-  `skydash-api-38666.azurewebsites.net`.
-- WebSocket: `wss://skydash-api-38666.azurewebsites.net/ws/telemetry`.
-- CI deploy: GitHub Actions workflow
-  `.github/workflows/skydash-azure-static-web-apps.yml` deploys the frontend
-  after relevant pushes to `main`.
-- Backend deploy: currently direct Azure App Service zip deploy from the
-  `backend/` source.
+**Interoperability**
+- Cursor-on-Target (CoT) output for every drone and geo-located entity to ATAK,
+  WinTAK or a TAK Server input over UDP, TCP or TLS. Outbound only.
+- CSV and GeoJSON export for telemetry and entities.
 
-Known live limits:
+**Operations and security** (all opt-in, see [Configuration](#configuration))
+- User accounts with four roles, enforced on the server and reflected in the UI.
+- Audit trail with commander-only CSV export, including failed sign-in attempts.
+- Session controls: token lifetime, idle timeout, logout that revokes the token,
+  WebSocket tickets, password policy, login throttling, optional API rate limit.
+- Commander-only account management (change role, disable) and a demo reset.
 
-- Drone telemetry is simulated.
-- Shodan runs in mock/unavailable mode until `SHODAN_API_KEY` is configured.
-- RT-DETR vision is optional and disabled on the base Azure API unless the
-  heavier vision dependencies are installed.
-- Auth exists in the backend, but the public demo is configured as an open demo.
+The interface has three themes (Midnight, Tactical, Arctic) and keyboard
+shortcuts for the main views.
 
-## Tech Stack
+| Map | Intel |
+| --- | --- |
+| ![Map](docs/screenshots/map.png) | ![Intel](docs/screenshots/intel.png) |
 
-- Frontend: React 18, Vite 8, Tailwind CSS, Zustand, Framer Motion, Leaflet,
-  Deck.gl, Recharts, cmdk, Lucide icons.
-- Backend: FastAPI, Uvicorn, Pydantic, WebSockets, SQLite with lightweight
-  migrations.
-- Connectors: OpenSky/ADS-B and Shodan routes with ingest endpoints.
-- Optional local analysis runner: SkyDash Intel Crew in `skydash_intel_crew/`.
-  It is not part of the production Azure runtime.
-- Testing: Vitest, Playwright, pytest, and optional CrewAI smoke tests.
-- Deployment: Azure Static Web Apps, Azure App Service, Docker Compose for
-  local operation.
-
-## Repository Shape
+## Architecture
 
 ```text
-backend/
-  main.py                  FastAPI entry point and middleware
-  deps.py                  shared config, stores, connectors, telemetry history
-  simulation.py            simulated multi-drone fleet and command state
-  entities.py              entity, relationship, and event store
-  missions.py              missions, notes, linked entities, detections
-  routes/
-    telemetry.py           REST telemetry, command ACK, reset, WebSocket stream
-    entities.py            entity CRUD, graph, timeline, events
-    missions.py            mission CRUD, links, notes
-    connectors.py          ADS-B/OpenSky and Shodan search/ingest
-    export.py              GeoJSON and CSV exports
-    vision.py              optional RT-DETR status, feed, detection routes
-    auth_routes.py         optional user/auth routes
-
-skydash/frontend/src/
-  components/              dashboard, map, telemetry, intel, mission, common UI
-  hooks/                   telemetry, keyboard, map/context, alerts, console
-  stores/                  Zustand stores for app domains
-  utils/                   coordinates, exports, NLQ, scenarios, runtime config
-
-skydash_intel_crew/
-  src/skydash_intel_crew/  CrewAI orchestration and source snapshot tooling
-  tests/                   CrewAI smoke tests
-
-docs/
-  current-status.md        live release status and verification baseline
-  skydash-operations-runbook.md
-  safety-and-scope.md
+Browser (React, Vite)  --HTTP/WS-->  FastAPI backend  -->  SQLite
+                                         |
+                                         +--> CoT stream (UDP/TCP/TLS) to TAK
+                                         +--> OpenSky / Shodan (only when called)
 ```
 
-Current tree facts:
+- **Frontend:** React 18, Vite, Tailwind CSS, Zustand, Leaflet, deck.gl,
+  Recharts, Framer Motion, cmdk.
+- **Backend:** FastAPI, Uvicorn, Pydantic, SQLite with lightweight migrations.
+  Authentication is PBKDF2 password hashing and HS256 JWTs.
+- **Containers:** the backend image runs as an unprivileged user; the frontend
+  is served by nginx, which also proxies `/api` and `/ws`.
+- **Optional:** [skydash_intel_crew](skydash_intel_crew/README.md), a CrewAI
+  readiness runner. It is not part of the deployed runtime.
 
-- Frontend `src`: 225 JS/JSX/CSS files, including tests.
-- Backend: 22 Python files.
-- Playwright: 74 E2E test cases.
-- Frontend unit tests: 141 Vitest tests.
-- Backend tests: 4 pytest tests.
-- CrewAI smoke tests: 10 pytest tests.
-
-## Run Locally
-
-### Docker Compose
-
-```powershell
-docker compose up --build -d
-docker compose ps
-Invoke-RestMethod http://localhost:8001/health
+```text
+backend/            FastAPI app, stores, routes, auth, RBAC, audit, CoT stream
+skydash/frontend/   React application and its tests
+e2e/                Playwright specs
+docs/               Deployment, security, operations, demo walkthrough
 ```
 
-Open http://localhost.
+## Quick start
 
-### Separate Processes
+Docker (frontend on port 80, API on port 8001):
 
-Backend:
+```bash
+cp .env.example .env
+docker compose up -d --build
+curl http://localhost:8001/health
+```
 
-```powershell
+Without Docker:
+
+```bash
+# backend
 cd backend
 pip install -r requirements.txt
 python main.py
-```
 
-Frontend:
-
-```powershell
+# frontend, in a second terminal
 cd skydash/frontend
 npm install
-$env:VITE_API_URL='http://localhost:8001'
-npm run dev
+VITE_API_URL=http://localhost:8001 npm run dev
 ```
 
-Open http://localhost:5173.
+Open http://localhost:5173 (dev) or http://localhost (Docker). With no
+configuration, authentication is off and there are no roles, which suits a local
+demo and nothing else.
 
-## CrewAI Stack
+## Configuration
 
-The optional CrewAI operating-readiness runner lives in
-[skydash_intel_crew](skydash_intel_crew/README.md). It can read the local
-SkyDash docs/source snapshot and inspect live readiness URLs. It is not running
-in the Azure frontend or backend.
+Backend variables (set in `.env` or the environment):
 
-Docker profile:
+| Variable | Purpose |
+| --- | --- |
+| `SKYDASH_JWT_SECRET` | Turns on authentication, roles and the audit trail. Use a long random value. |
+| `SKYDASH_DISABLE_DEMO_USERS` | `1` stops the built-in demo accounts being created. Set it for any real deployment. |
+| `SKYDASH_ALLOW_REGISTRATION` | `false` closes public self-registration. |
+| `SKYDASH_MIN_PASSWORD_LENGTH` | Minimum length for new passwords (floor 8). |
+| `SKYDASH_TOKEN_TTL_MINUTES` | Session lifetime (default 1440). |
+| `SKYDASH_RATE_LIMIT_PER_MIN` | Per-client cap on `/api` requests. Off by default. |
+| `SKYDASH_TRUST_PROXY` | `1` to use `X-Real-IP` from your reverse proxy for throttling and audit. |
+| `SKYDASH_CORS_ORIGINS` | Comma-separated frontend origins. |
+| `SKYDASH_API_KEY` | Single shared key, used only when authentication is off. |
+| `SKYDASH_MAX_BODY_BYTES` | Request body cap (default 25 MB). |
+| `SKYDASH_DB_PATH` | SQLite file location. |
+| `SKYDASH_COT_TARGET` | `udp://`, `tcp://` or `tls://` host and port for CoT output. Off when unset. |
+| `SKYDASH_COT_INTERVAL` | Seconds between CoT updates (default 5). |
+| `SKYDASH_COT_CA`, `SKYDASH_COT_CERT`, `SKYDASH_COT_KEY` | PEM files for `tls://` targets. |
+| `SHODAN_API_KEY` | Enables live Shodan queries. |
 
-```powershell
-docker compose --profile crew run --rm crewai
+Frontend build variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `VITE_API_URL`, `VITE_WS_URL` | Backend HTTP and WebSocket base URLs. |
+| `VITE_TILE_URL`, `VITE_TILE_ATTRIBUTION` | Internal tile server for offline or air-gapped use. |
+| `VITE_IDLE_TIMEOUT_MINUTES` | Sign out after this many idle minutes when authentication is on. |
+
+Full details, including TLS and air-gapped notes, are in
+[docs/deployment.md](docs/deployment.md).
+
+## Security summary
+
+With `SKYDASH_JWT_SECRET` set:
+
+- Roles from lowest to highest: viewer, analyst, operator, commander. Reads need
+  a signed-in user, changes need analyst, flight commands need operator, audit
+  and account administration need commander.
+- Every state-changing request and every sign-in attempt is written to the audit
+  trail.
+- Signing out revokes the token. Disabling an account ends its sessions,
+  including the live data stream.
+- Dependencies are audited weekly in CI, which also produces CycloneDX SBOMs.
+
+[docs/security.md](docs/security.md) states exactly what is and is not enforced.
+The public demo runs with authentication off.
+
+## Development
+
+```bash
+# backend
+cd backend && python -m pytest tests
+
+# frontend
+cd skydash/frontend
+npm run lint
+npm test
+npm run build
 ```
 
-Local smoke tests:
+CI (`.github/workflows/ci.yml`) runs frontend lint, tests and build with a
+bundle-size budget, backend tests with a coverage floor and an API smoke test,
+a Playwright smoke suite, and (on `main`) a Docker image build. The `Dependency Audit` workflow runs weekly.
 
-```powershell
-cd skydash_intel_crew
-uv run pytest
-```
+## Documentation
 
-LLM provider options are configured through `.env` only when running the
-optional crew manually.
+- [Deployment](docs/deployment.md): Docker, production settings, offline use
+- [Security](docs/security.md): roles, audit, sessions, proxy and rate limits
+- [Demo walkthrough](docs/demo-walkthrough.md): a 10-minute scripted demo
+- [Operations runbook](docs/skydash-operations-runbook.md): local, Azure and CI commands
+- [Release status](docs/current-status.md): live deployment and open gaps
+- [Safety and scope](docs/safety-and-scope.md): misuse boundaries and real-drone limits
 
-## API
+## Limits
 
-Local docs are available at http://localhost:8001/docs.
-Live docs are available at https://skydash-api-38666.azurewebsites.net/docs.
-
-Important routes:
-
-- `GET /health`
-- `GET /telemetry`
-- `GET /telemetry/{drone_id}`
-- `POST /api/drone/{drone_id}/command`
-- `WS /ws/telemetry`
-- `GET /api/telemetry/history`
-- `GET /api/telemetry/stats`
-- `GET /api/entities`
-- `POST /api/entities`
-- `GET /api/entities/graph`
-- `GET /api/timeline`
-- `GET /api/missions`
-- `POST /api/missions`
-- `GET /api/connectors/adsb`
-- `GET /api/connectors/shodan`
-- `POST /api/connectors/adsb/ingest`
-- `POST /api/connectors/shodan/ingest`
-- `GET /api/vision/status`
-- `POST /api/missions/{mission_id}/detections/analyze`
-- `GET /api/export/telemetry/csv`
-- `GET /api/export/entities/csv`
-- `POST /api/export/geojson`
-- `POST /reset`
-
-## Verification
-
-Run the core local checks:
-
-```powershell
-npm --prefix skydash/frontend run lint
-npm --prefix skydash/frontend run test -- --run
-npm --prefix skydash/frontend run build
-python -m compileall backend
-cd backend; python -m pytest tests; cd ..
-cd skydash_intel_crew; uv run pytest; cd ..
-```
-
-Production smoke:
-
-```powershell
-$env:PLAYWRIGHT_BASE_URL='https://wonderful-cliff-0325f3800.7.azurestaticapps.net'
-$env:PLAYWRIGHT_API_URL='https://skydash-api-38666.azurewebsites.net'
-npx playwright test e2e/skydash.spec.js e2e/interactions.spec.js -g "app boots|backend API returns fleet telemetry|drone command panel uses backend ACK|OSINT ingest panel previews"
-```
-
-## Documentation Map
-
-- [docs/current-status.md](docs/current-status.md): current live deployment,
-  verification baseline, and open production gaps.
-- [docs/skydash-operations-runbook.md](docs/skydash-operations-runbook.md):
-  local, Azure, CI, and release commands.
-- [docs/safety-and-scope.md](docs/safety-and-scope.md):
-  misuse boundaries and real-drone limits.
+- Drone telemetry is simulated. No real aircraft are connected.
+- The CoT output is a one-way feed, not a full TAK integration.
+- Not accredited or certified. Treat it as a prototype for evaluation.
+- Storage is a single SQLite file: one backend instance, no clustering.
+- The public demo is open and holds no real data.
+- CI builds the Docker images but does not run them, so `nginx.conf` is not
+  exercised end to end; run `docker compose up` before relying on it.
 
 ## License
 
