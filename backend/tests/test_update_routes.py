@@ -64,6 +64,34 @@ class TestUpdateRoutes(unittest.TestCase):
         self.assertEqual(len(got["entities"]), 1)
         self.assertEqual(self.client.delete(f"{url}/{self.eid}").status_code, 200)
 
+    def test_required_update_fields_reject_explicit_null(self):
+        cases = (
+            (f"/api/entities/{self.eid}", ("name", "type", "properties", "confidence", "source", "tags", "threatLevel")),
+            (f"/api/missions/{self.mid}", ("name", "description", "status", "tags")),
+        )
+        for url, fields in cases:
+            original = self.client.get(url).json()["data"]
+            for field in fields:
+                with self.subTest(url=url, field=field):
+                    response = self.client.put(url, json={field: None})
+                    self.assertEqual(response.status_code, 422)
+                    self.assertEqual(self.client.get(url).json()["data"], original)
+
+    def test_nullable_update_fields_can_still_be_cleared(self):
+        entity_url = f"/api/entities/{self.eid}"
+        self.client.put(entity_url, json={"coordinates": [20.3, 85.8]})
+        response = self.client.put(entity_url, json={"coordinates": None})
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()["data"]["coordinates"])
+
+        mission_url = f"/api/missions/{self.mid}"
+        map_fields = {"center_lat": 20.3, "center_lng": 85.8, "zoom_level": 12}
+        self.client.put(mission_url, json=map_fields)
+        response = self.client.put(mission_url, json=dict.fromkeys(map_fields))
+        self.assertEqual(response.status_code, 200)
+        for field in map_fields:
+            self.assertIsNone(response.json()["data"][field])
+
     def test_note_delete_is_scoped_to_mission(self):
         other = self.client.post("/api/missions", json={"name": "Other"}).json()["data"]["id"]
         note = self.client.post(

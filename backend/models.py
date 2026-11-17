@@ -33,6 +33,13 @@ def _check_threat(v):
     return v
 
 
+def _reject_null(v):
+    """An omitted update field is allowed; an explicit null is not."""
+    if v is None:
+        raise ValueError("field cannot be null; omit it to keep its current value")
+    return v
+
+
 class AuthLogin(BaseModel):
     username: str
     password: str
@@ -71,6 +78,10 @@ class EntityUpdate(BaseModel):
     tags: Optional[List[str]] = None
     threatLevel: Optional[str] = None
 
+    _not_null = field_validator(
+        "type", "name", "properties", "confidence", "source", "tags", "threatLevel",
+        mode="before",
+    )(_reject_null)
     _coords = field_validator("coordinates")(_check_coordinates)
     _tags = field_validator("tags")(_check_tags)
     _threat = field_validator("threatLevel")(_check_threat)
@@ -104,6 +115,7 @@ class MissionUpdate(BaseModel):
     zoom_level: Optional[int] = Field(default=None, ge=0, le=24)
     tags: Optional[List[str]] = None
 
+    _not_null = field_validator("name", "description", "status", "tags", mode="before")(_reject_null)
     _tags = field_validator("tags")(_check_tags)
 
 
