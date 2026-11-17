@@ -60,6 +60,42 @@ describe('telemetry connection lifecycle', () => {
     unmount();
   });
 
+  it('isolates malformed socket records without clearing or replacing valid telemetry', async () => {
+    useTelemetryStore.setState({ fleet: [], activeDroneId: null, data: null, history: [] });
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    const send = (data) => act(() => FakeSocket.instances[0].onmessage({
+      data: JSON.stringify({ type: 'telemetry', data }),
+    }));
+    send([null, { drone_id: 'valid', altitude: 25 }, false, {}, []]);
+    expect(useTelemetryStore.getState().fleet.map((d) => d.drone_id)).toEqual(['valid']);
+    expect(useTelemetryStore.getState().data.altitude).toBe(25);
+    for (const malformed of [null, false, 'bad', {}, [null, {}, false]]) send(malformed);
+    expect(useTelemetryStore.getState().fleet.map((d) => d.drone_id)).toEqual(['valid']);
+    expect(useTelemetryStore.getState().data.altitude).toBe(25);
+    expect(useTelemetryStore.getState().history).toHaveLength(1);
+    send([]);
+    expect(useTelemetryStore.getState().data).toBeNull();
+    unmount();
+  });
+
+  it('applies the same record validation to HTTP fallback', async () => {
+    useTelemetryStore.setState({ fleet: [], activeDroneId: null, data: null, history: [] });
+    apiFetch.mockResolvedValue({ ok: true, json: async () => ({
+      data: [null, { drone_id: 'http-valid', altitude: 30 }, {}],
+    }) });
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    act(() => FakeSocket.instances[0].close());
+    await settle();
+    expect(useTelemetryStore.getState().activeDroneId).toBe('http-valid');
+    apiFetch.mockResolvedValue({ ok: true, json: async () => ({ success: false, error: 'unavailable' }) });
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+    expect(useTelemetryStore.getState().data.drone_id).toBe('http-valid');
+    expect(useTelemetryStore.getState().history).toHaveLength(1);
+    unmount();
+  });
+
   it('does not open a socket when a ticket resolves after unmount', async () => {
     let resolve;
     telemetrySocketUrl.mockReturnValue(new Promise((done) => { resolve = done; }));
