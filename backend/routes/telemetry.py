@@ -3,6 +3,7 @@
 import asyncio
 import contextlib
 import logging
+import math
 import time
 from typing import Dict, Optional
 
@@ -64,6 +65,35 @@ async def reset_simulation():
 # ── History & Stats ──────────────────────────────────────────
 
 
+def _finite_number(value):
+    return type(value) in (int, float) and math.isfinite(value)
+
+
+def _json_safe(value):
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    return value
+
+
+def _history_samples():
+    """Isolate malformed adapter records before serving chart history or aggregates."""
+    samples = []
+    for snapshot in list(telemetry_history):
+        if (not isinstance(snapshot, dict) or not _finite_number(snapshot.get("timestamp"))
+                or abs(snapshot["timestamp"]) > 8.64e12
+                or not isinstance(snapshot.get("drones"), (list, tuple))):
+            continue
+        drones = [drone for drone in snapshot["drones"]
+                  if isinstance(drone, dict) and isinstance(drone.get("drone_id"), str)
+                  and drone["drone_id"]]
+        samples.append(_json_safe({**snapshot, "drones": drones}))
+    return samples
+
+
 @router.get("/api/telemetry/history")
 async def get_telemetry_history(
     drone_id: Optional[str] = Query(None),
@@ -77,7 +107,7 @@ async def get_telemetry_history(
             detail=f"Invalid field. Must be one of: {', '.join(sorted(HISTORY_FIELDS))}",
         )
 
-    data = list(telemetry_history)[-limit:]
+    data = _history_samples()[-limit:]
 
     if drone_id:
         result = []
@@ -109,35 +139,33 @@ async def get_telemetry_history(
 @router.get("/api/telemetry/stats")
 async def get_telemetry_stats():
     """Get aggregate statistics for fleet."""
-    if not telemetry_history:
+    history_list = _history_samples()
+    if not history_list:
         return {"success": True, "data": {}}
 
-    latest = telemetry_history[-1]["drones"]
+    latest = history_list[-1]["drones"]
     drone_count = len(latest)
     if drone_count == 0:
         return {
             "success": True,
             "data": {
                 "active_drones": 0,
-                "total_samples": len(telemetry_history),
+                "total_samples": len(history_list),
             },
         }
 
-    history_list = list(telemetry_history)
+    def average(field, digits):
+        values = [drone[field] for drone in latest if _finite_number(drone.get(field))]
+        return round(sum(value / len(values) for value in values), digits) if values else None
+
     stats = {
         "active_drones": drone_count,
-        "avg_altitude": round(
-            sum(d["altitude"] for d in latest) / drone_count, 2
-        ),
-        "avg_battery": round(
-            sum(d["battery_percentage"] for d in latest) / drone_count, 1
-        ),
-        "avg_signal": round(
-            sum(d["signal_strength"] for d in latest) / drone_count, 1
-        ),
-        "total_samples": len(telemetry_history),
+        "avg_altitude": average("altitude", 2),
+        "avg_battery": average("battery_percentage", 1),
+        "avg_signal": average("signal_strength", 1),
+        "total_samples": len(history_list),
         "recording_duration_s": round(
-            history_list[-1]["timestamp"] - history_list[0]["timestamp"], 1
+            max(0, history_list[-1]["timestamp"] - history_list[0]["timestamp"]), 1
         )
         if len(history_list) > 1
         else 0,
