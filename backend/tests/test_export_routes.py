@@ -58,6 +58,30 @@ class TestExportRoutes(unittest.TestCase):
         self.assertEqual(pinned[0]["geometry"]["coordinates"], [85.5, 20.5])
         self.assertFalse([f for f in body["features"] if f["properties"]["name"] == "Floating"])
 
+    def test_geojson_isolates_invalid_legacy_positions_and_keeps_zero(self):
+        from unittest.mock import patch
+        base = {"id": "legacy", "name": "Legacy", "type": "event", "threatLevel": "none", "confidence": 50}
+        bad = [None, [], [1], "12", {"0": 1, "1": 2}, [True, 0], [91, 0], [0, 181], [float("nan"), 0], [0, float("inf")]]
+        records = [None] + [dict(base, coordinates=coords) for coords in bad] + [dict(base, coordinates=[0, 0])]
+        with patch.object(entity_store, "list_entities", return_value=records):
+            response = self.client.post("/api/export/geojson")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()["features"]), 1)
+        self.assertEqual(response.json()["features"][0]["geometry"]["coordinates"], [0, 0])
+
+    def test_entity_csv_isolates_legacy_containers_and_neutralises_corrupt_numeric_text(self):
+        from unittest.mock import patch
+        records = [None, {"id": "legacy", "name": "Kept", "coordinates": {"lat": 1}, "tags": 42,
+                          "confidence": "=1+1", "lastSeen": "@SUM(1)", "source": "+link"},
+                   {"id": "good", "name": "Good", "coordinates": [-20, 85], "tags": ["a", 7]}]
+        with patch.object(entity_store, "list_entities", return_value=records):
+            response = self.client.get("/api/export/entities/csv")
+        self.assertEqual(response.status_code, 200)
+        rows = self.rows(response)
+        self.assertEqual(rows[1][4:8], ["'=1+1", "", "", ""])
+        self.assertEqual(rows[1][8:], ["'+link", "'@SUM(1)"])
+        self.assertEqual(rows[2][5:8], ["-20", "85", "a, 7"])
+
     def test_telemetry_csv_without_history_reports_no_data(self):
         body = self.client.get("/api/export/telemetry/csv").json()
         self.assertFalse(body["success"])
