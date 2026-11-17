@@ -22,7 +22,10 @@ def get_connection():
     global _connection
     with _connection_lock:
         if _connection is None:
-            connection = sqlite3.connect(DB_PATH, check_same_thread=False)
+            # The shared connection is read from worker threads. CPython's SQLite
+            # statement cache can return inconsistent rows under concurrent reads:
+            # https://github.com/python/cpython/issues/118172
+            connection = sqlite3.connect(DB_PATH, check_same_thread=False, cached_statements=0)
             try:
                 connection.row_factory = sqlite3.Row
                 connection.execute("PRAGMA journal_mode=WAL")

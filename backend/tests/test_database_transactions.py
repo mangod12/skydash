@@ -66,6 +66,7 @@ def test_concurrent_first_reads_share_one_fully_initialised_connection(isolated_
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             results = list(pool.map(read_connection, range(8)))
         assert mock.call_count == 1
+        assert mock.call_args.kwargs["cached_statements"] == 0
     assert len({id(result[0]) for result in results}) == 1
     assert all(factory is sqlite3.Row and configured for _, factory, configured in results)
     connection = results[0][0]
@@ -84,3 +85,23 @@ def test_failed_connection_initialisation_closes_private_handle_and_allows_retry
     failed.close.assert_called_once()
     assert database._connection is None
     assert database.get_connection().execute('PRAGMA foreign_keys').fetchone()[0] == 1
+
+
+def test_concurrent_shared_connection_reads_keep_rows_and_parameters_intact(isolated_db):
+    database.execute('CREATE TABLE records (id INTEGER PRIMARY KEY, name TEXT)', commit=True)
+    records = [(i, f'record-{i}') for i in range(16)]
+    database.executemany('INSERT INTO records VALUES (?, ?)', records)
+    barrier = threading.Barrier(16)
+
+    def read_rows(worker):
+        barrier.wait(timeout=5)
+        for iteration in range(40):
+            threshold = (worker + iteration) % len(records)
+            rows = database.execute(
+                'SELECT id, name FROM records WHERE id >= ? ORDER BY id', (threshold,)
+            ).fetchall()
+            assert [tuple(row) for row in rows] == records[threshold:]
+            assert database.execute('PRAGMA foreign_keys').fetchone()[0] == 1
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as pool:
+        list(pool.map(read_rows, range(16)))
