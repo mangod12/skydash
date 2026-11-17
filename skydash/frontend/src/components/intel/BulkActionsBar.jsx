@@ -4,6 +4,7 @@ import { Tag, Shield, Target, Trash2, X } from 'lucide-react';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
 import { toast } from '../common/Toast';
+import { useCan } from '../../hooks/useCan';
 
 const THREAT_LEVELS = ['none', 'low', 'medium', 'high', 'critical'];
 
@@ -15,6 +16,7 @@ export default function BulkActionsBar({ selectedIds, onClear }) {
   const deleteEntity = useIntelStore((s) => s.deleteEntity);
   const { activeMissionId, addEntityToMission } = useMissionStore();
   const count = selectedIds.size;
+  const canEdit = useCan('analyst');
 
   const close = () => { setAction(null); setTagInput(''); setConfirmDelete(false); };
 
@@ -55,6 +57,8 @@ export default function BulkActionsBar({ selectedIds, onClear }) {
     close();
     onClear();
   };
+
+  if (!canEdit) return null;
 
   return (
     <motion.div

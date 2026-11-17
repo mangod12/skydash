@@ -2,6 +2,8 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, ChevronDown, RotateCcw, RotateCw, Zap } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
+import PanelState from '../common/PanelState';
+import { useCan } from '../../hooks/useCan';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { SectionLabel, ModeChip, QuickBtn, Slider } from './CommandControls';
 import { apiFetch } from '../../utils/api';
@@ -18,6 +20,7 @@ function formatCommand(command, params) {
 }
 
 export default function DroneCommandPanel() {
+  const canOperate = useCan('operator');
   const fleet = useTelemetryStore((s) => s.fleet);
   const activeDroneId = useTelemetryStore((s) => s.activeDroneId);
   const isConnected = useTelemetryStore((s) => s.isConnected);
@@ -122,6 +125,15 @@ export default function DroneCommandPanel() {
   const ss = String(flightTimeSeconds % 60).padStart(2, '0');
   const lastCmd = commandLog[0] || null;
   const busy = !!pendingCommand;
+
+  if (!canOperate) {
+    return (
+      <GlassCard className="!p-4">
+        <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">DRONE COMMAND</h3>
+        <PanelState title="Operator role required" hint="Your account can view telemetry but not command drones." />
+      </GlassCard>
+    );
+  }
 
   return (
     <GlassCard className="!p-4 flex flex-col gap-3">
