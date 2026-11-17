@@ -83,9 +83,11 @@ async def create_relationship(entity_id: str, body: RelationshipCreate):
             entity_id, body.to_entity, body.type, body.confidence
         )
         return {"success": True, "data": rel}
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="Relationship entity not found") from exc
     except Exception as exc:
         log.error(f"Error creating relationship: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
 @router.get("/api/entities/{entity_id}/graph")

@@ -92,6 +92,31 @@ class TestUpdateRoutes(unittest.TestCase):
         for field in map_fields:
             self.assertIsNone(response.json()["data"][field])
 
+    def test_relationship_requires_both_entities_and_recovers(self):
+        for source, target in ((self.eid, "missing"), ("missing", self.eid), ("missing", "also-missing")):
+            with self.subTest(source=source, target=target):
+                response = self.client.post(f"/api/entities/{source}/relate", json={
+                    "to_entity": target, "type": "observed_with"
+                })
+                self.assertEqual(response.status_code, 404)
+                self.assertEqual(entity_store.relationships, [])
+        other = self.client.post("/api/entities", json={"name": "Bravo"}).json()["data"]["id"]
+        response = self.client.post(f"/api/entities/{self.eid}/relate", json={
+            "to_entity": other, "type": "observed_with"
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(entity_store.relationships), 1)
+
+    def test_relationship_store_error_returns_500(self):
+        from unittest.mock import patch
+
+        with patch.object(entity_store, "add_relationship", side_effect=RuntimeError("private error")):
+            response = self.client.post(f"/api/entities/{self.eid}/relate", json={
+                "to_entity": self.eid, "type": "test"
+            })
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn("private error", response.text)
+
     def test_duplicate_relationship_returns_stored_confidence(self):
         other = self.client.post("/api/entities", json={"name": "Bravo"}).json()["data"]["id"]
         url = f"/api/entities/{self.eid}/relate"

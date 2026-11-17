@@ -270,6 +270,9 @@ class EntityStore:
     def add_relationship(self, from_id: str, to_id: str, rel_type: str, confidence: int = 50) -> Dict:
         conn = db.get_connection()
         with db.get_lock():
+            for entity_id in (from_id, to_id):
+                if not conn.execute("SELECT 1 FROM entities WHERE id = ?", (entity_id,)).fetchone():
+                    raise LookupError("Relationship entity not found")
             existing = conn.execute(
                 "SELECT * FROM relationships WHERE from_entity = ? AND to_entity = ? AND type = ?",
                 (from_id, to_id, rel_type),
