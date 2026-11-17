@@ -75,8 +75,19 @@ class TestTelemetryRoutes(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
-    def test_reset(self):
+    def test_reset_clears_prior_session_history_and_stats(self):
+        self.assertTrue(telemetry_history)
         self.assertTrue(self.client.post("/reset").json()["success"])
+        self.assertFalse(telemetry_history)
+        self.assertEqual(self.client.get("/api/telemetry/history").json()["data"], [])
+        self.assertEqual(self.client.get("/api/telemetry/stats").json()["data"], {})
+        self.assertFalse(self.client.get("/api/export/telemetry/csv").json()["success"])
+        # Fresh samples still appear after reset rather than being mixed with old ones.
+        telemetry_history.append({"timestamp": 12345, "drones": fleet.get_all_telemetry()})
+        history = self.client.get("/api/telemetry/history").json()
+        self.assertEqual(history["metadata"]["count"], 1)
+        self.assertEqual(history["data"][0]["timestamp"], 12345)
+        self.assertEqual(self.client.get("/api/telemetry/stats").json()["data"]["total_samples"], 1)
 
 
 if __name__ == "__main__":
