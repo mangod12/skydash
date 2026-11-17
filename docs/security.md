@@ -15,6 +15,10 @@ describes what the code enforces today so a reviewer can assess it.
 - Alternatively, `SKYDASH_API_KEY` protects the API with a single shared key
   (no per-user identity, roles or audit).
 
+- The web UI signs a user out after 15 minutes without input and warns for the
+  last minute. Set `VITE_IDLE_TIMEOUT_MINUTES` at build time to change it
+  (`0` disables).
+
 ## Roles
 
 Ordered from lowest to highest: viewer, analyst, operator, commander.
