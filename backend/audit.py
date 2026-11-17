@@ -43,7 +43,7 @@ def _ensure_table():
 
 
 _PURGE_EVERY = 3600.0
-_last_purge = 0.0
+_last_purge = None
 
 
 def retention_days() -> float:
@@ -74,7 +74,7 @@ def purge_old(now=None) -> int:
 def _maybe_purge():
     global _last_purge
     now = time.monotonic()
-    if 0 <= now - _last_purge < _PURGE_EVERY:
+    if _last_purge is not None and 0 <= now - _last_purge < _PURGE_EVERY:
         return
     _last_purge = now
     try:

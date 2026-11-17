@@ -39,7 +39,8 @@ def test_purge_removes_only_old_rows():
 
 def test_cleanup_failure_does_not_drop_current_audit_event():
     _fresh()
-    with patch.object(audit, "_last_purge", 0.0), \
+    with patch.object(audit, "_last_purge", None), \
+            patch("audit.time.monotonic", side_effect=[5.0, 6.0]), \
             patch.object(audit, "purge_old", side_effect=RuntimeError("cleanup unavailable")) as cleanup:
         audit.record("POST", "/api/entities", 201, {"username": "analyst", "role": "analyst"})
         audit.record("DELETE", "/api/entities/example", 403, {"username": "viewer", "role": "viewer"})
@@ -119,6 +120,19 @@ def test_invalid_explicit_purge_time_cannot_delete_records():
             with pytest.raises(ValueError):
                 audit.purge_old(now=value)
     assert _count() == 1
+
+
+def test_first_cleanup_runs_at_monotonic_epoch_zero_and_then_waits():
+    with patch.object(audit, "_last_purge", None), patch(
+        "audit.time.monotonic", side_effect=[0.0, 1.0, 3599.0, 3600.0]
+    ), patch("audit.purge_old") as purge:
+        audit._maybe_purge()
+        assert purge.call_count == 1
+        audit._maybe_purge()
+        audit._maybe_purge()
+        assert purge.call_count == 1
+        audit._maybe_purge()
+        assert purge.call_count == 2
 
 
 def test_cleanup_cadence_uses_monotonic_time_not_wall_clock():
