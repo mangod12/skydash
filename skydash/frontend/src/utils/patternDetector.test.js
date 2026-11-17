@@ -40,6 +40,25 @@ describe('detectSpatialClusters', () => {
     expect(detectSpatialClusters(entities)).toEqual([]);
   });
 
+  it('isolates invalid positions without inventing clusters or corrupting centroids', () => {
+    const invalid = [null, { id: 'nulls', coordinates: [null, null] },
+      { id: 'string', coordinates: ['0', '0'] }, { id: 'bool', coordinates: [false, true] },
+      { id: 'range', coordinates: [91, 181] }, { id: 'inf', coordinates: [Infinity, 0] }];
+    const good = [{ id: 'one', coordinates: [0, 0] }, { id: 'two', coordinates: [0.001, 0.001] }];
+    expect(detectSpatialClusters([...invalid, good[0]])).toEqual([]);
+    const clusters = detectSpatialClusters([...invalid, ...good]);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].entities.map((e) => e.id)).toEqual(['one', 'two']);
+    expect(clusters[0].centroid).toEqual([0.0005, 0.0005]);
+    expect(Number.isFinite(clusters[0].radius)).toBe(true);
+  });
+
+  it.each([NaN, Infinity, -1, '500', null])('rejects invalid spatial radius %j', (radius) => {
+    expect(detectSpatialClusters([
+      { id: 'one', coordinates: [0, 0] }, { id: 'two', coordinates: [0, 0] },
+    ], radius)).toEqual([]);
+  });
+
   it('ignores entities without coordinates', () => {
     const entities = [
       { id: 'a', coordinates: [37.7749, -122.4194] },
