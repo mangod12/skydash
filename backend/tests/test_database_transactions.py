@@ -42,21 +42,35 @@ def test_concurrent_first_reads_share_one_fully_initialised_connection(isolated_
     connect = sqlite3.connect
     barrier = threading.Barrier(8)
 
+    class TrackedConnection(sqlite3.Connection):
+        configured = False
+
+        def execute(self, statement, *args, **kwargs):
+            cursor = super().execute(statement, *args, **kwargs)
+            if statement == 'PRAGMA foreign_keys=ON':
+                self.configured = True
+            return cursor
+
     def slow_connect(*args, **kwargs):
         time.sleep(0.02)
-        return connect(*args, **kwargs)
+        return connect(*args, **kwargs, factory=TrackedConnection)
 
     def read_connection(_):
         barrier.wait(timeout=2)
         conn = database.get_connection()
-        return conn, conn.row_factory, conn.execute('PRAGMA foreign_keys').fetchone()[0]
+        # Observe initialization without concurrently stepping SQL statements on
+        # the shared connection. Configuration queries run after workers finish.
+        return conn, conn.row_factory, conn.configured
 
     with patch.object(database.sqlite3, 'connect', side_effect=slow_connect) as mock:
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             results = list(pool.map(read_connection, range(8)))
         assert mock.call_count == 1
     assert len({id(result[0]) for result in results}) == 1
-    assert all(factory is sqlite3.Row and enabled == 1 for _, factory, enabled in results)
+    assert all(factory is sqlite3.Row and configured for _, factory, configured in results)
+    connection = results[0][0]
+    assert connection.execute('PRAGMA foreign_keys').fetchone()[0] == 1
+    assert connection.execute('PRAGMA journal_mode').fetchone()[0] == 'wal'
 
 
 def test_failed_connection_initialisation_closes_private_handle_and_allows_retry(isolated_db):
