@@ -119,7 +119,8 @@ def build_events(entities: Iterable[Dict], drones: Iterable[Dict],
         coords = e.get("coordinates")
         if not isinstance(coords, (list, tuple)) or len(coords) < 2 or not _valid(coords[0], coords[1]):
             continue
-        dim = TYPE_TO_COT.get(e.get("type"), "G")
+        entity_type = e.get("type")
+        dim = TYPE_TO_COT.get(entity_type, "G") if isinstance(entity_type, str) else "G"
         out.append(_event(
             str(e.get("id")), f'a-{affiliation_for(e.get("threatLevel"))}-{dim}',
             coords[0], coords[1], now, str(e.get("name") or e.get("id")),
