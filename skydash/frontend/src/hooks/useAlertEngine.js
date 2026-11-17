@@ -13,17 +13,18 @@ const SEVERITY_TO_TYPE = { info: 'system', warning: 'alert', critical: 'alert' }
  * evaluates all enabled rules, and fires notifications respecting cooldowns.
  */
 export function useAlertEngine() {
-  const prevDataRef = useRef(null);
+  const prevDataRef = useRef({ data: null, fleet: null });
 
   useEffect(() => {
     const unsubscribe = useTelemetryStore.subscribe((state) => {
       const { data, fleet } = state;
       if (!data && fleet.length === 0) return;
 
-      // Avoid re-evaluating identical data
-      const dataId = data?.timestamp;
-      if (dataId === prevDataRef.current) return;
-      prevDataRef.current = dataId;
+      // Fleet frames can change while selected-drone timestamps stay the same
+      // (or are absent). Ignore connection-only changes, not fresh snapshots.
+      const previous = prevDataRef.current;
+      if (data === previous.data && fleet === previous.fleet) return;
+      prevDataRef.current = { data, fleet };
 
       const drones = fleet.length > 0 ? fleet : (data ? [data] : []);
       const geofences = useMapStore.getState().geofences;
