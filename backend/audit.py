@@ -70,7 +70,11 @@ def _maybe_purge():
     if now - _last_purge < _PURGE_EVERY:
         return
     _last_purge = now
-    purge_old(now)
+    try:
+        purge_old(now)
+    except Exception:
+        # Optional retention maintenance must not suppress the current audit row.
+        log.exception("Audit retention cleanup failed")
 
 
 def record(method, path, status, user=None, client=None):

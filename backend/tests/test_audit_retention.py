@@ -37,6 +37,20 @@ def test_purge_removes_only_old_rows():
     assert paths == ["/api/new"]
 
 
+def test_cleanup_failure_does_not_drop_current_audit_event():
+    _fresh()
+    with patch.object(audit, "_last_purge", 0.0), \
+            patch.object(audit, "purge_old", side_effect=RuntimeError("cleanup unavailable")) as cleanup:
+        audit.record("POST", "/api/entities", 201, {"username": "analyst", "role": "analyst"})
+        audit.record("DELETE", "/api/entities/example", 403, {"username": "viewer", "role": "viewer"})
+        cleanup.assert_called_once()
+    rows = database.execute("SELECT path, status, username FROM audit_log ORDER BY id").fetchall()
+    assert [tuple(row) for row in rows] == [
+        ("/api/entities", 201, "analyst"),
+        ("/api/entities/example", 403, "viewer"),
+    ]
+
+
 def test_bad_value_keeps_everything():
     with patch.dict(os.environ, {"SKYDASH_AUDIT_RETENTION_DAYS": "abc"}):
         assert audit.retention_days() == 0.0
