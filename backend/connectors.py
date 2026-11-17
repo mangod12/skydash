@@ -26,6 +26,7 @@ class OpenSkyConnector:
 
     def __init__(self):
         self.last_fetch = 0
+        self._cache_time = None
         self.cache: List[Dict] = []
         self.cache_ttl = 15  # seconds
         self.cache_bbox = None
@@ -46,10 +47,10 @@ class OpenSkyConnector:
             return self._fetch_aircraft(bbox)
 
     def _fetch_aircraft(self, bbox: Optional[List[float]]) -> List[Dict]:
-        now = time.time()
+        now = time.monotonic()
         bbox_key = tuple(bbox) if bbox else None
         same_region = bbox_key == self.cache_bbox
-        if same_region and self.last_fetch and now - self.last_fetch < self.cache_ttl:
+        if same_region and self._cache_time is not None and 0 <= now - self._cache_time < self.cache_ttl:
             return self.cache
 
         try:
@@ -67,7 +68,11 @@ class OpenSkyConnector:
             )
             if resp.status_code == 200:
                 data = resp.json()
+                if not isinstance(data, dict):
+                    raise ValueError("Invalid OpenSky response envelope")
                 states = data.get("states", []) or []
+                if not isinstance(states, (list, tuple)):
+                    raise ValueError("Invalid OpenSky state collection")
                 aircraft = []
                 for s in states[:50]:
                     # A malformed upstream row must not discard the valid batch.
@@ -105,7 +110,8 @@ class OpenSkyConnector:
                     })
                 self.cache = aircraft
                 self.cache_bbox = bbox_key
-                self.last_fetch = now
+                self._cache_time = time.monotonic()
+                self.last_fetch = time.time()
                 log.info(f"OpenSky: fetched {len(aircraft)} aircraft")
                 return aircraft
             else:

@@ -24,6 +24,36 @@ def response(status=200, body=None):
 
 
 class TestOpenSky(unittest.TestCase):
+    def test_cache_expiry_uses_monotonic_time_not_wall_clock(self):
+        connector = OpenSkyConnector()
+        with patch("connectors.time.time", side_effect=[1000, 500]), patch(
+            "connectors.time.monotonic", side_effect=[0, 0, 14, 15, 15]
+        ), patch("connectors.requests.get", return_value=response(200, {"states": [state()]})) as get:
+            connector.fetch_aircraft()
+            connector.fetch_aircraft()
+            self.assertEqual(get.call_count, 1)
+            connector.fetch_aircraft()
+            self.assertEqual(get.call_count, 2)
+            self.assertEqual(connector.last_fetch, 500)
+
+    def test_cache_age_starts_after_the_upstream_request_finishes(self):
+        connector = OpenSkyConnector()
+        with patch("connectors.time.monotonic", side_effect=[10, 20, 30]), patch(
+            "connectors.requests.get", return_value=response(200, {"states": [state()]})) as get:
+            connector.fetch_aircraft()
+            connector.fetch_aircraft()
+        self.assertEqual(get.call_count, 1)
+
+    def test_malformed_envelopes_preserve_last_valid_cache(self):
+        connector = OpenSkyConnector()
+        with patch("connectors.requests.get", return_value=response(200, {"states": [state()]})):
+            cached = connector.fetch_aircraft()
+        connector._cache_time = None
+        for malformed in ([1], {"states": "invalid"}, {"states": {"wrong": []}}):
+            with self.subTest(payload=malformed), patch("connectors.requests.get", return_value=response(200, malformed)):
+                self.assertEqual(connector.fetch_aircraft(), cached)
+                self.assertIsNone(connector._cache_time)
+
     def test_simultaneous_same_region_refreshes_only_fetch_once(self):
         connector = OpenSkyConnector()
         barrier = threading.Barrier(8)
