@@ -22,10 +22,9 @@ class MissionStore:
     def clear_all(self) -> None:
         """Delete every mission and its linked entities, notes and detections."""
         conn = db.get_connection()
-        with db.get_lock():
+        with db.get_lock(), conn:
             for table in ("mission_detections", "mission_notes", "mission_entities", "missions"):
                 conn.execute(f"DELETE FROM {table}")
-            conn.commit()
 
     def __init__(self):
         self._init_tables()
@@ -119,7 +118,7 @@ class MissionStore:
             "tags": data.get("tags", []),
         }
         conn = db.get_connection()
-        with db.get_lock():
+        with db.get_lock(), conn:
             conn.execute(
                 "INSERT INTO missions (id, name, description, status, created_at, updated_at, center_lat, center_lng, zoom_level, tags) VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (mid, mission["name"], mission["description"], mission["status"],
@@ -127,7 +126,6 @@ class MissionStore:
                  mission["center_lat"], mission["center_lng"],
                  mission["zoom_level"], json.dumps(mission["tags"])),
             )
-            conn.commit()
         return mission
 
     def get_mission(self, mission_id: str) -> Optional[dict]:
