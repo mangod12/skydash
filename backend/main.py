@@ -26,6 +26,7 @@ from deps import (
     telemetry_history,
 )
 import audit
+import cot_stream
 from rbac import has_role, required_role
 from routes.telemetry import router as telemetry_router
 from routes.entities import router as entities_router
@@ -52,12 +53,21 @@ async def lifespan(_app: FastAPI):
             await asyncio.sleep(1)
 
     task = asyncio.create_task(record())
+    cot_task = None
+    cot_target = cot_stream.parse_target(os.getenv("SKYDASH_COT_TARGET"))
+    if cot_target:
+        cot_task = asyncio.create_task(cot_stream.run_stream(
+            entity_store.list_entities, fleet.get_all_telemetry,
+            cot_target, cot_stream.interval_from_env()))
     try:
         yield
     finally:
-        task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await task
+        for t in (task, cot_task):
+            if t is None:
+                continue
+            t.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await t
 
 
 app = FastAPI(
