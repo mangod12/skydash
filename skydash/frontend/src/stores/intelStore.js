@@ -262,7 +262,11 @@ export const useIntelStore = create((set, get) => ({
         return res.json();
       })
       .then((json) => {
-        if (!json?.success || !json.data) throw new Error('Entity update was not saved');
+        const saved = json?.data;
+        if (json?.success !== true || !saved || typeof saved !== 'object'
+            || Array.isArray(saved) || saved.id !== id) {
+          throw new Error('Entity update was not saved');
+        }
         set((s) => ({
           entities: s.entities.map((e) =>
             e.id === id ? normalizeIntelEntity(json.data) : e,
