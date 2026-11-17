@@ -74,6 +74,31 @@ class TestAuthHardening(unittest.TestCase):
         uid = self.users.create_user("next-user", self.good_pw)
         self.assertEqual(self.users.get_user(uid)["username"], "next-user")
 
+    def test_failed_legacy_hash_migration_rolls_back_before_next_write(self):
+        import hashlib
+
+        uid = self.users.create_user("legacy-user", self.good_pw)
+        legacy_hash = hashlib.sha256(self.good_pw.encode()).hexdigest()
+        conn = database.get_connection()
+        conn.execute("UPDATE users SET password_hash=? WHERE id=?", (legacy_hash, uid))
+        conn.execute("""CREATE TRIGGER reject_hash_migration AFTER UPDATE OF password_hash ON users
+                        BEGIN SELECT RAISE(FAIL, 'synthetic migration failure'); END""")
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.users.authenticate("legacy-user", self.good_pw)
+        self.assertFalse(conn.in_transaction)
+        conn.execute("DROP TRIGGER reject_hash_migration")
+        conn.commit()
+        self.users.create_user("later-user", self.good_pw)
+        stored = conn.execute("SELECT password_hash FROM users WHERE id=?", (uid,)).fetchone()[0]
+        self.assertEqual(stored, legacy_hash)
+        self.assertIsNone(self.users.authenticate("legacy-user", "wrong"))
+        self.assertEqual(self.users.authenticate("legacy-user", self.good_pw)["id"], uid)
+        migrated = conn.execute("SELECT password_hash FROM users WHERE id=?", (uid,)).fetchone()[0]
+        self.assertIn("$", migrated)
+        self.assertTrue(self.users._verify_password(self.good_pw, migrated))
+        self.assertFalse(conn.in_transaction)
+
     def test_registration_race_returns_conflict(self):
         self.users.create_user("alice", self.good_pw)
         # Simulate the name being available at precheck, but taken at insert.
