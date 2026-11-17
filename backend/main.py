@@ -79,14 +79,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # ── Mount route modules ──────────────────────────────────────
 
 app.include_router(telemetry_router)
@@ -191,6 +183,17 @@ async def audit_middleware(request: Request, call_next):
                      request.client.host if request.client else None)
     return response
 
+
+# CORS is added last so it is the outermost middleware: early responses from the
+# auth, body-size and audit layers (401, 403, 413) must carry CORS headers too, or
+# a cross-origin frontend cannot read them and mistakes "auth required" for "auth off".
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ── Error handling ───────────────────────────────────────────
 
