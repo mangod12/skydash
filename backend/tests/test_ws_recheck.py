@@ -57,6 +57,42 @@ class TestWsRecheck(unittest.TestCase):
 
 
 class TestWsTicket(TestWsRecheck):
+    def setUp(self):
+        super().setUp()
+        auth._ws_tickets.clear()
+        self.addCleanup(auth._ws_tickets.clear)
+
+    def test_ticket_capacity_returns_429_without_invalidating_existing(self):
+        headers = {"Authorization": f"Bearer {self.token}"}
+        with patch.object(auth, "WS_MAX_PENDING_TICKETS", 1):
+            first = self.client.post("/api/auth/ws-ticket", headers=headers)
+            ticket = first.json()["data"]["ticket"]
+            second = self.client.post("/api/auth/ws-ticket", headers=headers)
+            self.assertEqual(second.status_code, 429)
+            self.assertEqual(second.headers["retry-after"], "30")
+            self.assertEqual(len(auth._ws_tickets), 1)
+            self.assertEqual(auth.redeem_ws_ticket(ticket), self.token)
+            self.assertEqual(self.client.post("/api/auth/ws-ticket", headers=headers).status_code, 200)
+
+    def test_expired_tickets_free_capacity_at_deadline(self):
+        with patch.object(auth, "WS_MAX_PENDING_TICKETS", 1), \
+                patch.object(auth.time, "monotonic", return_value=100.0):
+            first = auth.issue_ws_ticket(self.token)
+            self.assertIsNone(auth.issue_ws_ticket(self.token))
+        with patch.object(auth, "WS_MAX_PENDING_TICKETS", 1), \
+                patch.object(auth.time, "monotonic", return_value=130.0):
+            replacement = auth.issue_ws_ticket(self.token)
+            self.assertIsNotNone(replacement)
+            self.assertNotIn(first, auth._ws_tickets)
+            self.assertEqual(auth.redeem_ws_ticket(replacement), self.token)
+
+    def test_ticket_cannot_be_redeemed_at_expiry(self):
+        with patch.object(auth.time, "monotonic", return_value=100.0):
+            ticket = auth.issue_ws_ticket(self.token)
+        with patch.object(auth.time, "monotonic", return_value=130.0):
+            self.assertIsNone(auth.redeem_ws_ticket(ticket))
+        self.assertNotIn(ticket, auth._ws_tickets)
+
     def test_ticket_connects_once(self):
         r = self.client.post(
             "/api/auth/ws-ticket", headers={"Authorization": f"Bearer {self.token}"}

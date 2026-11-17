@@ -55,7 +55,9 @@ The dashboard opens the telemetry WebSocket with a one-time, 30 second ticket fr
 `POST /api/auth/ws-ticket`, so the session token does not appear in URLs or proxy
 logs. The stream re-checks the session every 5 seconds and closes (code 4001) if
 it was signed out, expired or the account was disabled. The older `?token=`
-parameter still works for scripts.
+parameter still works for scripts. Pending tickets are capped at 10,000 per process;
+issuance reclaims expired tickets first and returns `429` with `Retry-After: 30` at
+capacity. Existing unexpired tickets remain valid and single-use.
 
 ## Input validation
 
