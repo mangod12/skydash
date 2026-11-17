@@ -35,6 +35,10 @@ Self-registration always creates an analyst. Closing it entirely is a setting
 (`SKYDASH_ALLOW_REGISTRATION=false`). Requests below the required role get
 `403` and are logged.
 
+New passwords (registration) must be at least 8 characters (raise with
+`SKYDASH_MIN_PASSWORD_LENGTH`), mix two character classes, avoid common
+passwords and not contain the username. Rejections return `422`.
+
 ## Audit trail
 
 With authentication on, every state-changing request and every auth attempt is
