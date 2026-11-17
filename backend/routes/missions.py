@@ -103,6 +103,6 @@ async def get_mission_notes(mission_id: str):
 
 @router.delete("/api/missions/{mission_id}/notes/{note_id}")
 async def delete_mission_note(mission_id: str, note_id: str):
-    if not mission_store.delete_note(note_id):
+    if not mission_store.delete_note(mission_id, note_id):
         raise HTTPException(status_code=404, detail="Note not found")
     return {"success": True, "data": {"deleted": note_id}}

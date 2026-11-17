@@ -254,16 +254,17 @@ class MissionStore:
         ).fetchall()
         return [self._row_to_note(r) for r in rows]
 
-    def delete_note(self, note_id: str) -> bool:
+    def delete_note(self, mission_id: str, note_id: str) -> bool:
+        """Delete only a note belonging to the mission named by the caller."""
         conn = db.get_connection()
-        row = conn.execute(
-            "SELECT mission_id FROM mission_notes WHERE id = ?", (note_id,)
-        ).fetchone()
-        if not row:
-            return False
-        mission_id = row["mission_id"]
         with db.get_lock():
-            conn.execute("DELETE FROM mission_notes WHERE id = ?", (note_id,))
+            result = conn.execute(
+                "DELETE FROM mission_notes WHERE id = ? AND mission_id = ?",
+                (note_id, mission_id),
+            )
+            if not result.rowcount:
+                conn.commit()
+                return False
             conn.execute(
                 "UPDATE missions SET updated_at = ? WHERE id = ?",
                 (self._now_iso(), mission_id),
