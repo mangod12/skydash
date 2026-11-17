@@ -57,3 +57,11 @@ Notes:
 - Compose includes a container health check against `/health`.
 - Logs go to stdout. RBAC denials are logged at WARNING level.
 - See `docs/skydash-operations-runbook.md` for day-to-day operations.
+
+## Demo reset
+
+For demos and training, `POST /api/demo/reset` with body `{"confirm": true}`
+wipes entities, relationships, events and missions, restores the seeded demo
+scenario and restarts the simulated fleet. Users and the audit trail are kept.
+With authentication on it needs the commander role. Do not call it on a
+system holding real data.
