@@ -176,9 +176,16 @@ class ShodanConnector:
         """Normalize live Shodan API results to a flat dict."""
         results = []
         for m in matches:
-            location = m.get("location", {})
+            if not isinstance(m, dict):
+                continue
+            ip = m.get("ip_str")
+            if not isinstance(ip, str) or not ip.strip():
+                continue
+            location = m.get("location")
+            if not isinstance(location, dict):
+                location = {}
             results.append({
-                "ip": m.get("ip_str", ""),
+                "ip": ip.strip(),
                 "port": m.get("port", 0),
                 "org": m.get("org", "Unknown"),
                 "product": m.get("product", "Unknown"),
