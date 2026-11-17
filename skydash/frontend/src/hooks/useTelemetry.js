@@ -24,6 +24,7 @@ export function useTelemetry() {
   const activeRef = useRef(false);
   const connectingRef = useRef(false);
   const reconnectTimerRef = useRef(null);
+  const pollingGenerationRef = useRef(0);
 
   const processData = useCallback((droneData) => {
     const telemetryState = useTelemetryStore.getState();
@@ -51,8 +52,13 @@ export function useTelemetry() {
     if (fallbackRef.current) return;
 
     const generation = generationRef.current;
-    const live = () => activeRef.current && generationRef.current === generation;
+    const pollGeneration = ++pollingGenerationRef.current;
+    const live = () => activeRef.current && generationRef.current === generation
+      && pollingGenerationRef.current === pollGeneration;
+    let inFlight = false;
     const fetchData = async () => {
+      if (!live() || inFlight) return;
+      inFlight = true;
       const start = performance.now();
       try {
         const res = await apiFetch(HTTP_URL);
@@ -75,6 +81,8 @@ export function useTelemetry() {
         }
       } catch {
         if (live()) setDisconnected();
+      } finally {
+        inFlight = false;
       }
     };
 
@@ -122,6 +130,7 @@ export function useTelemetry() {
         ws.onopen = () => {
           if (!live()) return;
           retryRef.current = 0;
+          pollingGenerationRef.current += 1;
           if (fallbackRef.current) {
             clearInterval(fallbackRef.current);
             fallbackRef.current = null;
@@ -165,6 +174,7 @@ export function useTelemetry() {
 
     return () => {
       activeRef.current = false;
+      pollingGenerationRef.current += 1;
       generationRef.current += 1;
       connectingRef.current = false;
       clearTimeout(reconnectTimerRef.current);
