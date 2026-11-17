@@ -20,6 +20,10 @@ export function useTelemetry() {
   const fallbackRef = useRef(null);
   const connectRef = useRef(null);
   const fallbackFnRef = useRef(null);
+  const generationRef = useRef(0);
+  const activeRef = useRef(false);
+  const connectingRef = useRef(false);
+  const reconnectTimerRef = useRef(null);
 
   const processData = useCallback((droneData) => {
     const telemetryState = useTelemetryStore.getState();
@@ -43,15 +47,18 @@ export function useTelemetry() {
   }, [updateTelemetry, updateDronePosition]);
 
   const startHttpFallback = useCallback(() => {
-    if (!API_CONFIGURED) return;
+    if (!activeRef.current || !API_CONFIGURED) return;
     if (fallbackRef.current) return;
 
+    const generation = generationRef.current;
+    const live = () => activeRef.current && generationRef.current === generation;
     const fetchData = async () => {
       const start = performance.now();
       try {
         const res = await apiFetch(HTTP_URL);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
+        if (!live()) return;
         const latency = Math.round(performance.now() - start);
         const data = json.data || json;
         if (Array.isArray(data)) {
@@ -67,7 +74,7 @@ export function useTelemetry() {
           }
         }
       } catch {
-        setDisconnected();
+        if (live()) setDisconnected();
       }
     };
 
@@ -78,28 +85,42 @@ export function useTelemetry() {
   useEffect(() => { fallbackFnRef.current = startHttpFallback; }, [startHttpFallback]);
 
   const connectWS = useCallback(() => {
+    if (!activeRef.current) return;
+    const generation = generationRef.current;
+    const live = () => activeRef.current && generationRef.current === generation;
     if (!WS_CONFIGURED) {
       fallbackFnRef.current?.();
       return;
     }
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (connectingRef.current || wsRef.current?.readyState === WebSocket.OPEN
+        || wsRef.current?.readyState === WebSocket.CONNECTING) return;
+    connectingRef.current = true;
 
     const token = useAuthStore.getState().token;
 
     // Ticket errors must not downgrade auth by putting a session token in the URL.
     const retryConnection = () => {
+      if (!live()) return;
+      connectingRef.current = false;
       setDisconnected();
       const delay = Math.min(RECONNECT_BASE * Math.pow(2, retryRef.current), RECONNECT_MAX);
       retryRef.current += 1;
-      setTimeout(() => connectRef.current?.(), delay);
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        if (live()) connectRef.current?.();
+      }, delay);
       fallbackFnRef.current?.();
     };
 
     const open = (wsUrl) => {
+      if (!live()) return;
+      connectingRef.current = false;
       try {
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         ws.onopen = () => {
+          if (!live()) return;
           retryRef.current = 0;
           if (fallbackRef.current) {
             clearInterval(fallbackRef.current);
@@ -108,6 +129,7 @@ export function useTelemetry() {
         };
 
         ws.onmessage = (event) => {
+          if (!live()) return;
           try {
             const msg = JSON.parse(event.data);
             if (msg.type === 'telemetry') {
@@ -122,7 +144,7 @@ export function useTelemetry() {
           ws.close();
         };
       } catch {
-        fallbackFnRef.current?.();
+        retryConnection();
       }
     };
 
@@ -132,6 +154,8 @@ export function useTelemetry() {
   useEffect(() => { connectRef.current = connectWS; }, [connectWS]);
 
   useEffect(() => {
+    activeRef.current = true;
+    generationRef.current += 1;
     if (!API_CONFIGURED && !WS_CONFIGURED) {
       setDisconnected();
       return undefined;
@@ -140,12 +164,22 @@ export function useTelemetry() {
     connectWS();
 
     return () => {
+      activeRef.current = false;
+      generationRef.current += 1;
+      connectingRef.current = false;
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
       if (wsRef.current) {
         wsRef.current.onclose = null;
+        wsRef.current.onopen = null;
+        wsRef.current.onmessage = null;
+        wsRef.current.onerror = null;
         wsRef.current.close();
+        wsRef.current = null;
       }
       if (fallbackRef.current) {
         clearInterval(fallbackRef.current);
+        fallbackRef.current = null;
       }
     };
   }, [connectWS, setDisconnected]);
