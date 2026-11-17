@@ -129,7 +129,9 @@ def to_csv(rows) -> str:
     from datetime import datetime, timezone
 
     out = io.StringIO()
-    writer = csv.writer(out, lineterminator="\n")
+    # QUOTE_MINIMAL only quotes characters present in the line terminator.
+    # Include CR as well as LF so embedded CR cannot split an audit record.
+    writer = csv.writer(out, lineterminator="\r\n")
     writer.writerow(CSV_COLUMNS)
     for r in rows:
         ts = datetime.fromtimestamp(r["ts"], tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
