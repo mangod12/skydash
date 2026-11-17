@@ -4,6 +4,7 @@ import { useMapStore } from '../stores/mapStore';
 import { useAuthStore } from '../stores/authStore';
 import { apiFetch } from '../utils/api';
 import { telemetrySocketUrl } from '../utils/telemetrySocketUrl';
+import { normalizeTelemetry } from '../utils/telemetryReadings';
 import { API_BASE, API_CONFIGURED, WS_BASE, WS_CONFIGURED } from '../utils/runtimeConfig';
 
 const WS_URL = WS_CONFIGURED ? `${WS_BASE}/ws/telemetry` : '';
@@ -68,13 +69,19 @@ export function useTelemetry() {
 
     updateTelemetry(data, 0);
 
-    if (data.gps) {
+    // Map geometry must use the same guarded readings as the telemetry store.
+    const normalized = normalizeTelemetry(data);
+    const previousPosition = useMapStore.getState().dronePosition;
+    if (previousPosition && previousPosition.droneId !== normalized.drone_id) {
+      useMapStore.getState().clearDronePosition();
+    }
+    if (normalized.gps) {
       updateDronePosition(
-        data.gps.latitude,
-        data.gps.longitude,
-        data.altitude,
-        data.attitude?.yaw,
-        data.drone_id
+        normalized.gps.latitude,
+        normalized.gps.longitude,
+        normalized.altitude,
+        normalized.attitude.yaw,
+        normalized.drone_id
       );
     }
 

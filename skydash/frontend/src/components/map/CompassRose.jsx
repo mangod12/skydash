@@ -1,8 +1,10 @@
+import { finiteReading } from '../../utils/telemetryReadings';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
 export default function CompassRose() {
   const data = useTelemetryStore((s) => s.data);
-  const heading = data?.attitude?.yaw ?? 0;
+  const available = finiteReading(data?.attitude?.yaw);
+  const heading = available ? ((data.attitude.yaw % 360) + 360) % 360 : 0;
 
   return (
     <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
@@ -12,7 +14,7 @@ export default function CompassRose() {
           <circle cx="36" cy="36" r="34" fill="rgba(9,9,11,0.7)" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
 
           {/* Rotating compass ring */}
-          <g transform={`rotate(${-heading}, 36, 36)`}>
+          <g opacity={available ? 1 : 0.2} transform={`rotate(${-heading}, 36, 36)`}>
             {/* Cardinal ticks */}
             {[0, 90, 180, 270].map((deg) => (
               <line
@@ -52,7 +54,7 @@ export default function CompassRose() {
         {/* Heading number overlay */}
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-[11px] font-mono font-bold tabular-nums text-white/90 mt-0.5">
-            {String(Math.round(heading)).padStart(3, '0')}&deg;
+            {available ? String(Math.round(heading) % 360).padStart(3, '0') : '--'}&deg;
           </span>
         </div>
       </div>

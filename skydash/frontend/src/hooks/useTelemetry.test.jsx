@@ -326,4 +326,22 @@ describe('telemetry connection lifecycle', () => {
     expect(useTelemetryStore.getState().data).toBeNull();
   });
 
+
+  it('does not retain a previous drone map position when the new drone has unknown GPS', async () => {
+    useMapStore.getState().clearDronePosition();
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    const send = data => act(() => FakeSocket.instances[0].onmessage({ data: JSON.stringify({ type: 'telemetry', data }) }));
+    send([{ drone_id: 'one', gps: { latitude: 20, longitude: 30 }, altitude: 50 }]);
+    expect(useMapStore.getState().dronePosition.droneId).toBe('one');
+    send([{ drone_id: 'two', gps: { latitude: null, longitude: 40 } }]);
+    expect(useTelemetryStore.getState().data.drone_id).toBe('two');
+    expect(useMapStore.getState().dronePosition).toBeNull();
+    expect(useMapStore.getState().flightPath).toEqual([]);
+    send([{ drone_id: 'two', gps: { latitude: 0, longitude: 0 }, altitude: 'unknown', attitude: { yaw: 'north' } }]);
+    expect(useMapStore.getState().dronePosition).toMatchObject({ lat: 0, lng: 0, alt: null, droneId: 'two' });
+    expect(useMapStore.getState().dronePosition.heading).toBeUndefined();
+    unmount();
+  });
+
 });

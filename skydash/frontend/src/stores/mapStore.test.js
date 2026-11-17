@@ -49,3 +49,10 @@ describe('map telemetry identity', () => {
     expect(useMapStore.getState().flightPath).toEqual([]);
   });
 });
+
+it.each([NaN, Infinity, -Infinity, '90', {}, true])('keeps malformed heading and altitude out of map geometry: %j', (value) => {
+  useMapStore.getState().updateDronePosition(20, 30, value, value, 'one');
+  expect(useMapStore.getState().dronePosition.alt).toBeNull();
+  expect(useMapStore.getState().dronePosition.heading).toBeUndefined();
+  expect(useMapStore.getState().flightPath[0].alt).toBeNull();
+});
