@@ -46,6 +46,41 @@ describe('authStore', () => {
       expect(useAuthStore.getState().error).toBe('Cannot reach server');
     });
 
+    it('does not restore a session when login completes after logout', async () => {
+      let resolve;
+      mockFetch(() => new Promise((done) => { resolve = done; }));
+      const pending = useAuthStore.getState().login('old', 'pw');
+      useAuthStore.getState().logout();
+      resolve(await json({ success: true, data: { token: 'old-token', user: { username: 'old' } } }));
+      expect(await pending).toBe(false);
+      expect(useAuthStore.getState().token).toBeNull();
+      expect(useAuthStore.getState().user).toBeNull();
+    });
+
+    it('does not overwrite a newer login with an older success', async () => {
+      let resolve;
+      mockFetch(() => new Promise((done) => { resolve = done; }));
+      const old = useAuthStore.getState().login('old', 'pw');
+      mockFetch(() => json({ success: true, data: { token: 'new-token', user: { username: 'new' } } }));
+      expect(await useAuthStore.getState().login('new', 'pw')).toBe(true);
+      resolve(await json({ success: true, data: { token: 'old-token', user: { username: 'old' } } }));
+      expect(await old).toBe(false);
+      expect(useAuthStore.getState().token).toBe('new-token');
+      expect(useAuthStore.getState().user.username).toBe('new');
+    });
+
+    it('ignores a stale login network error after a newer success', async () => {
+      let reject;
+      mockFetch(() => new Promise((_resolve, fail) => { reject = fail; }));
+      const old = useAuthStore.getState().login('old', 'pw');
+      mockFetch(() => json({ success: true, data: { token: 'new-token', user: { username: 'new' } } }));
+      await useAuthStore.getState().login('new', 'pw');
+      reject(new Error('late failure'));
+      expect(await old).toBe(false);
+      expect(useAuthStore.getState().error).toBeNull();
+      expect(useAuthStore.getState().token).toBe('new-token');
+    });
+
     it('checkAuth detects protected and open responses', async () => {
       mockFetch(() => json({}, 401));
       await useAuthStore.getState().checkAuth();

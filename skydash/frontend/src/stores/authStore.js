@@ -3,6 +3,7 @@ import { API_BASE, API_CONFIGURED } from '../utils/runtimeConfig';
 
 const API = API_BASE;
 const storage = typeof localStorage === 'undefined' ? null : localStorage;
+let loginGeneration = 0;
 
 function readUser() {
   if (!storage) return null;
@@ -20,6 +21,7 @@ export const useAuthStore = create((set, get) => ({
   error: null,
 
   login: async (username, password) => {
+    const generation = ++loginGeneration;
     set({ error: null });
     if (!API_CONFIGURED) {
       set({ error: 'Backend API not configured' });
@@ -32,6 +34,7 @@ export const useAuthStore = create((set, get) => ({
         body: JSON.stringify({ username, password }),
       });
       const data = await res.json();
+      if (generation !== loginGeneration) return false;
       if (data.success) {
         storage?.setItem('skydash_token', data.data.token);
         storage?.setItem('skydash_user', JSON.stringify(data.data.user));
@@ -41,12 +44,14 @@ export const useAuthStore = create((set, get) => ({
       set({ error: data.error || 'Login failed' });
       return false;
     } catch {
+      if (generation !== loginGeneration) return false;
       set({ error: 'Cannot reach server' });
       return false;
     }
   },
 
   logout: () => {
+    ++loginGeneration;
     // Revoke server-side so a copied token stops working now, not at expiry. Best effort.
     const tok = get().token;
     if (tok && API_CONFIGURED) {
