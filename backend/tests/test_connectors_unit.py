@@ -30,6 +30,18 @@ class TestOpenSky(unittest.TestCase):
         self.assertEqual(aircraft[0]["latitude"], 37.7)
         self.assertEqual(aircraft[0]["altitude"], 1000.0)
 
+    def test_malformed_rows_do_not_discard_valid_aircraft(self):
+        rows = [state(icao="first"), None, {}, [], ["short"],
+                state(icao="badcallsign", callsign=42), state(icao=None),
+                state(lat=True), state(lat=float("nan")), state(lon=float("inf")),
+                state(lat=91), state(lon=-181), state(icao="last", lat=0, lon=0)]
+        with patch("connectors.requests.get", return_value=response(200, {"states": rows})):
+            conn = OpenSkyConnector()
+            aircraft = conn.fetch_aircraft()
+        self.assertEqual([a["icao24"] for a in aircraft], ["first", "last"])
+        self.assertEqual(aircraft[-1]["latitude"], 0)
+        self.assertEqual(conn.cache, aircraft)
+
     def test_falls_back_to_geometric_altitude_and_zero(self):
         rows = [state(baro=None, geo=900.0), state(icao="z", baro=None, geo=None)]
         with patch("connectors.requests.get", return_value=response(200, {"states": rows})):
