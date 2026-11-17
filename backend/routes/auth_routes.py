@@ -191,14 +191,14 @@ async def auth_logout(request: Request):
 # ── User administration (commander only, enforced by rbac) ────────
 
 from typing import Optional  # noqa: E402
-from pydantic import BaseModel  # noqa: E402
+from pydantic import BaseModel, StrictBool  # noqa: E402
 
 VALID_ROLES = ("viewer", "analyst", "operator", "commander")
 
 
 class UserUpdate(BaseModel):
     role: Optional[str] = None
-    disabled: Optional[bool] = None
+    disabled: Optional[StrictBool] = None
 
 
 @router.get("/api/users")
