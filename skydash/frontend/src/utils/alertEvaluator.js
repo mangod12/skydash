@@ -6,7 +6,7 @@ import { distanceBetween } from './coordinates';
  */
 function checkBatteryLow(drone, config) {
   const pct = drone.battery_percentage;
-  if (typeof pct !== 'number') return { triggered: false };
+  if (!Number.isFinite(pct)) return { triggered: false };
   if (pct < config.threshold) {
     return { triggered: true, message: `${drone.drone_id} battery at ${pct}%` };
   }
@@ -14,7 +14,8 @@ function checkBatteryLow(drone, config) {
 }
 
 function checkSignalWeak(drone, config) {
-  const sig = drone.signal_strength ?? 100;
+  const sig = drone.signal_strength;
+  if (!Number.isFinite(sig)) return { triggered: false };
   if (sig < config.threshold) {
     return { triggered: true, message: `${drone.drone_id} signal at ${sig}%` };
   }
@@ -22,7 +23,8 @@ function checkSignalWeak(drone, config) {
 }
 
 function checkAltitudeLimit(drone, config) {
-  const alt = drone.altitude ?? 0;
+  const alt = drone.altitude;
+  if (!Number.isFinite(alt)) return { triggered: false };
   if (alt > config.maxAlt) {
     return { triggered: true, message: `${drone.drone_id} altitude ${alt.toFixed(0)}m exceeds ${config.maxAlt}m` };
   }
@@ -30,7 +32,8 @@ function checkAltitudeLimit(drone, config) {
 }
 
 function checkSpeedLimit(drone, config) {
-  const spd = drone.ground_speed ?? 0;
+  const spd = drone.ground_speed;
+  if (!Number.isFinite(spd)) return { triggered: false };
   if (spd > config.maxSpeed) {
     return { triggered: true, message: `${drone.drone_id} speed ${spd.toFixed(1)} m/s exceeds ${config.maxSpeed}` };
   }

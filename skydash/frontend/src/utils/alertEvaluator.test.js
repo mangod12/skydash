@@ -78,3 +78,27 @@ describe('evaluateRule', () => {
     });
   });
 });
+
+describe('malformed numeric telemetry', () => {
+  it.each([
+    ['battery_low', 'battery_percentage', { threshold: 30 }],
+    ['signal_weak', 'signal_strength', { threshold: 50 }],
+    ['altitude_limit', 'altitude', { maxAlt: 120 }],
+    ['speed_limit', 'ground_speed', { maxSpeed: 15 }],
+  ])('rejects invalid %s readings without throwing or firing', (type, field, config) => {
+    for (const value of [undefined, null, true, false, '', '999', [], {}, NaN, Infinity, -Infinity]) {
+      expect(evaluateRule({ type, config }, { drone_id: 'test', [field]: value }, [], [])).toEqual({ triggered: false });
+    }
+  });
+
+  it('keeps valid zero readings and numeric alert thresholds working', () => {
+    for (const [type, field, config, value] of [
+      ['battery_low', 'battery_percentage', { threshold: 30 }, 0],
+      ['signal_weak', 'signal_strength', { threshold: 50 }, 0],
+      ['altitude_limit', 'altitude', { maxAlt: 120 }, 150],
+      ['speed_limit', 'ground_speed', { maxSpeed: 15 }, 20],
+    ]) {
+      expect(evaluateRule({ type, config }, { drone_id: 'test', [field]: value }, [], []).triggered).toBe(true);
+    }
+  });
+});
