@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, StrictBool
 
 from deps import entity_store, fleet, mission_store, telemetry_history
 
@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 class DemoResetRequest(BaseModel):
-    confirm: bool = False
+    confirm: StrictBool = False
 
 
 @router.post("/api/demo/reset")
