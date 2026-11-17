@@ -5,9 +5,13 @@ describes what the code enforces today so a reviewer can assess it.
 
 ## Authentication
 
-- Enabled by setting `SKYDASH_JWT_SECRET`. Tokens are HS256 JWTs valid for 24
-  hours. Without the variable, an ephemeral secret is generated and tokens are
-  invalid after a restart.
+- Enabled when `SKYDASH_JWT_SECRET` or `SKYDASH_AUTH_ENABLED` is nonempty.
+  Leaving both unset disables user authentication. `SKYDASH_AUTH_ENABLED` is
+  checked for presence, not parsed as a boolean: do not use `false` to disable it.
+- Tokens are HS256 JWTs, valid for 24 hours by default; configure their lifetime
+  with `SKYDASH_TOKEN_TTL_MINUTES`. With authentication enabled but no configured
+  secret, an ephemeral secret invalidates tokens on restart. Use a stable,
+  private `SKYDASH_JWT_SECRET` for a deployment.
 - Passwords are stored as salted PBKDF2-SHA256. Legacy SHA-256 hashes are
   upgraded on next login.
 - Failed logins are throttled per client and username (5 failures per minute).
@@ -15,7 +19,8 @@ describes what the code enforces today so a reviewer can assess it.
   once per minute and successful logins remove their entry. At capacity, new pairs
   receive `429` until space is available; active lockouts are never evicted.
   Login usernames are limited to the registration maximum of 64 characters.
-- WebSocket telemetry requires the same token, passed as `?token=`.
+- With authentication enabled, telemetry WebSockets require a session token
+  or its one-time ticket (see "WebSocket sessions").
 - Alternatively, `SKYDASH_API_KEY` protects the API with a single shared key
   (no per-user identity, roles or audit).
 
@@ -51,11 +56,14 @@ by default; set `SKYDASH_TOKEN_TTL_MINUTES` (for example `60`) for shorter sessi
 
 ## WebSocket sessions
 
-The dashboard opens the telemetry WebSocket with a one-time, 30 second ticket from
-`POST /api/auth/ws-ticket`, so the session token does not appear in URLs or proxy
-logs. The stream re-checks the session every 5 seconds and closes (code 4001) if
-it was signed out, expired or the account was disabled. The older `?token=`
-parameter still works for scripts. Pending tickets are capped at 10,000 per process;
+The dashboard normally opens the telemetry WebSocket with a one-time, 30 second
+ticket from `POST /api/auth/ws-ticket`, keeping the session token out of that URL.
+The current client falls back to `?token=` if ticket issuance fails, so this is
+not a guarantee that tokens never appear in proxy logs. Redact WebSocket query
+strings in access logs and use TLS. The stream re-checks the session every
+5 seconds and closes (code 4001) if it was signed out, expired or the account was
+disabled. The older `?token=` parameter also works for scripts. Pending tickets
+are capped at 10,000 per process;
 issuance reclaims expired tickets first and returns `429` with `Retry-After: 30` at
 capacity. Existing unexpired tickets remain valid and single-use.
 
@@ -109,7 +117,9 @@ recorded too. Query with `GET /api/audit?limit=100&username=...&since=...`
 - Responses carry `X-Content-Type-Options`, `X-Frame-Options: DENY`,
   `Referrer-Policy: no-referrer` and a restrictive `Permissions-Policy`. HSTS is
   added behind HTTPS.
-- Request bodies over `SKYDASH_MAX_BODY_BYTES` are rejected with `413`.
+- Requests with a declared `Content-Length` above `SKYDASH_MAX_BODY_BYTES` are
+  rejected with `413`; requests declaring chunked transfer encoding receive `411`.
+  Enforce a body-size cap at the reverse proxy too.
 - The backend container runs as a non-root user.
 - CORS is limited to `SKYDASH_CORS_ORIGINS`.
 
@@ -117,15 +127,17 @@ recorded too. Query with `GET /api/audit?limit=100&username=...&since=...`
 
 - A Dependency Audit workflow runs `pip-audit` and `npm audit` weekly and on
   pull requests that change dependency files.
-- CI runs backend tests with a coverage floor, frontend tests, a bundle-size
-  budget, a Docker build and Playwright end-to-end tests.
+- CI runs backend tests with a coverage floor, API and auth-enabled smoke tests,
+  frontend tests, a bundle-size budget and Playwright end-to-end tests. Docker
+  builds run on `main`, not on pull requests.
 
 ## Known gaps
 
 These are not done yet and should be planned before any real deployment:
 
-- No user management API or UI (users are created in the database or by
-  registration).
+- User administration supports listing accounts, changing roles and disabling
+  accounts through `/api/users` and Settings > Accounts (commander only). There
+  is no dedicated administrator account-creation or password-reset endpoint.
 - No multi-factor authentication or SSO.
 - SQLite is single-node; there is no replication.
 - Telemetry is simulated. The MAVLink and DJI adapters are not hardened.
