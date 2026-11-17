@@ -74,6 +74,23 @@ class TestExportRoutes(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         self.assertEqual(rows[1][:5], ["1000", "D1", "37.1", "-122.1", "80"])
 
+    def test_telemetry_csv_exports_real_fleet_coordinates(self):
+        from deps import fleet
+
+        drones = fleet.get_all_telemetry()
+        telemetry_history.append({"timestamp": 1000, "drones": drones})
+        rows = self.rows(self.client.get("/api/export/telemetry/csv"))
+        for drone, row in zip(drones, rows[1:]):
+            self.assertEqual(row[2], str(drone["gps"]["latitude"]))
+            self.assertEqual(row[3], str(drone["gps"]["longitude"]))
+
+    def test_telemetry_csv_prefers_canonical_coordinates_and_keeps_zero(self):
+        sample = snapshot(1000, ["D1"])
+        sample["drones"][0]["gps"].update({"latitude": 0.0, "longitude": 0.0})
+        telemetry_history.append(sample)
+        row = self.rows(self.client.get("/api/export/telemetry/csv"))[1]
+        self.assertEqual(row[2:4], ["0.0", "0.0"])
+
     def test_telemetry_csv_neutralizes_connector_text(self):
         sample = snapshot("=1+1", ["@SUM(1,2)"])
         drone = sample["drones"][0]
