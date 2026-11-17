@@ -300,6 +300,51 @@ class TestEntities(_ApiTestCase):
 
 
 class TestMissions(_ApiTestCase):
+    def test_failed_creation_does_not_commit_on_later_audit_or_event_write(self):
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_mission AFTER INSERT ON missions
+                        BEGIN SELECT RAISE(FAIL, 'synthetic mission failure'); END""")
+        conn.commit()
+        response = self.client.post("/api/missions", json={"name": "Failed"})
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(conn.in_transaction)
+        self.assertEqual(mission_store.list_missions(), [])
+        conn.execute("DROP TRIGGER reject_mission")
+        conn.commit()
+        entity_store.add_event({"description": "Later successful write"})
+        self.assertEqual(mission_store.count(), 0)
+        self.assertEqual(self.client.post("/api/missions", json={"name": "Retry"}).status_code, 201)
+        self.assertEqual(mission_store.count(), 1)
+
+    def test_failed_clear_rolls_back_deleted_children(self):
+        import sqlite3
+
+        mission = mission_store.create_mission({"name": "Preserve"})["id"]
+        entity = entity_store.create_entity({"name": "Contact"})["id"]
+        mission_store.add_entity_to_mission(mission, entity)
+        note = mission_store.add_note(mission, "Preserve note")
+        detection = mission_store.add_detection(mission, {"model": "test"})
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_mission_delete BEFORE DELETE ON missions
+                        BEGIN SELECT RAISE(ABORT, 'synthetic clear failure'); END""")
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            mission_store.clear_all()
+        self.assertFalse(conn.in_transaction)
+        entity_store.add_event({"description": "Later successful write"})
+        self.assertIsNotNone(mission_store.get_mission(mission))
+        self.assertEqual(mission_store.get_mission_entities(mission), [entity])
+        self.assertEqual(mission_store.get_notes(mission)[0]["id"], note["id"])
+        self.assertEqual(mission_store.get_detections(mission)[0]["id"], detection["id"])
+        conn.execute("DROP TRIGGER reject_mission_delete")
+        conn.commit()
+        mission_store.clear_all()
+        self.assertEqual(mission_store.count(), 0)
+        self.assertEqual(mission_store.get_notes(mission), [])
+        self.assertEqual(mission_store.get_detections(mission), [])
+        self.assertEqual(mission_store.get_mission_entities(mission), [])
+        self.assertFalse(conn.in_transaction)
+
     def test_mission_create_get_delete(self):
         r = self.client.post("/api/missions", json={"name": "Alpha"})
         self.assertEqual(r.status_code, 201)
