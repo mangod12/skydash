@@ -35,13 +35,17 @@ export const useAuthStore = create((set, get) => ({
       });
       const data = await res.json();
       if (generation !== loginGeneration) return false;
-      if (data.success) {
+      const session = data?.data;
+      const validSession = typeof session?.token === 'string' && session.token.trim()
+        && session.user && typeof session.user === 'object' && !Array.isArray(session.user)
+        && typeof session.user.username === 'string' && session.user.username.trim();
+      if (res.status >= 200 && res.status < 300 && data?.success === true && validSession) {
         storage?.setItem('skydash_token', data.data.token);
         storage?.setItem('skydash_user', JSON.stringify(data.data.user));
         set({ token: data.data.token, user: data.data.user, error: null });
         return true;
       }
-      set({ error: data.error || 'Login failed' });
+      set({ error: typeof data?.error === 'string' ? data.error : 'Login failed' });
       return false;
     } catch {
       if (generation !== loginGeneration) return false;
