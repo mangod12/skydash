@@ -14,6 +14,7 @@ export const useMissionStore = create((set, get) => ({
   missions: [],
   activeMissionId: null,
   loading: false,
+  fetchError: false,
   visionStatus: null,
 
   fetchMissions: async () => {
@@ -21,7 +22,7 @@ export const useMissionStore = create((set, get) => ({
       set({ loading: false });
       return;
     }
-    set({ loading: true });
+    set({ loading: true, fetchError: false });
     try {
       const res = await apiFetch(`${API}/api/missions`);
       const json = await res.json();
@@ -37,6 +38,7 @@ export const useMissionStore = create((set, get) => ({
       }
     } catch (e) {
       console.error('Failed to fetch missions', e);
+      set({ fetchError: true });
       toast('Failed to load missions', 'error');
     }
     set({ loading: false });

@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import { Plus, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useMissionStore } from '../../stores/missionStore';
+import PanelState from '../common/PanelState';
 import { useUIStore } from '../../stores/uiStore';
 
 const STATUS_STYLE = {
@@ -16,6 +17,8 @@ export default function MissionList({ missions, activeId, onSelect, loading }) {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const createMission = useMissionStore((s) => s.createMission);
+  const fetchMissions = useMissionStore((s) => s.fetchMissions);
+  const fetchError = useMissionStore((s) => s.fetchError);
   const missionCreateOpen = useUIStore((s) => s.missionCreateOpen);
   const setMissionCreateOpen = useUIStore((s) => s.setMissionCreateOpen);
 
@@ -74,8 +77,14 @@ export default function MissionList({ missions, activeId, onSelect, loading }) {
         )}
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-        {loading && <div className="text-center text-zinc-600 text-[10px] tracking-wider py-8">LOADING...</div>}
-        {!loading && missions.length === 0 && <div className="text-center text-zinc-700 text-[10px] tracking-wider py-8">NO MISSIONS YET</div>}
+        {loading && missions.length === 0 && <PanelState kind="loading" title="Loading missions" />}
+        {!loading && fetchError && missions.length === 0 && (
+          <PanelState kind="error" title="Could not load missions" hint="The backend did not respond."
+            actionLabel="RETRY" onAction={fetchMissions} />
+        )}
+        {!loading && !fetchError && missions.length === 0 && (
+          <PanelState title="No missions yet" hint="Create one with the + button above." />
+        )}
         {missions.map((m) => (
           <button
             key={m.id}
