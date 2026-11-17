@@ -32,11 +32,12 @@ export function clusterEntities(entities, zoom, gridOverride) {
   const gridMeters = gridOverride ?? gridSizeForZoom(zoom);
 
   // Normalise coordinates — support both {lat,lng} and [lat,lng] forms
-  const items = entities.map((e) => {
+  const items = entities.filter((e) => e && typeof e === 'object').map((e) => {
     const lat = e.lat ?? e.coordinates?.[0] ?? null;
     const lng = e.lng ?? e.coordinates?.[1] ?? null;
     return { ...e, _lat: lat, _lng: lng };
-  }).filter((e) => e._lat != null && e._lng != null);
+  }).filter((e) => Number.isFinite(e._lat) && Number.isFinite(e._lng)
+    && Math.abs(e._lat) <= 90 && Math.abs(e._lng) <= 180);
 
   // No clustering at high zoom — return individual "clusters" of 1
   if (gridMeters === 0 || items.length === 0) {

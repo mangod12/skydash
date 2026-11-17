@@ -45,3 +45,24 @@ describe('clusterEntities', () => {
     expect(clusterEntities(pair, 8, 5000)).toHaveLength(1);
   });
 });
+
+
+describe('clustering coordinate validation', () => {
+  it.each([12, 16])('isolates bad coordinates at zoom %j without corrupting valid markers', (zoom) => {
+    const invalid = [null, undefined, {}, { lat: '20', lng: 30 }, { lat: true, lng: 30 },
+      { lat: NaN, lng: 30 }, { lat: 20, lng: Infinity }, { coordinates: [91, 0] },
+      { coordinates: [0, -181] }];
+    const clusters = clusterEntities([...invalid, { id: 'good', lat: 20, lng: 30 }], zoom);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0]).toMatchObject({ lat: 20, lng: 30, count: 1 });
+    expect(clusters[0].entities[0].id).toBe('good');
+  });
+
+  it('keeps zero coordinates and computes a numeric centroid', () => {
+    const clusters = clusterEntities([
+      { id: 'one', coordinates: [0, 0] }, { id: 'two', lat: 0.001, lng: 0.001 },
+    ], 12);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0]).toMatchObject({ lat: 0.0005, lng: 0.0005, count: 2 });
+  });
+});
