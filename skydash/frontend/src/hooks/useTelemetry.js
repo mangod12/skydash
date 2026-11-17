@@ -28,6 +28,9 @@ export function useTelemetry() {
 
   const processData = useCallback((droneData) => {
     const telemetryState = useTelemetryStore.getState();
+    // Array messages are complete fleet snapshots, including one or zero drones.
+    // Replace membership before selecting data so removed drones cannot linger.
+    if (Array.isArray(droneData)) telemetryState.updateFleet(droneData);
     const data = Array.isArray(droneData)
       ? droneData.find((d) => d.drone_id === telemetryState.activeDroneId) || droneData[0]
       : droneData;
@@ -44,7 +47,6 @@ export function useTelemetry() {
       );
     }
 
-    if (Array.isArray(droneData) && droneData.length > 1) telemetryState.updateFleet(droneData);
   }, [updateTelemetry, updateDronePosition]);
 
   const startHttpFallback = useCallback(() => {
