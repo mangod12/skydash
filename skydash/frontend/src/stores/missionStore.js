@@ -4,6 +4,7 @@ import { apiFetch } from '../utils/api';
 import { API_BASE, API_CONFIGURED } from '../utils/runtimeConfig';
 
 const API = API_BASE;
+let missionRefreshGeneration = 0;
 const requireApi = () => {
   if (API_CONFIGURED) return true;
   toast('Backend API not configured', 'warning');
@@ -18,6 +19,7 @@ export const useMissionStore = create((set, get) => ({
   visionStatus: null,
 
   fetchMissions: async () => {
+    const generation = ++missionRefreshGeneration;
     if (!API_CONFIGURED) {
       set({ loading: false });
       return;
@@ -26,6 +28,7 @@ export const useMissionStore = create((set, get) => ({
     try {
       const res = await apiFetch(`${API}/api/missions`);
       const json = await res.json();
+      if (generation !== missionRefreshGeneration) return;
       if (!res.ok || json?.success !== true || !Array.isArray(json.data)) {
         throw new Error('Invalid mission list response');
       }
@@ -40,6 +43,7 @@ export const useMissionStore = create((set, get) => ({
         });
       }
     } catch (e) {
+      if (generation !== missionRefreshGeneration) return;
       console.error('Failed to fetch missions', e);
       set({ fetchError: true });
       toast('Failed to load missions', 'error');

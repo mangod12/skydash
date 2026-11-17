@@ -65,6 +65,38 @@ describe('missionStore', () => {
     expect(useMissionStore.getState().activeMissionId).toBeNull();
   });
 
+  it.each(['success', 'error'])('ignores an older refresh resolving with %s after the newer refresh', async (outcome) => {
+    let finishOld;
+    apiFetch.mockReturnValueOnce(new Promise((resolve, reject) => { finishOld = outcome === 'error' ? reject : resolve; }));
+    const oldRefresh = useMissionStore.getState().fetchMissions();
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: [mission(2)] }));
+    await useMissionStore.getState().fetchMissions();
+    if (outcome === 'error') finishOld(new Error('old request failed'));
+    else finishOld(await reply({ success: true, data: [mission(1)] }));
+    await oldRefresh;
+    expect(useMissionStore.getState().missions.map((m) => m.id)).toEqual([2]);
+    expect(useMissionStore.getState().activeMissionId).toBe(2);
+    expect(useMissionStore.getState().fetchError).toBe(false);
+    expect(useMissionStore.getState().loading).toBe(false);
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('keeps loading while the latest refresh remains unresolved', async () => {
+    let finishOld;
+    let finishNew;
+    apiFetch.mockReturnValueOnce(new Promise((resolve) => { finishOld = resolve; }));
+    const oldRefresh = useMissionStore.getState().fetchMissions();
+    apiFetch.mockReturnValueOnce(new Promise((resolve) => { finishNew = resolve; }));
+    const newRefresh = useMissionStore.getState().fetchMissions();
+    finishOld(await reply({ success: true, data: [mission(1)] }));
+    await oldRefresh;
+    expect(useMissionStore.getState().loading).toBe(true);
+    finishNew(await reply({ success: true, data: [mission(2)] }));
+    await newRefresh;
+    expect(useMissionStore.getState().loading).toBe(false);
+    expect(useMissionStore.getState().missions.map((m) => m.id)).toEqual([2]);
+  });
+
   it('createMission prepends, updateMission merges, deleteMission clears active', async () => {
     useMissionStore.setState({ missions: [mission(1)], activeMissionId: 1 });
     apiFetch.mockReturnValueOnce(reply({ success: true, data: mission(2) }));
