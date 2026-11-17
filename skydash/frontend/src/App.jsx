@@ -4,6 +4,7 @@ import DashboardView from './components/views/DashboardView';
 import FullMapView from './components/views/FullMapView';
 import IntelView from './components/views/IntelView';
 import LoginScreen from './components/common/LoginScreen';
+import IdleGuard from './components/common/IdleGuard';
 import { useUIStore } from './stores/uiStore';
 import { useAuthStore } from './stores/authStore';
 import { useIntelStore } from './stores/intelStore';
@@ -65,8 +66,11 @@ export default function App() {
   if (authEnabled && !token) return <LoginScreen />;
 
   return (
-    <Shell>
-      <ViewRouter />
-    </Shell>
+    <>
+      <Shell>
+        <ViewRouter />
+      </Shell>
+      <IdleGuard />
+    </>
   );
 }
