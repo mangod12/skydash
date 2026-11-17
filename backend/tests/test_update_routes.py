@@ -40,6 +40,21 @@ class TestUpdateRoutes(unittest.TestCase):
                 self.assertEqual(entity_store.count(), count)
                 self.assertEqual(entity_store.get_entity(self.eid), before)
 
+    def test_boolean_mission_map_values_are_rejected_without_writes(self):
+        before = mission_store.get_mission(self.mid)
+        count = mission_store.count()
+        for field in ("center_lat", "center_lng", "zoom_level"):
+            for value in (True, False):
+                with self.subTest(field=field, value=value):
+                    response = self.client.post("/api/missions", json={
+                        "name": "Invalid map", field: value,
+                    })
+                    self.assertEqual(response.status_code, 422)
+                    response = self.client.put(f"/api/missions/{self.mid}", json={field: value})
+                    self.assertEqual(response.status_code, 422)
+                    self.assertEqual(mission_store.count(), count)
+                    self.assertEqual(mission_store.get_mission(self.mid), before)
+
     def test_entity_partial_update_keeps_other_fields(self):
         resp = self.client.put(f"/api/entities/{self.eid}", json={"confidence": 80})
         data = resp.json()["data"]

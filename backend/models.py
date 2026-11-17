@@ -16,6 +16,12 @@ def _reject_boolean_coordinates(v):
     return v
 
 
+def _reject_boolean_map_value(v):
+    if isinstance(v, bool):
+        raise ValueError('map values cannot be booleans')
+    return v
+
+
 def _check_coordinates(v):
     if v is None:
         return v
@@ -118,6 +124,9 @@ class MissionCreate(BaseModel):
     zoom_level: Optional[int] = Field(default=None, ge=0, le=24)
     tags: List[str] = []
 
+    _map_values = field_validator(
+        "center_lat", "center_lng", "zoom_level", mode="before",
+    )(_reject_boolean_map_value)
     _tags = field_validator("tags")(_check_tags)
 
 
@@ -132,6 +141,9 @@ class MissionUpdate(BaseModel):
     tags: Optional[List[str]] = None
 
     _not_null = field_validator("name", "description", "status", "tags", mode="before")(_reject_null)
+    _map_values = field_validator(
+        "center_lat", "center_lng", "zoom_level", mode="before",
+    )(_reject_boolean_map_value)
     _tags = field_validator("tags")(_check_tags)
 
 
