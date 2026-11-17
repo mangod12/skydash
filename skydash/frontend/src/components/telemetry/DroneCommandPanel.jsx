@@ -27,7 +27,6 @@ export default function DroneCommandPanel() {
   const setActiveDroneId = useTelemetryStore((s) => s.setActiveDroneId);
 
   const [selectedDrone, setSelectedDrone] = useState('');
-  const [activeMode, setActiveMode] = useState('ORBIT');
   const [speed, setSpeed] = useState(5.0);
   const [altitude, setAltitude] = useState(80);
   const [orbitRadius, setOrbitRadius] = useState(600);
@@ -40,19 +39,27 @@ export default function DroneCommandPanel() {
   const confirmTimer = useRef(null);
 
   const droneIds = useMemo(
-    () => (fleet.length > 0 ? fleet.map((d) => d.drone_id) : ['ALPHA-1', 'BRAVO-2', 'CHARLIE-3']),
+    () => [...new Set(fleet.filter((d) => typeof d?.drone_id === 'string' && d.drone_id.trim()).map((d) => d.drone_id))],
     [fleet],
   );
-  const effectiveDrone = selectedDrone || activeDroneId || droneIds[0] || '';
-  const commandReady = API_CONFIGURED && isConnected && !!effectiveDrone;
+  const effectiveDrone = selectedDrone || (droneIds.includes(activeDroneId) ? activeDroneId : droneIds[0]) || '';
+  const targetAvailable = droneIds.includes(effectiveDrone);
+  const reportedMode = fleet.find((d) => d?.drone_id === effectiveDrone)?.flight_mode;
+  const activeMode = typeof reportedMode === 'string' ? reportedMode.toUpperCase() : null;
+  const commandReady = API_CONFIGURED && isConnected && targetAvailable;
 
   useEffect(() => {
-    if (effectiveDrone) setActiveDroneId(effectiveDrone);
-  }, [effectiveDrone, setActiveDroneId]);
+    if (targetAvailable) setActiveDroneId(effectiveDrone);
+  }, [effectiveDrone, targetAvailable, setActiveDroneId]);
 
-  useEffect(() => () => {
-    if (confirmTimer.current) clearTimeout(confirmTimer.current);
-  }, []);
+  useEffect(() => {
+    clearTimeout(confirmTimer.current);
+    const reset = setTimeout(() => setConfirmStop(false), 0);
+    return () => {
+      clearTimeout(reset);
+      clearTimeout(confirmTimer.current);
+    };
+  }, [effectiveDrone, commandReady]);
 
   useEffect(() => {
     const id = setInterval(() => setFlightTimeSeconds((s) => s + 1), 1000);
@@ -62,11 +69,12 @@ export default function DroneCommandPanel() {
   const pushLog = useCallback((cmd, status = 'PENDING') => {
     const entry = {
       cmd,
+      droneId: effectiveDrone,
       status,
       time: new Date().toISOString().slice(11, 19) + 'Z',
     };
     setCommandLog((prev) => [entry, ...prev].slice(0, MAX_LOG));
-  }, []);
+  }, [effectiveDrone]);
 
   const sendCommand = useCallback(async (command, params = {}) => {
     if (!commandReady) {
@@ -77,10 +85,10 @@ export default function DroneCommandPanel() {
     const label = formatCommand(command, params);
     setPendingCommand(command);
     setAck('PENDING');
-    setAckDetail(label);
+    setAckDetail(`${effectiveDrone}: ${label}`);
     pushLog(label, 'PENDING');
     try {
-      const res = await apiFetch(`${API_BASE}/api/drone/${effectiveDrone}/command`, {
+      const res = await apiFetch(`${API_BASE}/api/drone/${encodeURIComponent(effectiveDrone)}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command, params }),
@@ -91,12 +99,12 @@ export default function DroneCommandPanel() {
         throw new Error(message);
       }
       setAck('CONFIRMED');
-      setAckDetail(payload.data?.ack === 'confirmed' ? 'Simulator state updated' : 'Accepted');
+      setAckDetail(`${effectiveDrone}: ${payload.data?.ack === 'confirmed' ? 'Simulator state updated' : 'Accepted'}`);
       pushLog(label, 'CONFIRMED');
       return payload.data;
     } catch (error) {
       setAck('FAILED');
-      setAckDetail(error.message || 'Command failed');
+      setAckDetail(`${effectiveDrone}: ${error.message || 'Command failed'}`);
       pushLog(label, 'FAILED');
       return null;
     } finally {
@@ -105,20 +113,20 @@ export default function DroneCommandPanel() {
   }, [commandReady, effectiveDrone, pushLog]);
 
   const handleMode = useCallback(async (mode) => {
-    const result = await sendCommand('set_mode', { mode: mode.toLowerCase() });
-    if (result) setActiveMode(mode);
+    await sendCommand('set_mode', { mode: mode.toLowerCase() });
   }, [sendCommand]);
 
   const handleEmergency = useCallback(() => {
-    if (!confirmStop) {
-      setConfirmStop(true);
+    if (!commandReady) return;
+    if (confirmStop !== effectiveDrone) {
+      setConfirmStop(effectiveDrone);
       confirmTimer.current = setTimeout(() => setConfirmStop(false), 3000);
       return;
     }
     clearTimeout(confirmTimer.current);
     setConfirmStop(false);
     sendCommand('emergency_stop', {});
-  }, [confirmStop, sendCommand]);
+  }, [confirmStop, effectiveDrone, commandReady, sendCommand]);
 
   const hh = String(Math.floor(flightTimeSeconds / 3600)).padStart(2, '0');
   const mm = String(Math.floor((flightTimeSeconds % 3600) / 60)).padStart(2, '0');
@@ -141,13 +149,18 @@ export default function DroneCommandPanel() {
         <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">DRONE COMMAND</h3>
         <select
           value={effectiveDrone}
-          onChange={(e) => setSelectedDrone(e.target.value)}
-          disabled={droneIds.length === 0}
+          onChange={(e) => {
+            clearTimeout(confirmTimer.current);
+            setConfirmStop(false);
+            setSelectedDrone(e.target.value);
+          }}
+          disabled={droneIds.length === 0 || busy}
           aria-label="Select command target drone"
           className="bg-zinc-900/80 border border-white/[0.08] rounded-lg px-2.5 py-1 text-[11px]
             font-mono text-zinc-300 outline-none focus:border-indigo-500/40 cursor-pointer"
         >
-          {droneIds.length === 0 && <option value="">NO FLEET</option>}
+          {!effectiveDrone && <option value="">NO FLEET</option>}
+          {effectiveDrone && !targetAvailable && <option value={effectiveDrone}>{effectiveDrone} (UNAVAILABLE)</option>}
           {droneIds.map((id) => <option key={id} value={id}>{id}</option>)}
         </select>
       </div>
@@ -184,7 +197,7 @@ export default function DroneCommandPanel() {
         <div className="mt-1.5">
           <QuickBtn
             icon={Zap}
-            label={confirmStop ? 'CONFIRM STOP' : 'EMERGENCY STOP'}
+            label={confirmStop === effectiveDrone && commandReady ? 'CONFIRM STOP' : 'EMERGENCY STOP'}
             danger
             disabled={!commandReady || busy}
             onClick={handleEmergency}
@@ -245,7 +258,7 @@ export default function DroneCommandPanel() {
                   exit={{ opacity: 0, x: -8 }}
                   className={lastCmd.status === 'FAILED' ? 'text-red-400' : 'text-zinc-300'}
                 >
-                  {lastCmd.cmd.slice(0, 28)} @ {lastCmd.time}
+                  {lastCmd.droneId}: {lastCmd.cmd.slice(0, 28)} @ {lastCmd.time}
                 </motion.span>
               )}
             </AnimatePresence>
