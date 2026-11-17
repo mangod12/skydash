@@ -32,6 +32,19 @@ def _check_coordinates(v):
     return v
 
 
+def _check_finite_properties(v):
+    pending = [v]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError('properties must contain only finite numbers')
+        if isinstance(value, dict):
+            pending.extend(value.values())
+        elif isinstance(value, (list, tuple)):
+            pending.extend(value)
+    return v
+
+
 def _check_tags(v):
     if v is None:
         return v
@@ -75,6 +88,7 @@ class EntityCreate(BaseModel):
     tags: List[str] = []
     threatLevel: str = "none"
 
+    _properties = field_validator("properties")(_check_finite_properties)
     _raw_coords = field_validator("coordinates", mode="before")(_reject_boolean_coordinates)
     _coords = field_validator("coordinates")(_check_coordinates)
     _tags = field_validator("tags")(_check_tags)
@@ -96,6 +110,7 @@ class EntityUpdate(BaseModel):
         "type", "name", "properties", "confidence", "source", "tags", "threatLevel",
         mode="before",
     )(_reject_null)
+    _properties = field_validator("properties")(_check_finite_properties)
     _raw_coords = field_validator("coordinates", mode="before")(_reject_boolean_coordinates)
     _coords = field_validator("coordinates")(_check_coordinates)
     _tags = field_validator("tags")(_check_tags)
