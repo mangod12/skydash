@@ -43,6 +43,14 @@ Signing out calls `POST /api/auth/logout`, which revokes the token's `jti`
 until its natural expiry, so a copied token stops working immediately. Tokens
 issued before this change have no `jti` and simply expire.
 
+## Behind a reverse proxy
+
+The bundled `nginx.conf` sends the same security headers as the Static Web Apps
+deployment and forwards the client address in `X-Real-IP`. By default the backend
+ignores that header. When the backend is reachable only through the proxy (do not
+publish port 8001), set `SKYDASH_TRUST_PROXY=1` so the login throttle and audit
+trail see real client addresses instead of the proxy's.
+
 ## Audit trail
 
 With authentication on, every state-changing request and every auth attempt is
