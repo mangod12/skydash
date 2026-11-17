@@ -3,7 +3,7 @@
 import logging
 import os
 import time
-from collections import defaultdict, deque
+from collections import deque
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -20,7 +20,9 @@ router = APIRouter()
 # Failed-login throttle: max attempts per (client, username) per window.
 LOGIN_MAX_FAILURES = 5
 LOGIN_WINDOW_SECONDS = 60
-_login_failures = defaultdict(deque)
+LOGIN_MAX_TRACKED = 10000
+_login_failures = {}
+_last_login_sweep = 0.0
 
 
 def _throttle_key(request: Request, username: str) -> str:
@@ -28,10 +30,25 @@ def _throttle_key(request: Request, username: str) -> str:
     return f"{client}:{username.lower()}"
 
 
-def _recent_failures(key: str) -> deque:
-    failures = _login_failures[key]
-    cutoff = time.monotonic() - LOGIN_WINDOW_SECONDS
-    while failures and failures[0] < cutoff:
+def _recent_failures(key: str):
+    """Return a failure bucket, or None when active buckets fill the cap.
+
+    Never evict live buckets: doing so would let username churn reset a lockout.
+    """
+    global _last_login_sweep
+    now = time.monotonic()
+    cutoff = now - LOGIN_WINDOW_SECONDS
+    if now - _last_login_sweep >= LOGIN_WINDOW_SECONDS:
+        for old_key, bucket in list(_login_failures.items()):
+            if not bucket or bucket[-1] <= cutoff:
+                _login_failures.pop(old_key, None)
+        _last_login_sweep = now
+    failures = _login_failures.get(key)
+    if failures is None:
+        if len(_login_failures) >= LOGIN_MAX_TRACKED:
+            return None
+        failures = _login_failures[key] = deque()
+    while failures and failures[0] <= cutoff:
         failures.popleft()
     return failures
 
@@ -47,7 +64,7 @@ async def auth_login(body: AuthLogin, request: Request):
         )
     key = _throttle_key(request, body.username)
     failures = _recent_failures(key)
-    if len(failures) >= LOGIN_MAX_FAILURES:
+    if failures is None or len(failures) >= LOGIN_MAX_FAILURES:
         return JSONResponse(
             status_code=429,
             headers={"Retry-After": str(LOGIN_WINDOW_SECONDS)},
@@ -61,7 +78,7 @@ async def auth_login(body: AuthLogin, request: Request):
             content={"success": False, "error": "Invalid credentials"},
         )
     token = create_token(user)
-    failures.clear()
+    _login_failures.pop(key, None)
     safe_user = {
         "id": user["id"],
         "username": user["username"],

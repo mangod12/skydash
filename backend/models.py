@@ -41,7 +41,7 @@ def _reject_null(v):
 
 
 class AuthLogin(BaseModel):
-    username: str
+    username: str = Field(max_length=64)
     password: str
 
 

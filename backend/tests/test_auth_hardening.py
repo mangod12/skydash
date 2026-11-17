@@ -71,6 +71,46 @@ class TestAuthHardening(unittest.TestCase):
         good = {"username": "alice", "password": self.good_pw}
         self.assertEqual(self.client.post("/api/auth/login", json=good).status_code, 429)
 
+    def test_oversized_login_username_is_rejected_before_tracking(self):
+        response = self.client.post(
+            "/api/auth/login", json={"username": "x" * 65, "password": "wrong"}
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(auth_routes._login_failures, {})
+
+    def test_login_tracking_cap_does_not_evict_active_lockouts(self):
+        with patch.object(auth_routes, "LOGIN_MAX_TRACKED", 2):
+            bad = {"username": "first", "password": "wrong"}
+            for _ in range(auth_routes.LOGIN_MAX_FAILURES):
+                self.assertEqual(self.client.post("/api/auth/login", json=bad).status_code, 401)
+            self.assertEqual(self.client.post(
+                "/api/auth/login", json={"username": "second", "password": "wrong"}
+            ).status_code, 401)
+            for i in range(5):
+                self.assertEqual(self.client.post(
+                    "/api/auth/login", json={"username": f"extra-{i}", "password": "wrong"}
+                ).status_code, 429)
+            self.assertEqual(len(auth_routes._login_failures), 2)
+            self.assertEqual(self.client.post("/api/auth/login", json=bad).status_code, 429)
+
+    def test_expired_login_buckets_are_reclaimed(self):
+        with patch.object(auth_routes.time, "monotonic", return_value=100.0), \
+                patch.object(auth_routes, "_last_login_sweep", 0.0):
+            auth_routes._recent_failures("old").append(100.0)
+            self.assertEqual(len(auth_routes._login_failures), 1)
+        with patch.object(auth_routes.time, "monotonic", return_value=160.0), \
+                patch.object(auth_routes, "_last_login_sweep", 100.0):
+            self.assertIsNotNone(auth_routes._recent_failures("new"))
+            self.assertNotIn("old", auth_routes._login_failures)
+
+    def test_successful_login_releases_tracking_bucket(self):
+        self.users.create_user("alice", self.good_pw)
+        response = self.client.post(
+            "/api/auth/login", json={"username": "alice", "password": self.good_pw}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(auth_routes._login_failures, {})
+
     def test_successful_login_resets_failure_count(self):
         self.users.create_user("alice", self.good_pw)
         bad = {"username": "alice", "password": "x" + secrets.token_hex(2)}
