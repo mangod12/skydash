@@ -62,6 +62,37 @@ Notes:
 - Logs go to stdout. RBAC denials are logged at WARNING level.
 - See `docs/skydash-operations-runbook.md` for day-to-day operations.
 
+## Database backups
+
+SQLite runs in WAL mode. Do not copy only `skydash.db` while the backend is
+running: recent committed data may still be in its `-wal` file. Use the snapshot
+command instead (from the backend directory):
+
+```sh
+python scripts/backup_db.py --source /app/data/skydash.db /secure-backups/skydash-2026-11-17.db
+```
+
+`--source` defaults to `SKYDASH_DB_PATH`, then `skydash.db`. The destination's
+parent directory must already exist and be writable. Use a new filename for
+each backup; existing files and symlinks are never overwritten. The command
+opens the source read-only, uses SQLite's backup API, checks snapshot integrity,
+and creates a self-contained file with owner-only permissions (`0600`). It does
+not import the app or seed accounts.
+
+Only a zero exit status and `Verified backup saved` mean the snapshot completed.
+A normal error removes the incomplete destination. If the process or host is
+killed, discard the unfinished file and retry with a new name. Store snapshots
+outside the repository, protect and encrypt them at rest, and set retention for
+your deployment: they contain user password hashes, mission data and audit logs.
+No backup schedule or remote upload is configured by this command.
+
+Test restore on an isolated instance before relying on backups. For an actual
+restore, stop the backend first, preserve the current database and its WAL/SHM
+sidecars together, and replace them with the verified snapshot at
+`SKYDASH_DB_PATH`. Do not leave old WAL/SHM files beside the restored database.
+Keep the backend user's file ownership/permissions, restart, then check health,
+login and expected mission/entity counts. Never restore over a running instance.
+
 ## Demo reset
 
 For demos and training, `POST /api/demo/reset` with body `{"confirm": true}`
