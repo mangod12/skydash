@@ -168,12 +168,12 @@ def revoke_token(payload):
     if not jti:
         return False
     conn = db.get_connection()
-    conn.execute("DELETE FROM revoked_tokens WHERE exp < ?", (time.time(),))
-    conn.execute(
-        "INSERT OR REPLACE INTO revoked_tokens (jti, exp) VALUES (?, ?)",
-        (jti, float(payload.get("exp", time.time()))),
-    )
-    conn.commit()
+    with db.get_lock(), conn:
+        conn.execute("DELETE FROM revoked_tokens WHERE exp < ?", (time.time(),))
+        conn.execute(
+            "INSERT OR REPLACE INTO revoked_tokens (jti, exp) VALUES (?, ?)",
+            (jti, float(payload.get("exp", time.time()))),
+        )
     return True
 
 
