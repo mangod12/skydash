@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { toDMS, toUTM, toMGRS, formatDecimal } from '../../utils/coordinates';
+import { toDMS, toUTM, toMGRS, formatDecimal, isValidCoordinate } from '../../utils/coordinates';
 
 const FORMATS = ['DD', 'DMS', 'UTM', 'MGRS'];
 
@@ -9,10 +9,11 @@ export default function CoordinateDisplay({ lat, lng }) {
   if (lat == null || lng == null) return null;
 
   const getFormatted = () => {
+    if (!isValidCoordinate(lat, lng)) return 'N/A';
     switch (FORMATS[format]) {
       case 'DD': return formatDecimal(lat, lng);
       case 'DMS': return toDMS(lat, lng);
-      case 'UTM': return toUTM(lat, lng).formatted;
+      case 'UTM': return toUTM(lat, lng)?.formatted ?? 'N/A (polar region)';
       case 'MGRS': return toMGRS(lat, lng);
       default: return formatDecimal(lat, lng);
     }

@@ -1,0 +1,85 @@
+{
+  "provenance": "UTM: pyproj 3.7.1, PROJ 9.5.1, WGS84 EPSG:326xx/327xx; MGRS: Python mgrs 1.5.4, native GEOTRANS implementation. Generated independently of JavaScript implementation.",
+  "fixtures": [
+    {
+      "lat": 37.7749,
+      "lng": -122.4194,
+      "zone": 10,
+      "easting": 551131,
+      "northing": 4180999,
+      "mgrs": "10SEG5113080998"
+    },
+    {
+      "lat": -33.8688,
+      "lng": 151.2093,
+      "zone": 56,
+      "easting": 334369,
+      "northing": 6250948,
+      "mgrs": "56HLH3436850948"
+    },
+    {
+      "lat": 60,
+      "lng": 6,
+      "zone": 32,
+      "easting": 332705,
+      "northing": 6655205,
+      "mgrs": "32VLM3270555205"
+    },
+    {
+      "lat": 76,
+      "lng": 15,
+      "zone": 33,
+      "easting": 500000,
+      "northing": 8435185,
+      "mgrs": "33XWE0000035185"
+    },
+    {
+      "lat": 76,
+      "lng": 24,
+      "zone": 35,
+      "easting": 419017,
+      "northing": 8437243,
+      "mgrs": "35XME1901737243"
+    },
+    {
+      "lat": 76,
+      "lng": 36,
+      "zone": 37,
+      "easting": 419017,
+      "northing": 8437243,
+      "mgrs": "37XDE1901737243"
+    },
+    {
+      "lat": 0,
+      "lng": -180,
+      "zone": 1,
+      "easting": 166021,
+      "northing": 0,
+      "mgrs": "01NAA6602100000"
+    },
+    {
+      "lat": 84,
+      "lng": 0,
+      "zone": 31,
+      "easting": 465005,
+      "northing": 9329005,
+      "mgrs": "31XDP6500529005"
+    },
+    {
+      "lat": -80,
+      "lng": 0,
+      "zone": 31,
+      "easting": 441868,
+      "northing": 1116915,
+      "mgrs": "31CDM4186716915"
+    },
+    {
+      "lat": 28.6139,
+      "lng": 77.209,
+      "zone": 43,
+      "easting": 715980,
+      "northing": 3167205,
+      "mgrs": "43RGM1598067204"
+    }
+  ]
+}

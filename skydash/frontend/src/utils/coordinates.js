@@ -1,26 +1,38 @@
+import { forward as mgrsForward } from 'mgrs';
+
 /**
  * Coordinate conversion utilities
  * Supports: Decimal Degrees, DMS, UTM, MGRS
  */
 
+export function isValidCoordinate(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+}
+
 export function toDMS(lat, lng) {
+  if (!isValidCoordinate(lat, lng)) return 'N/A';
   const formatDMS = (dd, isLat) => {
     const dir = isLat ? (dd >= 0 ? 'N' : 'S') : (dd >= 0 ? 'E' : 'W');
     const abs = Math.abs(dd);
-    const deg = Math.floor(abs);
-    const minFloat = (abs - deg) * 60;
-    const min = Math.floor(minFloat);
-    const sec = ((minFloat - min) * 60).toFixed(1);
+    const tenths = Math.round(abs * 36000);
+    const deg = Math.floor(tenths / 36000);
+    const min = Math.floor((tenths % 36000) / 600);
+    const sec = ((tenths % 600) / 10).toFixed(1);
     return `${deg}\u00B0${String(min).padStart(2, '0')}'${String(sec).padStart(4, '0')}"${dir}`;
   };
   return `${formatDMS(lat, true)} ${formatDMS(lng, false)}`;
 }
 
 export function toUTM(lat, lng) {
-  const zone = Math.floor((lng + 180) / 6) + 1;
+  if (!isValidCoordinate(lat, lng) || lat < -80 || lat > 84) return null;
+  let zone = Math.min(60, Math.floor((lng + 180) / 6) + 1);
+  if (lat >= 56 && lat < 64 && lng >= 3 && lng < 12) zone = 32;
+  if (lat >= 72 && lat < 84 && lng >= 0 && lng < 42) {
+    zone = lng < 9 ? 31 : lng < 21 ? 33 : lng < 33 ? 35 : 37;
+  }
   const letter = lat >= 0 ? 'N' : 'S';
 
-  // Simplified UTM projection (WGS84)
+  // WGS84 transverse Mercator series through A^6 (metre-level display).
   const a = 6378137;
   const f = 1 / 298.257223563;
   const e = Math.sqrt(2 * f - f * f);
@@ -37,13 +49,14 @@ export function toUTM(lat, lng) {
   const A = Math.cos(latRad) * (lngRad - lng0);
 
   const M = a * (
-    (1 - e * e / 4 - 3 * e * e * e * e / 64) * latRad
-    - (3 * e * e / 8 + 3 * e * e * e * e / 32) * Math.sin(2 * latRad)
-    + (15 * e * e * e * e / 256) * Math.sin(4 * latRad)
+    (1 - e ** 2 / 4 - 3 * e ** 4 / 64 - 5 * e ** 6 / 256) * latRad
+    - (3 * e ** 2 / 8 + 3 * e ** 4 / 32 + 45 * e ** 6 / 1024) * Math.sin(2 * latRad)
+    + (15 * e ** 4 / 256 + 45 * e ** 6 / 1024) * Math.sin(4 * latRad)
+    - (35 * e ** 6 / 3072) * Math.sin(6 * latRad)
   );
 
-  const easting = k0 * N * (A + (1 - T + C) * A * A * A / 6) + 500000;
-  const northing = k0 * (M + N * Math.tan(latRad) * (A * A / 2 + (5 - T + 9 * C) * A * A * A * A / 24));
+  const easting = k0 * N * (A + (1 - T + C) * A ** 3 / 6 + (5 - 18 * T + T ** 2 + 72 * C - 58 * e2) * A ** 5 / 120) + 500000;
+  const northing = k0 * (M + N * Math.tan(latRad) * (A ** 2 / 2 + (5 - T + 9 * C + 4 * C ** 2) * A ** 4 / 24 + (61 - 58 * T + T ** 2 + 600 * C - 330 * e2) * A ** 6 / 720));
 
   return {
     zone,
@@ -54,37 +67,21 @@ export function toUTM(lat, lng) {
   };
 }
 
-const MGRS_LETTERS_100K_E = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-const MGRS_LETTERS_100K_N = 'ABCDEFGHJKLMNPQRSTUV';
-
+/** Full MGRS grid lettering and truncation from proj4js/mgrs (MIT). */
 export function toMGRS(lat, lng) {
-  const utm = toUTM(lat, lng);
-  const setNumber = ((utm.zone - 1) % 6);
-
-  const e100k = Math.floor(utm.easting / 100000);
-  const n100k = Math.floor(utm.northing / 100000) % 20;
-
-  const colIdx = (e100k - 1 + setNumber * 8) % 24;
-  const rowIdx = n100k % 20;
-
-  const col = MGRS_LETTERS_100K_E[colIdx] || '?';
-  const row = MGRS_LETTERS_100K_N[rowIdx] || '?';
-
-  const bandLetters = 'CDEFGHJKLMNPQRSTUVWX';
-  const bandIdx = Math.floor((lat + 80) / 8);
-  const band = bandLetters[Math.min(bandIdx, bandLetters.length - 1)] || '?';
-
-  const e5 = String(Math.round(utm.easting % 100000)).padStart(5, '0');
-  const n5 = String(Math.round(utm.northing % 100000)).padStart(5, '0');
-
-  return `${utm.zone}${band} ${col}${row} ${e5} ${n5}`;
+  if (!isValidCoordinate(lat, lng)) return 'N/A';
+  if (lat < -80 || lat > 84) return 'N/A (polar region)';
+  const grid = mgrsForward([lng, lat], 5);
+  return grid.replace(/^(\d{1,2}[C-X])([A-Z]{2})(\d{5})(\d{5})$/, '$1 $2 $3 $4');
 }
 
 export function formatDecimal(lat, lng) {
+  if (!isValidCoordinate(lat, lng)) return 'N/A';
   return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 }
 
 export function distanceBetween(lat1, lng1, lat2, lng2) {
+  if (!isValidCoordinate(lat1, lng1) || !isValidCoordinate(lat2, lng2)) return NaN;
   const R = 6371000; // Earth radius meters
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
@@ -92,6 +89,7 @@ export function distanceBetween(lat1, lng1, lat2, lng2) {
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const haversine = Math.max(0, Math.min(1, a));
+  const c = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
   return R * c;
 }

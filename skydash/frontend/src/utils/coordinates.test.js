@@ -1,3 +1,4 @@
+import { fixtures } from './gridReferenceFixtures.json';
 import { describe, it, expect } from 'vitest';
 import { toDMS, toUTM, toMGRS, formatDecimal, distanceBetween } from './coordinates';
 
@@ -71,5 +72,37 @@ describe('distanceBetween', () => {
     const dist = distanceBetween(37.7749, -122.4194, 37.8044, -122.2712);
     expect(dist).toBeGreaterThan(12000);
     expect(dist).toBeLessThan(15000);
+  });
+});
+
+describe('independent geographic reference fixtures', () => {
+  it.each(fixtures)('matches PROJ and native MGRS for $lat,$lng', ({ lat, lng, zone, easting, northing, mgrs }) => {
+    const utm = toUTM(lat, lng);
+    expect(utm.zone).toBe(zone);
+    expect(Math.abs(utm.easting - easting)).toBeLessThanOrEqual(1);
+    expect(Math.abs(utm.northing - northing)).toBeLessThanOrEqual(1);
+    expect(toMGRS(lat, lng).replaceAll(' ', '')).toBe(mgrs.replace(/^0/, ''));
+  });
+
+  it('keeps the eastern antimeridian inside zone 60', () => {
+    expect(toUTM(0, 180).zone).toBe(60);
+    expect(toMGRS(0, 180)).toMatch(/^60N/);
+  });
+
+  it('carries rounded seconds into minutes and degrees', () => {
+    expect(toDMS(12 + 59 / 60 + 59.99 / 3600, -179.9999999)).toBe(`13°00'00.0"N 180°00'00.0"W`);
+  });
+
+  it.each([null, NaN, Infinity, '10', 91])('does not invent a coordinate for invalid latitude %s', (lat) => {
+    expect(toDMS(lat, 0)).toBe('N/A');
+    expect(formatDecimal(lat, 0)).toBe('N/A');
+    expect(toUTM(lat, 0)).toBeNull();
+    expect(toMGRS(lat, 0)).toBe('N/A');
+  });
+
+  it.each([-81, 85, 90])('does not claim a UTM grid outside its supported latitude at %s', (lat) => {
+    expect(toUTM(lat, 0)).toBeNull();
+    expect(toMGRS(lat, 0)).toBe('N/A (polar region)');
+    expect(toDMS(lat, 0)).not.toBe('N/A');
   });
 });
