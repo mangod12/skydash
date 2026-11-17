@@ -17,7 +17,16 @@ if not _env_secret:
     log.warning("SKYDASH_JWT_SECRET not set — using ephemeral secret (tokens invalidate on restart)")
 SECRET_KEY = _env_secret
 ALGORITHM = "HS256"
-TOKEN_EXPIRE_SECONDS = 86400  # 24 hours
+def _ttl_seconds():
+    """Token lifetime. Default 24h; SKYDASH_TOKEN_TTL_MINUTES shortens (or lengthens) it."""
+    try:
+        minutes = float(os.getenv("SKYDASH_TOKEN_TTL_MINUTES", "1440"))
+        return int(minutes * 60) if minutes > 0 else 86400
+    except ValueError:
+        return 86400
+
+
+TOKEN_EXPIRE_SECONDS = _ttl_seconds()
 
 
 class UserStore:

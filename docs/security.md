@@ -42,7 +42,8 @@ passwords and not contain the username. Rejections return `422`.
 
 Signing out calls `POST /api/auth/logout`, which revokes the token's `jti`
 until its natural expiry, so a copied token stops working immediately. Tokens
-issued before this change have no `jti` and simply expire.
+issued before this change have no `jti` and simply expire. Tokens last 24 hours
+by default; set `SKYDASH_TOKEN_TTL_MINUTES` (for example `60`) for shorter sessions.
 
 ## Behind a reverse proxy
 
