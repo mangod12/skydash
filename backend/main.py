@@ -48,11 +48,16 @@ async def lifespan(_app: FastAPI):
     """Sample fleet telemetry every second into a ring buffer."""
     async def record():
         while True:
-            snapshot = {
-                "timestamp": time.time(),
-                "drones": fleet.get_all_telemetry(),
-            }
-            telemetry_history.append(snapshot)
+            try:
+                snapshot = {
+                    "timestamp": time.time(),
+                    "drones": fleet.get_all_telemetry(),
+                }
+                telemetry_history.append(snapshot)
+            except Exception:
+                # A transient adapter failure must not stop history collection.
+                # Skip the failed sample rather than recording fabricated empty data.
+                log.exception("Telemetry history sample failed")
             await asyncio.sleep(1)
 
     task = asyncio.create_task(record())
