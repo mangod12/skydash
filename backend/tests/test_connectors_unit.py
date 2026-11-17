@@ -179,6 +179,24 @@ class TestShodan(unittest.TestCase):
         with patch("connectors.requests.get", side_effect=RuntimeError("down")):
             self.assertEqual(conn.search("x"), [])
 
+    def test_shodan_request_errors_never_log_credential_bearing_urls(self):
+        import requests
+
+        key = "fixture-sensitive-key"
+        conn = ShodanConnector(api_key=key)
+        for failure in (requests.ConnectionError, requests.Timeout, ValueError):
+            with self.subTest(error=failure.__name__), patch(
+                "connectors.requests.get", side_effect=failure(
+                    "Request failed: https://api.shodan.io/shodan/host/search?key=" + key
+                )
+            ), self.assertLogs("skydash.connectors", level="WARNING") as captured:
+                self.assertEqual(conn.search("cam"), [])
+            text = "\n".join(captured.output)
+            self.assertIn(failure.__name__, text)
+            self.assertNotIn(key, text)
+            self.assertNotIn("?key=", text)
+            self.assertNotIn("https://", text)
+
     def test_to_entities_marks_mode_and_handles_missing_coordinates(self):
         results = [{"ip": "1.2.3.4", "port": 80, "org": "O", "product": "Cam", "lat": 1.5, "lon": 2.5},
                    {"ip": "5.6.7.8", "port": 22, "org": "O", "product": "SSH"}]
