@@ -20,7 +20,7 @@ async def create_mission(body: MissionCreate):
         return {"success": True, "data": mission}
     except Exception as exc:
         log.error(f"Error creating mission: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
 @router.get("/api/missions")
