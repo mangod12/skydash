@@ -14,6 +14,7 @@ Nothing is received: outbound only.
 import asyncio
 import contextlib
 import logging
+import math
 import os
 import ssl
 from datetime import datetime, timedelta, timezone
@@ -54,8 +55,20 @@ def _event(uid: str, cot_type: str, lat: float, lon: float, now: datetime,
 
 
 def _valid(lat, lon) -> bool:
-    return (isinstance(lat, (int, float)) and isinstance(lon, (int, float))
+    return (type(lat) in (int, float) and type(lon) in (int, float)
+            and math.isfinite(lat) and math.isfinite(lon)
             and abs(lat) <= 90 and abs(lon) <= 180)
+
+
+def _finite_number(value, default):
+    """Keep malformed telemetry out of numeric CoT attributes."""
+    if isinstance(value, bool):
+        return default
+    try:
+        number = float(value)
+        return number if math.isfinite(number) else default
+    except (TypeError, ValueError, OverflowError):
+        return default
 
 
 def build_events(entities: Iterable[Dict], drones: Iterable[Dict],
@@ -67,13 +80,22 @@ def build_events(entities: Iterable[Dict], drones: Iterable[Dict],
         lat, lon = gps.get("latitude"), gps.get("longitude")
         if not _valid(lat, lon):
             continue
-        track = (f'<track course="{d.get("attitude", {}).get("yaw", 0)}" '
-                 f'speed="{d.get("ground_speed", 0)}"/>')
+        attitude = d.get("attitude") or {}
+        course = _finite_number(attitude.get("yaw"), None)
+        speed = _finite_number(d.get("ground_speed"), None)
+        altitude = _finite_number(gps.get("altitude"), 9999999.0)
+        # Missing track values are unknown, not confirmed zero heading/speed.
+        attributes = []
+        if course is not None:
+            attributes.append(f'course="{course}"')
+        if speed is not None:
+            attributes.append(f'speed="{speed}"')
+        track = '<track ' + ' '.join(attributes) + '/>' if attributes else ''
         out.append(_event(
             f'skydash-drone-{d.get("drone_id")}', DRONE_COT_TYPE, lat, lon, now,
             str(d.get("drone_id")),
             f'status: {d.get("status")}; battery: {d.get("battery_percentage")}%',
-            hae=float(gps.get("altitude") or 0.0), extra=track))
+            hae=altitude, extra=track))
     for e in entities:
         coords = e.get("coordinates")
         if not isinstance(coords, (list, tuple)) or len(coords) < 2 or not _valid(coords[0], coords[1]):
