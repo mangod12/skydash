@@ -1,5 +1,6 @@
 import os
 import hashlib
+import math
 import secrets
 import time
 import logging
@@ -21,8 +22,11 @@ def _ttl_seconds():
     """Token lifetime. Default 24h; SKYDASH_TOKEN_TTL_MINUTES shortens (or lengthens) it."""
     try:
         minutes = float(os.getenv("SKYDASH_TOKEN_TTL_MINUTES", "1440"))
-        return int(minutes * 60) if minutes > 0 else 86400
-    except ValueError:
+        seconds = minutes * 60
+        if not math.isfinite(seconds) or seconds <= 0:
+            return 86400
+        return max(1, int(seconds))
+    except (ValueError, OverflowError):
         return 86400
 
 
