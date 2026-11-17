@@ -7,6 +7,7 @@ import time
 from typing import Dict, Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException
+from fastapi.responses import JSONResponse
 
 from auth import redeem_ws_ticket, verify_token
 from deps import (
@@ -28,7 +29,7 @@ async def get_all_telemetry():
         return {"success": True, "data": fleet.get_all_telemetry()}
     except Exception as exc:
         log.error(f"Error fetching telemetry: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error"})
 
 
 @router.get("/telemetry/{drone_id}")

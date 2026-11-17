@@ -4,6 +4,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Query, HTTPException
+from fastapi.responses import JSONResponse
 
 from deps import entity_store, mission_store
 from models import MissionCreate, MissionEntityAdd, MissionNoteAdd, MissionUpdate
@@ -30,7 +31,7 @@ async def list_missions(status: Optional[str] = Query(None)):
         return {"success": True, "data": data, "metadata": {"count": len(data)}}
     except Exception as exc:
         log.error(f"Error listing missions: {exc}", exc_info=True)
-        return {"success": False, "error": "Internal server error"}
+        return JSONResponse(status_code=500, content={"success": False, "error": "Internal server error"})
 
 
 @router.get("/api/missions/{mission_id}")

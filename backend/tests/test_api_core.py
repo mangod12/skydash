@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 import database
 import main
-from deps import mission_store, entity_store
+from deps import mission_store, entity_store, fleet
 
 
 class _ApiTestCase(unittest.TestCase):
@@ -66,6 +66,36 @@ class TestHealthAndTelemetry(_ApiTestCase):
     def test_telemetry_history_limit_validation(self):
         r = self.client.get("/api/telemetry/history?limit=0")
         self.assertEqual(r.status_code, 422)
+
+
+class TestReadFailures(_ApiTestCase):
+    def test_failed_reads_return_500_without_private_details(self):
+        from unittest.mock import patch
+
+        cases = [
+            ("/api/entities", entity_store, "list_entities"),
+            ("/api/entities/graph", entity_store, "get_graph"),
+            ("/api/entities/contact/graph", entity_store, "get_entity_graph"),
+            ("/api/timeline", entity_store, "get_timeline"),
+            ("/api/missions", mission_store, "list_missions"),
+            ("/telemetry", fleet, "get_all_telemetry"),
+        ]
+        for path, store, method in cases:
+            with self.subTest(path=path), patch.object(
+                store, method, side_effect=RuntimeError("private database/adapter details")
+            ):
+                response = self.client.get(path)
+            self.assertEqual(response.status_code, 500)
+            self.assertEqual(response.json(), {
+                "success": False, "error": "Internal server error",
+            })
+            self.assertNotIn("private", response.text)
+        # Empty data is still a successful read, distinct from unavailable data.
+        for path in ("/api/entities", "/api/missions", "/api/timeline"):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.json()["success"])
+            self.assertEqual(response.json()["data"], [])
 
 
 class TestCreationFailures(_ApiTestCase):
