@@ -85,3 +85,50 @@ class TestTokenRevocation(unittest.TestCase):
         token = self.login()["Authorization"].removeprefix("Bearer ")
         with patch.object(database, "get_connection", side_effect=RuntimeError("unavailable")):
             self.assertIsNone(auth.verify_token(token))
+
+    def test_failed_revocation_rolls_back_cleanup_and_insert(self):
+        import sqlite3
+
+        token = self.login()["Authorization"].removeprefix("Bearer ")
+        payload = auth.verify_token(token)
+        conn = database.get_connection()
+        conn.execute("INSERT INTO revoked_tokens (jti, exp) VALUES (?, ?)", ("expired-fixture", 1))
+        conn.execute("""CREATE TRIGGER reject_revocation AFTER INSERT ON revoked_tokens
+                        BEGIN SELECT RAISE(FAIL, 'synthetic failure'); END""")
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            auth.revoke_token(payload)
+        self.assertFalse(conn.in_transaction)
+        entity_store.add_event({"description": "Unrelated commit"})
+        rows = conn.execute("SELECT jti FROM revoked_tokens").fetchall()
+        self.assertEqual([row[0] for row in rows], ["expired-fixture"])
+        self.assertIsNotNone(auth.verify_token(token))
+        conn.execute("DROP TRIGGER reject_revocation")
+        conn.commit()
+        self.assertTrue(auth.revoke_token(payload))
+        self.assertIsNone(auth.verify_token(token))
+
+    def test_revocation_waits_for_existing_writer(self):
+        import threading
+        from concurrent.futures import ThreadPoolExecutor
+
+        token = self.login()["Authorization"].removeprefix("Bearer ")
+        payload = auth.verify_token(token)
+        started = threading.Event()
+        finished = threading.Event()
+
+        def revoke():
+            started.set()
+            try:
+                return auth.revoke_token(payload)
+            finally:
+                finished.set()
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            with database.get_lock():
+                future = executor.submit(revoke)
+                self.assertTrue(started.wait(2))
+                finished_early = finished.wait(0.1)
+            self.assertTrue(future.result(timeout=2))
+        self.assertFalse(finished_early)
+        self.assertIsNone(auth.verify_token(token))
