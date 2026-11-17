@@ -56,9 +56,17 @@ export const useAuthStore = create((set, get) => ({
         && session.user && typeof session.user === 'object' && !Array.isArray(session.user)
         && typeof session.user.username === 'string' && session.user.username.trim();
       if (res.status >= 200 && res.status < 300 && data?.success === true && validSession) {
-        storage?.setItem('skydash_token', data.data.token);
-        storage?.setItem('skydash_user', JSON.stringify(data.data.user));
-        set({ token: data.data.token, user: data.data.user, error: null });
+        try {
+          storage?.setItem('skydash_token', session.token);
+          storage?.setItem('skydash_user', JSON.stringify(session.user));
+        } catch {
+          // A valid server login can still work for this tab without storage.
+          // Remove any partial saved session rather than leaving mixed accounts.
+          for (const key of ['skydash_token', 'skydash_user']) {
+            try { storage?.removeItem(key); } catch { /* browser denied storage */ }
+          }
+        }
+        set({ token: session.token, user: session.user, error: null });
         return true;
       }
       set({ error: typeof data?.error === 'string' ? data.error : 'Login failed' });

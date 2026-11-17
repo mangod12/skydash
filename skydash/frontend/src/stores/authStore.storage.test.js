@@ -74,3 +74,29 @@ describe('auth initialization with blocked storage', () => {
     }
   });
 });
+
+describe('login with blocked storage writes', () => {
+  it.each(['skydash_token', 'skydash_user'])('keeps a valid tab session when persisting %s fails', async (brokenKey) => {
+    const saved = new Map([['skydash_token', 'old-token'], ['skydash_user', JSON.stringify({ username: 'old' })]]);
+    const removeItem = vi.fn((key) => saved.delete(key));
+    vi.stubGlobal('localStorage', {
+      getItem: (key) => saved.get(key) || null,
+      setItem: (key, value) => {
+        if (key === brokenKey) throw new Error('Storage full');
+        saved.set(key, value);
+      },
+      removeItem,
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, json: async () => ({
+      success: true, data: { token: 'new-token', user: { username: 'new' } },
+    }) }));
+    vi.resetModules();
+    const { useAuthStore } = await import('./authStore');
+    expect(await useAuthStore.getState().login('new', 'pw')).toBe(true);
+    expect(useAuthStore.getState().token).toBe('new-token');
+    expect(useAuthStore.getState().user.username).toBe('new');
+    expect(useAuthStore.getState().error).toBeNull();
+    expect(saved.size).toBe(0);
+    expect(removeItem).toHaveBeenCalledTimes(2);
+  });
+});
