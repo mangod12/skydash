@@ -80,12 +80,11 @@ class UserStore:
         uid = secrets.token_hex(4)
         pw_hash = self._hash_password(password)
         conn = db.get_connection()
-        with db.get_lock():
+        with db.get_lock(), conn:
             conn.execute(
                 "INSERT INTO users (id, username, password_hash, role, created_at) VALUES (?,?,?,?,?)",
                 (uid, username, pw_hash, role, time.strftime("%Y-%m-%dT%H:%M:%SZ")),
             )
-            conn.commit()
         return uid
 
     def authenticate(self, username, password):

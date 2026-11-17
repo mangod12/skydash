@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sqlite3
 import time
 from collections import deque
 
@@ -114,6 +115,19 @@ async def auth_register(body: AuthRegister):
         user = user_store.get_user(uid)
         token = create_token(user)
         return {"success": True, "data": {"token": token, "user": user}}
+    except sqlite3.IntegrityError:
+        # Another registration may have claimed the name after the precheck.
+        # create_user has already rolled back the failed transaction.
+        if user_store.username_exists(body.username):
+            return JSONResponse(
+                status_code=409,
+                content={"success": False, "error": "Username taken"},
+            )
+        log.exception("Database constraint error registering user")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "Internal server error"},
+        )
     except Exception as exc:
         log.error(f"Error registering user: {exc}", exc_info=True)
         return JSONResponse(

@@ -1,6 +1,7 @@
 import os
 import secrets
 import shutil
+import sqlite3
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -44,6 +45,39 @@ class TestAuthHardening(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()["data"]["user"]["role"], "analyst")
+
+    def test_duplicate_user_creation_closes_failed_transaction(self):
+        self.users.create_user("alice", self.good_pw)
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.users.create_user("alice", self.good_pw)
+        self.assertFalse(database.get_connection().in_transaction)
+        uid = self.users.create_user("next-user", self.good_pw)
+        self.assertEqual(self.users.get_user(uid)["username"], "next-user")
+
+    def test_registration_race_returns_conflict(self):
+        self.users.create_user("alice", self.good_pw)
+        # Simulate the name being available at precheck, but taken at insert.
+        with patch.object(self.users, "username_exists", side_effect=[False, True]):
+            response = self.client.post("/api/auth/register", json={
+                "username": "alice", "password": self.good_pw,
+            })
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["error"], "Username taken")
+        self.assertFalse(database.get_connection().in_transaction)
+        self.assertEqual(len([u for u in self.users.list_users() if u["username"] == "alice"]), 1)
+
+    def test_unrelated_registration_constraint_is_not_a_name_conflict(self):
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_registration BEFORE INSERT ON users
+                        BEGIN SELECT RAISE(ABORT, 'synthetic private failure'); END""")
+        conn.commit()
+        response = self.client.post("/api/auth/register", json={
+            "username": "new-user", "password": self.good_pw,
+        })
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn("synthetic private failure", response.text)
+        self.assertFalse(conn.in_transaction)
+        self.assertFalse(self.users.username_exists("new-user"))
 
     def test_register_rejects_short_password(self):
         resp = self.client.post(
