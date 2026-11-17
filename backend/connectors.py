@@ -169,7 +169,9 @@ class ShodanConnector:
             log.warning(f"Shodan API returned {resp.status_code}")
             return []
         except Exception as e:
-            log.warning(f"Shodan fetch failed: {e}")
+            # Request exceptions can include the full URL, including the API key
+            # passed in query parameters. Keep diagnostics without logging it.
+            log.warning("Shodan fetch failed (%s)", type(e).__name__)
             return []
 
     def _normalize(self, matches: List[Dict]) -> List[Dict]:
