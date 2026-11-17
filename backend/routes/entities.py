@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
 
 from deps import entity_store
+from entities import EntityAlreadyExists
 from models import EntityCreate, EntityUpdate, EventCreate, RelationshipCreate
 
 log = logging.getLogger("skydash")
@@ -56,6 +57,8 @@ async def create_entity(body: EntityCreate):
         entity = entity_store.create_entity(body.model_dump())
         log.info(f"Entity created: {entity['id']} ({entity['name']})")
         return {"success": True, "data": entity}
+    except EntityAlreadyExists as exc:
+        raise HTTPException(status_code=409, detail="Entity ID already exists") from exc
     except Exception as exc:
         log.error(f"Error creating entity: {exc}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error") from exc
