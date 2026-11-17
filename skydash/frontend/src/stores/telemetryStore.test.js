@@ -28,3 +28,32 @@ describe('telemetryStore lastUpdate', () => {
     expect(useTelemetryStore.getState().lastUpdate).toBe(5000);
   });
 });
+
+describe('telemetry history identity', () => {
+  beforeEach(() => useTelemetryStore.setState({ data: null, history: [], activeDroneId: null }));
+
+  it('starts a new chart history when telemetry switches drones', () => {
+    const update = useTelemetryStore.getState().updateTelemetry;
+    update({ ...sample, timestamp: 1000, altitude: 20 }, 0);
+    update({ ...sample, timestamp: 2000, altitude: 25 }, 0);
+    expect(useTelemetryStore.getState().history.map((h) => h.altitude)).toEqual([20, 25]);
+    // Selection may already have changed before the first new frame arrives.
+    useTelemetryStore.getState().setActiveDroneId('d2');
+    update({ ...sample, drone_id: 'd2', timestamp: 3000, altitude: 100 }, 0);
+    expect(useTelemetryStore.getState().history.map((h) => h.altitude)).toEqual([100]);
+    update({ ...sample, drone_id: 'd2', timestamp: 4000, altitude: 110 }, 0);
+    expect(useTelemetryStore.getState().history.map((h) => h.altitude)).toEqual([100, 110]);
+    update({ ...sample, timestamp: 5000, altitude: 30 }, 0);
+    expect(useTelemetryStore.getState().history.map((h) => h.altitude)).toEqual([30]);
+  });
+
+  it('keeps the bounded history for successive frames from the same drone', () => {
+    for (let i = 0; i < 250; i += 1) {
+      useTelemetryStore.getState().updateTelemetry({ ...sample, timestamp: i, altitude: i }, 0);
+    }
+    const history = useTelemetryStore.getState().history;
+    expect(history).toHaveLength(200);
+    expect(history[0].altitude).toBe(50);
+    expect(history.at(-1).altitude).toBe(249);
+  });
+});
