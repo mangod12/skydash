@@ -8,7 +8,7 @@ from collections import defaultdict, deque
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from auth import create_token, revoke_token
+from auth import create_token, issue_ws_ticket, revoke_token
 from client_ip import client_ip
 from deps import AUTH_ENABLED, user_store
 from models import AuthLogin, AuthRegister
@@ -125,6 +125,16 @@ async def auth_me(request: Request):
             content={"success": False, "error": "User not found"},
         )
     return {"success": True, "data": user}
+
+
+@router.post("/api/auth/ws-ticket")
+async def auth_ws_ticket(request: Request):
+    """One-time, 30s ticket for opening the telemetry WebSocket without the token in the URL."""
+    payload = getattr(request.state, "user", None)
+    raw = request.headers.get("Authorization", "")
+    if not AUTH_ENABLED or not payload or not raw.startswith("Bearer "):
+        return JSONResponse(status_code=401, content={"success": False, "error": "Not authenticated"})
+    return {"success": True, "data": {"ticket": issue_ws_ticket(raw[7:])}}
 
 
 @router.post("/api/auth/logout")
