@@ -28,6 +28,21 @@ class TestDemoReset(unittest.TestCase):
         r = self.client.post("/api/demo/reset", json={})
         self.assertEqual(r.status_code, 400)
 
+    def test_confirmation_requires_literal_true_before_any_reset(self):
+        from unittest.mock import patch
+        from routes import demo
+
+        for value in ("true", "yes", "on", "1", 1, 1.0, [], {}, None):
+            with self.subTest(value=value), \
+                    patch.object(demo.mission_store, "clear_all") as clear, \
+                    patch.object(demo.entity_store, "reset_demo") as reset, \
+                    patch.object(demo.fleet, "reset") as fleet_reset:
+                response = self.client.post("/api/demo/reset", json={"confirm": value})
+                self.assertEqual(response.status_code, 422)
+                clear.assert_not_called()
+                reset.assert_not_called()
+                fleet_reset.assert_not_called()
+
     def test_reset_restores_seed_and_clears_missions(self):
         entity_store.create_entity({"id": "extra-1", "type": "device", "name": "Extra", "coordinates": [1, 1]})
         self.client.post("/api/missions", json={"name": "Op Test"})
