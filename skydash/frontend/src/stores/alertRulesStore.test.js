@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useAlertRulesStore, isDefaultRule } from './alertRulesStore';
 
 const store = useAlertRulesStore;
@@ -10,7 +10,25 @@ beforeEach(() => {
   store.setState({ rules: defaultRules.map((r) => ({ ...r })) });
 });
 
+afterEach(() => vi.restoreAllMocks());
+
 describe('alertRulesStore', () => {
+  it('gives simultaneous new rules independent identities', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1234);
+    store.getState().addRule({ name: 'First', config: {} });
+    store.getState().addRule({ name: 'Second', config: {} });
+    const [first, second] = store.getState().rules.slice(-2);
+    expect(first.id).not.toBe(second.id);
+    store.getState().removeRule(first.id);
+    expect(store.getState().rules.find((r) => r.id === second.id)?.name).toBe('Second');
+  });
+
+  it('does not let a rule patch change its identity', () => {
+    store.getState().updateRule('bat-30', { id: 'bat-15', name: 'Renamed' });
+    expect(store.getState().rules.find((r) => r.id === 'bat-30')?.name).toBe('Renamed');
+    expect(store.getState().rules.filter((r) => r.id === 'bat-15')).toHaveLength(1);
+  });
+
   it('has 6 default rules loaded', () => {
     expect(store.getState().rules).toHaveLength(6);
   });

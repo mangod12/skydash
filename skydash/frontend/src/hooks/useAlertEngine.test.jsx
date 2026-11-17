@@ -20,9 +20,36 @@ beforeEach(() => {
   }] });
   evaluateRule.mockReturnValue({ triggered: false });
 });
-afterEach(() => { cleanup(); useAlertRulesStore.setState({ rules: originalRules }); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); useAlertRulesStore.setState({ rules: originalRules }); });
 
 describe('alert frame detection', () => {
+  it('does not suppress alerts after the wall clock moves backwards', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(100000);
+    useAlertRulesStore.setState({ rules: [{ ...useAlertRulesStore.getState().rules[0], lastTriggered: 200000, cooldownMs: 60000 }] });
+    evaluateRule.mockReturnValue({ triggered: true, message: 'Clock-corrected alert' });
+    renderHook(() => useAlertEngine());
+    act(() => useTelemetryStore.getState().updateFleet([{ drone_id: 'one' }]));
+    expect(notify).toHaveBeenCalledOnce();
+    expect(useAlertRulesStore.getState().rules[0].lastTriggered).toBe(100000);
+  });
+
+  it('applies a safe cooldown to invalid configuration instead of alerting on every frame', () => {
+    useAlertRulesStore.setState({ rules: [{ ...useAlertRulesStore.getState().rules[0], cooldownMs: NaN, severity: 'constructor' }] });
+    evaluateRule.mockReturnValue({ triggered: true, message: 'Alert' });
+    renderHook(() => useAlertEngine());
+    act(() => useTelemetryStore.getState().updateFleet([{ drone_id: 'one' }]));
+    act(() => useTelemetryStore.getState().updateFleet([{ drone_id: 'one' }]));
+    expect(notify).toHaveBeenCalledOnce();
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ type: 'alert' }));
+  });
+
+  it('skips null saved rules without interrupting valid later rules', () => {
+    useAlertRulesStore.setState({ rules: [null, ...useAlertRulesStore.getState().rules] });
+    renderHook(() => useAlertEngine());
+    act(() => useTelemetryStore.getState().updateFleet([{ drone_id: 'one' }]));
+    expect(evaluateRule).toHaveBeenCalledOnce();
+  });
+
   it('evaluates fresh fleet snapshots without selected-drone telemetry', () => {
     renderHook(() => useAlertEngine());
     const drone = { drone_id: 'one', battery_percentage: 10 };

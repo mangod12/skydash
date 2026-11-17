@@ -33,9 +33,12 @@ export function useAlertEngine() {
       const now = Date.now();
 
       for (const rule of rules) {
-        if (!rule.enabled) continue;
-        const sinceLastTrigger = now - rule.lastTriggered;
-        if (sinceLastTrigger < rule.cooldownMs) continue;
+        if (!rule || !rule.enabled) continue;
+        const cooldownMs = Number.isFinite(rule.cooldownMs) && rule.cooldownMs >= 0 ? rule.cooldownMs : 60000;
+        const lastTriggered = Number.isFinite(rule.lastTriggered) ? rule.lastTriggered : 0;
+        const sinceLastTrigger = now - lastTriggered;
+        // A backwards wall-clock correction must not suppress alerts until the old clock catches up.
+        if (sinceLastTrigger >= 0 && sinceLastTrigger < cooldownMs) continue;
 
         for (const drone of drones) {
           const result = evaluateRule(rule, drone, geofences, entities);
@@ -43,7 +46,7 @@ export function useAlertEngine() {
 
           useAlertRulesStore.getState().setLastTriggered(rule.id, now);
           notify({
-            type: SEVERITY_TO_TYPE[rule.severity] || 'alert',
+            type: Object.hasOwn(SEVERITY_TO_TYPE, rule.severity) ? SEVERITY_TO_TYPE[rule.severity] : 'alert',
             title: rule.name,
             message: result.message,
             severity: rule.severity,
