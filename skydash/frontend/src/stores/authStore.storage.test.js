@@ -45,3 +45,32 @@ describe('logout with unavailable browser storage', () => {
     expect(localStorage.setItem).not.toHaveBeenCalled();
   });
 });
+
+describe('auth initialization with blocked storage', () => {
+  it('loads without a saved session when storage reads throw', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => { throw new Error('Denied'); } });
+    vi.resetModules();
+    const { useAuthStore } = await import('./authStore');
+    expect(useAuthStore.getState().token).toBeNull();
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(useAuthStore.getState().getAuthHeader()).toEqual({});
+  });
+
+  it('loads when access to the storage property itself is denied', async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    try {
+      Object.defineProperty(globalThis, 'localStorage', {
+        configurable: true,
+        get: () => { throw new Error('Storage access denied'); },
+      });
+      vi.resetModules();
+      const { useAuthStore } = await import('./authStore');
+      expect(useAuthStore.getState().token).toBeNull();
+      expect(useAuthStore.getState().user).toBeNull();
+      expect(() => useAuthStore.getState().logout()).not.toThrow();
+    } finally {
+      if (descriptor) Object.defineProperty(globalThis, 'localStorage', descriptor);
+      else delete globalThis.localStorage;
+    }
+  });
+});
