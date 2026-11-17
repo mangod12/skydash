@@ -70,6 +70,24 @@ class TestAuditLog(unittest.TestCase):
         self.assertEqual(self.client.get("/api/audit", headers=self.h["analyst"]).status_code, 403)
         self.assertEqual(self.client.get("/api/audit", headers=self.h["commander"]).status_code, 200)
 
+    def test_csv_export_is_commander_only_and_safe(self):
+        self.assertEqual(self.client.get("/api/audit/export", headers=self.h["operator"]).status_code, 403)
+        self.client.post("/api/drone/ALPHA-1/command",
+                         json={"command": "set_mode", "params": {"mode": "HOLD"}}, headers=self.h["operator"])
+        r = self.client.get("/api/audit/export", headers=self.h["commander"])
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("text/csv", r.headers["content-type"])
+        lines = r.text.strip().split("\n")
+        self.assertEqual(lines[0], "id,time_utc,username,role,method,path,status,client")
+        self.assertTrue(any("u-operator" in line and "/api/drone/ALPHA-1/command" in line for line in lines[1:]))
+
+    def test_csv_cells_cannot_inject_formulas(self):
+        row = {"id": 1, "ts": 0, "username": "=cmd|' /C calc'!A0", "role": "analyst", "method": "POST",
+               "path": "/x", "status": 200, "client": None}
+        text = audit.to_csv([row])
+        self.assertIn("'=cmd", text)
+        self.assertNotIn(",=cmd", text)
+
     def test_filter_by_username_and_limit(self):
         for _ in range(3):
             self.client.post("/api/drone/ALPHA-1/command",

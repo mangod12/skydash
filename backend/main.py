@@ -235,6 +235,18 @@ async def get_audit(limit: int = 100, username: str = None, since: float = None)
     return {"success": True, "data": audit.query(limit, username, since)}
 
 
+@app.get("/api/audit/export")
+async def export_audit(limit: int = 10000, username: str = None, since: float = None):
+    """Audit trail as CSV, newest first, up to 10000 rows. Commander role only."""
+    from fastapi.responses import Response
+    rows = audit.query(limit, username, since, max_limit=10000)
+    return Response(
+        audit.to_csv(rows),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="skydash-audit-{int(time.time())}.csv"'},
+    )
+
+
 @app.get("/")
 async def root():
     return {

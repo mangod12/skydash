@@ -41,7 +41,7 @@ With authentication on, every state-changing request and every auth attempt is
 stored in the `audit_log` table: time, username, role, method, path, status and
 client address. Request bodies are never stored. Denied and failed requests are
 recorded too. Query with `GET /api/audit?limit=100&username=...&since=...`
-(commander only).
+(commander only). `GET /api/audit/export` returns the same data as CSV (up to 10000 rows; formula-like cells are neutralised for spreadsheets), and commanders also get a SERVER CSV button in Settings.
 
 ## Transport and hardening
 
