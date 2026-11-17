@@ -20,7 +20,7 @@ Say so at the start. It builds trust faster than a polished claim.
 | 0:00 | Sign-in screen, then the dashboard | "One screen: fleet status, threat score, active missions, system health. Data sources show LIVE, RECENT or OFFLINE honestly." |
 | 1:30 | Top bar | "Your name and role are shown top right. The workspace buttons only change layout; permissions come from your account." |
 | 2:00 | Map (key `M`) | "Drones, entities, geofences and the heatmap. Basemap tiles can be self-hosted (`VITE_TILE_URL`); if they fail you get a BASEMAP OFFLINE chip and overlays keep working." |
-| 3:30 | Intel (key `I`) | "Entities, link analysis, threat matrix. Filters and bookmarks are saved per operator." |
+| 3:30 | Intel (key `I`) | "Entities, link analysis, threat matrix. Filters can be saved as bookmarks." |
 | 4:30 | Scenario Lab (key `L`) | "Run a scenario, change speed, read the scorecard: coverage, risk reduced, battery, detections." |
 | 6:00 | TAK terminal | "Same positions leave as CoT over UDP, TCP or TLS. Outbound only; nothing comes back in." |
 | 7:00 | Sign in as a viewer in a second window | "Viewers read only. The controls are hidden, and the server refuses them anyway." Try a drone command to show the 403. |
