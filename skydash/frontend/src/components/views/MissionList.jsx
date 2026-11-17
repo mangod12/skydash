@@ -4,6 +4,7 @@ import { Plus, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useMissionStore } from '../../stores/missionStore';
 import PanelState from '../common/PanelState';
+import { useCan } from '../../hooks/useCan';
 import { useUIStore } from '../../stores/uiStore';
 
 const STATUS_STYLE = {
@@ -17,6 +18,7 @@ export default function MissionList({ missions, activeId, onSelect, loading }) {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const createMission = useMissionStore((s) => s.createMission);
+  const canEdit = useCan('analyst');
   const fetchMissions = useMissionStore((s) => s.fetchMissions);
   const fetchError = useMissionStore((s) => s.fetchError);
   const missionCreateOpen = useUIStore((s) => s.missionCreateOpen);
@@ -43,6 +45,7 @@ export default function MissionList({ missions, activeId, onSelect, loading }) {
   return (
     <div className="w-80 shrink-0 border-r border-white/[0.06] flex flex-col">
       <div className="p-3 border-b border-white/[0.06] shrink-0">
+        {canEdit ? (
         <button
           onClick={() => setCreating(!creating)}
           aria-expanded={creating}
@@ -50,6 +53,9 @@ export default function MissionList({ missions, activeId, onSelect, loading }) {
         >
           <Plus size={12} /> NEW MISSION
         </button>
+        ) : (
+          <div className="text-center text-[10px] font-mono tracking-[0.08em] text-zinc-500 py-2">READ-ONLY ACCESS</div>
+        )}
         {creating && (
           <form className="mt-2 space-y-2" onSubmit={handleCreate}>
             <label className="sr-only" htmlFor="mission-name">Mission name</label>
@@ -83,7 +89,7 @@ export default function MissionList({ missions, activeId, onSelect, loading }) {
             actionLabel="RETRY" onAction={fetchMissions} />
         )}
         {!loading && !fetchError && missions.length === 0 && (
-          <PanelState title="No missions yet" hint="Create one with the + button above." />
+          <PanelState title="No missions yet" hint={canEdit ? "Create one with the New Mission button above." : "An analyst can create one."} />
         )}
         {missions.map((m) => (
           <button
