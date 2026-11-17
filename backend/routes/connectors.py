@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from deps import entity_store, opensky, shodan
 
@@ -12,12 +12,14 @@ router = APIRouter()
 
 @router.get("/api/connectors/adsb")
 async def get_adsb_aircraft(
-    lat_min: float = Query(37.0),
-    lon_min: float = Query(-123.0),
-    lat_max: float = Query(38.0),
-    lon_max: float = Query(-122.0),
+    lat_min: float = Query(37.0, ge=-90, le=90),
+    lon_min: float = Query(-123.0, ge=-180, le=180),
+    lat_max: float = Query(38.0, ge=-90, le=90),
+    lon_max: float = Query(-122.0, ge=-180, le=180),
 ):
     """Fetch live ADS-B aircraft from OpenSky Network."""
+    if lat_min > lat_max or lon_min > lon_max:
+        raise HTTPException(status_code=422, detail="Bounding box minimums must not exceed maximums")
     try:
         aircraft = opensky.fetch_aircraft(
             bbox=[lat_min, lon_min, lat_max, lon_max]
@@ -47,12 +49,14 @@ async def get_adsb_entities():
 @router.post("/api/connectors/adsb/ingest")
 async def ingest_adsb_entities(
     dry_run: bool = Query(False),
-    lat_min: float = Query(37.0),
-    lon_min: float = Query(-123.0),
-    lat_max: float = Query(38.0),
-    lon_max: float = Query(-122.0),
+    lat_min: float = Query(37.0, ge=-90, le=90),
+    lon_min: float = Query(-123.0, ge=-180, le=180),
+    lat_max: float = Query(38.0, ge=-90, le=90),
+    lon_max: float = Query(-122.0, ge=-180, le=180),
 ):
     """Preview or import ADS-B aircraft as SkyDash entities."""
+    if lat_min > lat_max or lon_min > lon_max:
+        raise HTTPException(status_code=422, detail="Bounding box minimums must not exceed maximums")
     try:
         aircraft = opensky.fetch_aircraft(
             bbox=[lat_min, lon_min, lat_max, lon_max]
