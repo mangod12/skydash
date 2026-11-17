@@ -258,3 +258,22 @@
 [data-theme="arctic"] [class*="bg-zinc-900/"]:not(.bg-zinc-900\/50):not(.bg-zinc-900\/80) { background-color: rgba(255, 255, 255, 0.78); }
 [data-theme="arctic"] [class*="bg-zinc-800/"]:not(.bg-zinc-800\/50) { background-color: rgba(241, 245, 249, 0.8); }
 [data-theme="arctic"] [class*="bg-black/"] { background-color: rgba(255, 255, 255, 0.7); }
+
+/* ── Map overlays: the basemap stays dark, so chips need near-opaque
+   surfaces and stronger text than the page-level light remap ── */
+[data-theme="arctic"] .map-container [class*="bg-zinc-950/"],
+[data-theme="arctic"] .map-container [class*="bg-zinc-900/"],
+[data-theme="arctic"] .map-container [class*="bg-zinc-800/"] {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+[data-theme="arctic"] .map-container .text-zinc-300 { color: #1e293b; }
+[data-theme="arctic"] .map-container .text-zinc-400 { color: #334155; }
+[data-theme="arctic"] .map-container .text-zinc-500 { color: #475569; }
+[data-theme="arctic"] .map-container .text-zinc-600 { color: #64748b; }
+/* Blurred overlay surfaces (map timeline, HUD) sit on the dark basemap */
+[data-theme="arctic"] [class*="bg-zinc-9"][class*="backdrop-blur"] {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+}
+[data-theme="arctic"] [class*="bg-zinc-9"][class*="backdrop-blur"] .text-zinc-600 { color: #64748b; }
+[data-theme="arctic"] [class*="bg-zinc-9"][class*="backdrop-blur"] .text-zinc-500 { color: #475569; }
