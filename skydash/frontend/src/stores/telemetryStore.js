@@ -41,7 +41,11 @@ export const useTelemetryStore = create((set, get) => ({
 
   updateTelemetry: (data, latency) => {
     const state = get();
-    const newHistory = [...state.history, {
+    // Never join one drone's chart trail to another drone's telemetry.
+    const previousId = state.data?.drone_id;
+    const changedDrone = previousId && data.drone_id && previousId !== data.drone_id;
+    const history = changedDrone ? [] : state.history;
+    const newHistory = [...history, {
       time: data.timestamp,
       altitude: data.altitude,
       battery: data.battery_voltage,
