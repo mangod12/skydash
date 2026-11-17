@@ -72,6 +72,22 @@ class TestUserAdmin(unittest.TestCase):
         r = self.client.post("/api/auth/login", json={"username": "ua-analyst", "password": self.pw})
         self.assertEqual(r.status_code, 200)
 
+    def test_disabled_requires_literal_boolean_without_account_changes(self):
+        uid = self.ids["analyst"]
+        header = self.hdr("commander")
+        before = next(u for u in self.users.list_users() if u["id"] == uid)
+        for value in ("true", "false", "yes", "no", "on", "off", "1", "0", 1, 0, 1.0, 0.0):
+            with self.subTest(value=value), patch.object(self.users, "update_user") as update:
+                response = self.client.patch(f"/api/users/{uid}", json={"disabled": value}, headers=header)
+                self.assertEqual(response.status_code, 422)
+                update.assert_not_called()
+        self.assertEqual(next(u for u in self.users.list_users() if u["id"] == uid), before)
+        # Omission and null retain the existing no-change semantics.
+        for payload in ({}, {"disabled": None}):
+            response = self.client.patch(f"/api/users/{uid}", json=payload, headers=header)
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.json()["data"]["disabled"])
+
     def test_guards(self):
         c = self.hdr("commander")
         self.assertEqual(self.client.patch(f"/api/users/{self.ids['commander']}", json={"disabled": True}, headers=c).status_code, 409)
