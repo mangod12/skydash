@@ -40,15 +40,20 @@ function checkSpeedLimit(drone, config) {
   return { triggered: false };
 }
 
+function validPosition(lat, lon) {
+  return Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+}
+
 function checkGeofenceBreach(drone, config, geofences) {
-  if (!drone.gps) return { triggered: false };
+  if (!validPosition(drone.gps?.latitude, drone.gps?.longitude)) return { triggered: false };
   const { latitude, longitude } = drone.gps;
   const fences = config.geofenceId
     ? geofences.filter((g) => g.id === config.geofenceId)
     : geofences;
 
   for (const fence of fences) {
-    if (fence.type !== 'circle' || !fence.center) continue;
+    if (fence.type !== 'circle' || !validPosition(fence.center?.lat, fence.center?.lng)
+        || !Number.isFinite(fence.radius) || fence.radius <= 0) continue;
     const dist = distanceBetween(latitude, longitude, fence.center.lat, fence.center.lng);
     if (dist > fence.radius) {
       return { triggered: true, message: `${drone.drone_id} breached geofence (${Math.round(dist)}m)` };
@@ -58,15 +63,18 @@ function checkGeofenceBreach(drone, config, geofences) {
 }
 
 function checkProximity(drone, config, _geofences, entities) {
-  if (!drone.gps) return { triggered: false };
+  if (!validPosition(drone.gps?.latitude, drone.gps?.longitude)) return { triggered: false };
   const target = entities.find((e) => e.id === config.entityId);
-  if (!target?.coordinates) return { triggered: false };
+  if (!Array.isArray(target?.coordinates) || !validPosition(target.coordinates[0], target.coordinates[1])) {
+    return { triggered: false };
+  }
 
   const dist = distanceBetween(
     drone.gps.latitude, drone.gps.longitude,
     target.coordinates[0], target.coordinates[1],
   );
   const radius = config.radiusM ?? 500;
+  if (!Number.isFinite(radius) || radius <= 0) return { triggered: false };
   if (dist < radius) {
     return { triggered: true, message: `${drone.drone_id} within ${Math.round(dist)}m of ${target.name}` };
   }
