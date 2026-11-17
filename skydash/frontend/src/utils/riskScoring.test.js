@@ -52,6 +52,23 @@ describe('calculateRiskScore', () => {
     expect(calculateRiskScore(base, [], [], [base, far]).breakdown.proximityBonus).toBe(0);
   });
 
+  it.each([[null, 0], [0, null], ['0', 0], [false, 0], [NaN, 0], [Infinity, 0], [91, 0], [0, 181], {}, '00'].map((coords) => [coords]))(
+    'does not infer proximity from invalid coordinates %j', (coordinates) => {
+      const origin = { ...base, coordinates: [0, 0] };
+      const critical = { id: 'c1', threatLevel: 'critical', coordinates };
+      expect(calculateRiskScore(origin, [], [], [critical]).breakdown.proximityBonus).toBe(0);
+      expect(calculateRiskScore({ ...origin, coordinates }, [], [], [{ ...critical, coordinates: [0, 0] }]).breakdown.proximityBonus).toBe(0);
+    },
+  );
+
+  it('keeps genuine zero and boundary coordinates eligible for proximity', () => {
+    for (const coordinates of [[0, 0], [90, 180], [-90, -180]]) {
+      expect(calculateRiskScore({ ...base, coordinates }, [], [], [
+        { id: 'c1', threatLevel: 'critical', coordinates },
+      ]).breakdown.proximityBonus).toBe(10);
+    }
+  });
+
   it('treats an unknown threat level as zero and clamps to 100', () => {
     expect(calculateRiskScore({ ...base, threatLevel: 'weird' }, [], []).score).toBe(0);
     const rels = Array.from({ length: 9 }, (_, i) => ({ from: 'e1', to: `x${i}` }));

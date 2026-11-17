@@ -35,17 +35,21 @@ function countRecentEvents(entityId, events) {
   ).length;
 }
 
-/**
- * Check if any critical-threat entity is within 1 km.
- */
+function validPosition(coords) {
+  return Array.isArray(coords) && coords.length >= 2
+    && Number.isFinite(coords[0]) && Number.isFinite(coords[1])
+    && Math.abs(coords[0]) <= 90 && Math.abs(coords[1]) <= 180;
+}
+
+/** Check if any critical-threat entity with a known position is within 1 km. */
 function hasProximityCritical(entity, allEntities) {
-  if (!entity.coordinates) return false;
+  if (!validPosition(entity.coordinates)) return false;
   const [lat, lng] = entity.coordinates;
 
   return allEntities.some((other) => {
     if (other.id === entity.id) return false;
     if (other.threatLevel !== 'critical') return false;
-    if (!other.coordinates) return false;
+    if (!validPosition(other.coordinates)) return false;
     const dist = distanceBetween(lat, lng, other.coordinates[0], other.coordinates[1]);
     return dist <= PROXIMITY_THRESHOLD_M;
   });
