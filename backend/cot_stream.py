@@ -3,14 +3,19 @@
 Off by default. Set SKYDASH_COT_TARGET to udp://host:port or tcp://host:port to
 send one CoT <event> per drone and per geo-located entity every
 SKYDASH_COT_INTERVAL seconds (default 5, minimum 1). UDP suits multicast or a
-TAK Server UDP input; TCP uses a plain streaming input (no TLS) and reconnects
-with backoff. Nothing is received: this is outbound only.
+TAK Server UDP input; TCP uses a plain streaming input. tls://host:port uses a
+TAK Server TLS input (usually 8089) and reconnects with backoff. TLS settings:
+SKYDASH_COT_CA (PEM CA bundle that signed the server, default system roots),
+SKYDASH_COT_CERT and SKYDASH_COT_KEY (PEM client certificate and key, needed
+when the server requires client auth). The server is always verified.
+Nothing is received: outbound only.
 """
 
 import asyncio
 import contextlib
 import logging
 import os
+import ssl
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlparse
@@ -82,12 +87,12 @@ def build_events(entities: Iterable[Dict], drones: Iterable[Dict],
 
 
 def parse_target(value: Optional[str]) -> Optional[Tuple[str, str, int]]:
-    """Return (scheme, host, port) for udp:// or tcp:// targets, else None."""
+    """Return (scheme, host, port) for udp://, tcp:// or tls:// targets, else None."""
     if not value:
         return None
     u = urlparse(value.strip())
-    if u.scheme not in ("udp", "tcp") or not u.hostname or not u.port:
-        log.warning("SKYDASH_COT_TARGET ignored: expected udp://host:port or tcp://host:port")
+    if u.scheme not in ("udp", "tcp", "tls") or not u.hostname or not u.port:
+        log.warning("SKYDASH_COT_TARGET ignored: expected udp://, tcp:// or tls:// host:port")
         return None
     return u.scheme, u.hostname, u.port
 
@@ -97,6 +102,16 @@ def interval_from_env() -> float:
         return max(1.0, float(os.getenv("SKYDASH_COT_INTERVAL", "5")))
     except ValueError:
         return 5.0
+
+
+def build_ssl_context(env=None) -> ssl.SSLContext:
+    """TLS client context from SKYDASH_COT_* settings. Verifies the server by default."""
+    env = os.environ if env is None else env
+    ctx = ssl.create_default_context(cafile=env.get("SKYDASH_COT_CA") or None)
+    cert, key = env.get("SKYDASH_COT_CERT"), env.get("SKYDASH_COT_KEY")
+    if cert:
+        ctx.load_cert_chain(cert, key or None)
+    return ctx
 
 
 class _UdpProto(asyncio.DatagramProtocol):
@@ -123,7 +138,9 @@ async def run_stream(get_entities, get_drones, target: Tuple[str, str, int], int
                         transport.sendto(ev)
                 else:
                     if writer is None:
-                        _, writer = await asyncio.wait_for(asyncio.open_connection(host, port), 5)
+                        ctx = build_ssl_context() if scheme == "tls" else None
+                        _, writer = await asyncio.wait_for(
+                            asyncio.open_connection(host, port, ssl=ctx), 10)
                         backoff = 1.0
                     for ev in events:
                         writer.write(ev)
