@@ -33,6 +33,9 @@ class UserStore:
             role TEXT DEFAULT 'analyst',
             created_at TEXT
         )""")
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
+        if "disabled" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN disabled INTEGER DEFAULT 0")
         conn.execute("""CREATE TABLE IF NOT EXISTS revoked_tokens (
             jti TEXT PRIMARY KEY,
             exp REAL NOT NULL
@@ -79,6 +82,8 @@ class UserStore:
         if not row:
             return None
         user = dict(row)
+        if user.get('disabled'):
+            return None
         if not self._verify_password(password, user['password_hash']):
             return None
         # Migrate legacy SHA-256 hash to PBKDF2 on successful login
@@ -90,6 +95,26 @@ class UserStore:
                 )
                 db.get_connection().commit()
         return user
+
+    def list_users(self):
+        rows = db.get_connection().execute(
+            "SELECT id, username, role, created_at, COALESCE(disabled, 0) AS disabled "
+            "FROM users ORDER BY username"
+        ).fetchall()
+        return [dict(r) | {"disabled": bool(r["disabled"])} for r in rows]
+
+    def update_user(self, user_id, role=None, disabled=None):
+        """Change a user's role and/or disabled flag. Returns the user, or None if unknown."""
+        if not self.get_user(user_id):
+            return None
+        conn = db.get_connection()
+        with db.get_lock():
+            if role is not None:
+                conn.execute("UPDATE users SET role=? WHERE id=?", (role, user_id))
+            if disabled is not None:
+                conn.execute("UPDATE users SET disabled=? WHERE id=?", (1 if disabled else 0, user_id))
+            conn.commit()
+        return self.get_user(user_id)
 
     def get_user(self, user_id):
         row = db.get_connection().execute(
@@ -144,6 +169,22 @@ def revoke_token(payload):
     return True
 
 
+def _apply_current_account(payload):
+    """Disabled accounts lose access at once; role changes apply without re-login."""
+    try:
+        row = db.get_connection().execute(
+            "SELECT role, COALESCE(disabled, 0) AS disabled FROM users WHERE id=?",
+            (payload.get("sub"),),
+        ).fetchone()
+    except Exception:
+        return payload
+    if row is None:
+        return payload
+    if row["disabled"]:
+        return None
+    return {**payload, "role": row["role"]}
+
+
 def verify_token(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -151,6 +192,6 @@ def verify_token(token):
             return None
         if _is_revoked(payload.get("jti")):
             return None
-        return payload
+        return _apply_current_account(payload)
     except Exception:
         return None

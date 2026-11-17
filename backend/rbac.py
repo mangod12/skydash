@@ -25,6 +25,8 @@ def required_role(method: str, path: str):
         return None
     if path.startswith("/api/audit"):
         return "commander"
+    if path.startswith("/api/users"):
+        return "commander"
     if path.startswith("/api/demo/"):
         return "commander"
     if method.upper() in SAFE_METHODS:
