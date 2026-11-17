@@ -1,5 +1,10 @@
 import asyncio
+import os
+import shutil
 import socket
+import ssl
+import subprocess
+import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -33,6 +38,7 @@ class TestTarget(unittest.TestCase):
     def test_parse_target(self):
         self.assertEqual(cot_stream.parse_target("udp://239.2.3.1:6969"), ("udp", "239.2.3.1", 6969))
         self.assertEqual(cot_stream.parse_target("tcp://tak.local:8087"), ("tcp", "tak.local", 8087))
+        self.assertEqual(cot_stream.parse_target("tls://tak.local:8089"), ("tls", "tak.local", 8089))
         self.assertIsNone(cot_stream.parse_target("http://x:1"))
         self.assertIsNone(cot_stream.parse_target("udp://nohost"))
         self.assertIsNone(cot_stream.parse_target(None))
@@ -59,6 +65,57 @@ class TestUdpStream(unittest.TestCase):
         got = {ET.fromstring(rx.recv(65535)).get("uid") for _ in range(2)}
         rx.close()
         self.assertEqual(got, {"skydash-drone-ALPHA-1", "ent-1"})
+
+
+@unittest.skipUnless(shutil.which("openssl"), "openssl not available")
+class TestTlsStream(unittest.TestCase):
+    def test_streams_events_over_verified_tls(self):
+        tmp = tempfile.mkdtemp(prefix="skydash-cot-tls-")
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        crt, key = os.path.join(tmp, "s.crt"), os.path.join(tmp, "s.key")
+        subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
+                        "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost",
+                        "-keyout", key, "-out", crt], check=True, capture_output=True)
+        received = []
+
+        async def go():
+            sctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            sctx.load_cert_chain(crt, key)
+
+            async def handle(reader, writer):
+                received.append(await reader.read(100000))
+                writer.close()
+
+            server = await asyncio.start_server(handle, "127.0.0.1", 0, ssl=sctx)
+            port = server.sockets[0].getsockname()[1]
+            old = os.environ.get("SKYDASH_COT_CA")
+            os.environ["SKYDASH_COT_CA"] = crt
+            try:
+                task = asyncio.create_task(cot_stream.run_stream(
+                    lambda: [ENTITY], lambda: [DRONE], ("tls", "localhost", port), 1.0))
+                await asyncio.sleep(0.8)
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+            finally:
+                if old is None:
+                    os.environ.pop("SKYDASH_COT_CA", None)
+                else:
+                    os.environ["SKYDASH_COT_CA"] = old
+                server.close()
+                await server.wait_closed()
+
+        asyncio.run(go())
+        data = b"".join(received)
+        self.assertIn(b'uid="ent-1"', data)
+        self.assertIn(b'uid="skydash-drone-ALPHA-1"', data)
+
+    def test_untrusted_server_is_rejected_by_default(self):
+        ctx = cot_stream.build_ssl_context({})
+        self.assertEqual(ctx.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(ctx.check_hostname)
 
 
 if __name__ == "__main__":

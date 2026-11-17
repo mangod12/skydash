@@ -27,7 +27,8 @@ Set these in `.env` before exposing the stack to anyone.
 | `SKYDASH_ALLOW_REGISTRATION=false` | Close public self-registration. |
 | `SKYDASH_CORS_ORIGINS` | Comma-separated list of the exact frontend origins. |
 | `SKYDASH_MAX_BODY_BYTES` | Request body cap in bytes (default 25 MB). |
-| `SKYDASH_COT_TARGET` | Optional. `udp://host:port` or `tcp://host:port`: stream CoT for every drone and geo-located entity to ATAK, WinTAK or a TAK Server input. Outbound only, no TLS. Off when unset. |
+| `SKYDASH_COT_TARGET` | Optional. `udp://host:port` or `tcp://host:port`: stream CoT for every drone and geo-located entity to ATAK, WinTAK or a TAK Server input. Outbound only. `tls://host:port` targets a TAK Server TLS input. Off when unset. |
+| `SKYDASH_COT_CA`, `SKYDASH_COT_CERT`, `SKYDASH_COT_KEY` | PEM files for `tls://` targets: CA bundle that signed the server (default system roots) and the client certificate and key if the server requires them. The server is always verified. |
 | `SKYDASH_COT_INTERVAL` | Seconds between CoT updates (default 5, minimum 1). |
 | `SKYDASH_DB_PATH` | SQLite path. Compose sets `/app/data/skydash.db`. |
 
