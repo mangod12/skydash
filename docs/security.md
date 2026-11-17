@@ -53,6 +53,13 @@ logs. The stream re-checks the session every 5 seconds and closes (code 4001) if
 it was signed out, expired or the account was disabled. The older `?token=`
 parameter still works for scripts.
 
+## Rate limiting
+
+Failed logins are throttled per client and username (5 per minute). For a general cap,
+set `SKYDASH_RATE_LIMIT_PER_MIN` (for example `600`): `/api` requests beyond it per client
+address get `429` with `Retry-After`. It is off by default; `/health` and WebSockets are
+exempt. Behind a proxy, also set `SKYDASH_TRUST_PROXY=1` so clients are told apart.
+
 ## Behind a reverse proxy
 
 The bundled `nginx.conf` sends the same security headers as the Static Web Apps
