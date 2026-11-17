@@ -29,6 +29,31 @@ class TestBuildEvents(unittest.TestCase):
         self.assertEqual(ent.find("detail/contact").get("callsign"), 'Truck "A" <1>')
         self.assertEqual(ent.get("stale"), "2026-01-01T12:00:30.000Z")
 
+    def test_invalid_xml_characters_do_not_break_cot_batch(self):
+        from copy import deepcopy
+
+        for char in ("\x00", "\x01", "\x0b", "\x1f", "\ud800", "\udfff", "\ufffe", "\uffff"):
+            with self.subTest(codepoint=ord(char)):
+                entity = {**ENTITY, "id": "id" + char, "name": "name" + char,
+                          "threatLevel": "high" + char}
+                drone = deepcopy(DRONE)
+                drone["drone_id"] = "drone" + char
+                drone["status"] = "status" + char
+                events = cot_stream.build_events([entity, ENTITY], [drone], NOW)
+                self.assertEqual(len(events), 3)
+                roots = [ET.fromstring(event) for event in events]
+                self.assertEqual(roots[0].get("uid"), "skydash-drone-drone\ufffd")
+                self.assertEqual(roots[1].get("uid"), "id\ufffd")
+                self.assertEqual(roots[1].find("detail/contact").get("callsign"), "name\ufffd")
+                self.assertIn("status\ufffd", roots[0].find("detail/remarks").text)
+                self.assertEqual(roots[2].get("uid"), ENTITY["id"])
+
+    def test_valid_international_and_special_characters_are_preserved(self):
+        name = 'Café विमान 🚁 <A&B> "quoted"'
+        event = cot_stream.build_events([{**ENTITY, "name": name}], [], NOW)[0]
+        self.assertEqual(ET.fromstring(event).find("detail/contact").get("callsign"), name)
+        self.assertEqual(cot_stream._xml_text("line\nnext\tcolumn\rreturn"), "line\nnext\tcolumn\rreturn")
+
     def test_skips_entities_and_drones_without_valid_position(self):
         bad = [{"id": "x", "coordinates": None}, {"id": "y", "coordinates": [200, 0]}]
         self.assertEqual(cot_stream.build_events(bad, [{"drone_id": "d", "gps": {}}], NOW), [])
