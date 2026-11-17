@@ -1,10 +1,8 @@
 import { useMemo } from 'react';
+import { buildGrid } from '../../utils/eventBuckets';
 import GlassCard from '../common/GlassCard';
 
-const ROWS = 4;
-const COLS = 12;
 const ROW_LABELS = ['CRITICAL', 'WARNING', 'INFO', 'DETECT'];
-const SEVERITY_TO_ROW = { critical: 0, warning: 1, info: 2, detection: 3 };
 
 const CELL_COLORS = [
   'bg-zinc-800/40',
@@ -22,29 +20,6 @@ function intensityClass(count) {
   if (count <= 4) return CELL_COLORS[3];
   if (count <= 6) return CELL_COLORS[4];
   return CELL_COLORS[5];
-}
-
-function buildGrid(events) {
-  const grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-  if (events.length === 0) return { grid, colLabels: [] };
-
-  const now = Date.now();
-  const oldest = Math.min(...events.map((e) => e.time));
-  const span = Math.max(now - oldest, 60000);
-  const step = span / COLS;
-
-  const colLabels = Array.from({ length: COLS }, (_, i) => {
-    const d = new Date(oldest + i * step);
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  });
-
-  events.forEach((evt) => {
-    const col = Math.min(Math.floor((evt.time - oldest) / step), COLS - 1);
-    const row = SEVERITY_TO_ROW[evt.severity] ?? SEVERITY_TO_ROW[evt.type] ?? 3;
-    grid[row][col]++;
-  });
-
-  return { grid, colLabels };
 }
 
 export default function TemporalHeatmap({ events }) {
