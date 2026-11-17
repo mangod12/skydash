@@ -1,6 +1,7 @@
 """Telemetry routes: REST endpoints, history, stats, WebSocket stream."""
 
 import asyncio
+import contextlib
 import logging
 import time
 from typing import Dict, Optional
@@ -183,3 +184,7 @@ async def ws_telemetry(websocket: WebSocket):
         log.info(f"WebSocket client disconnected: {websocket.client}")
     except Exception as exc:
         log.warning(f"WebSocket error: {exc}")
+        # An accepted socket needs an explicit failure close so clients can reconnect.
+        # A broken transport may reject the close too; do not hide the original error.
+        with contextlib.suppress(Exception):
+            await websocket.close(code=1011, reason="Telemetry unavailable")

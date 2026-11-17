@@ -75,6 +75,25 @@ class TestTelemetryRoutes(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
+    def test_websocket_failure_closes_and_allows_reconnect(self):
+        from unittest.mock import patch
+        from starlette.websockets import WebSocketDisconnect
+        from routes import telemetry
+
+        for failure in (RuntimeError("private adapter failure"), ValueError("nonfinite payload")):
+            with self.subTest(failure=type(failure).__name__), \
+                    patch.object(telemetry, "AUTH_ENABLED", False), \
+                    patch.object(telemetry, "API_KEY", ""), \
+                    patch.object(fleet, "get_all_telemetry", side_effect=failure):
+                with self.client.websocket_connect("/ws/telemetry") as ws:
+                    with self.assertRaises(WebSocketDisconnect) as cm:
+                        ws.receive_json()
+                    self.assertEqual(cm.exception.code, 1011)
+                    self.assertEqual(cm.exception.reason, "Telemetry unavailable")
+        with patch.object(telemetry, "AUTH_ENABLED", False), patch.object(telemetry, "API_KEY", ""):
+            with self.client.websocket_connect("/ws/telemetry") as ws:
+                self.assertEqual(ws.receive_json()["type"], "telemetry")
+
     def test_reset_clears_prior_session_history_and_stats(self):
         self.assertTrue(telemetry_history)
         self.assertTrue(self.client.post("/reset").json()["success"])
