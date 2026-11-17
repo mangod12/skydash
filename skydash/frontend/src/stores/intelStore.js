@@ -177,19 +177,30 @@ export const useIntelStore = create((set, get) => ({
         readJson('/api/timeline?limit=200'),
       ]);
 
-      const entities = entitiesResult.status === 'fulfilled' ? entitiesResult.value : null;
-      const graph = graphResult.status === 'fulfilled' ? graphResult.value : null;
-      const events = timelineResult.status === 'fulfilled' ? timelineResult.value : null;
+      const entities = entitiesResult.status === 'fulfilled' && Array.isArray(entitiesResult.value)
+        ? entitiesResult.value : null;
+      const graphValue = graphResult.status === 'fulfilled' ? graphResult.value : null;
+      const graph = Array.isArray(graphValue?.nodes) && Array.isArray(graphValue?.edges)
+        ? graphValue : null;
+      const events = timelineResult.status === 'fulfilled' && Array.isArray(timelineResult.value)
+        ? timelineResult.value : null;
 
       if (!entities && !graph && !events) {
         throw new Error('Intel API unavailable');
       }
 
+      const previousSync = get().lastSyncedAt;
       get().hydrateIntel({
         entities: graph?.nodes || entities,
         relationships: graph?.edges,
         events,
       });
+      // A graph snapshot includes both entities and relationships, so it can
+      // replace a failed redundant entity-list request. Timeline is independent.
+      if (!graph || !events) {
+        set({ syncError: 'Intel sync incomplete', lastSyncedAt: previousSync });
+        return false;
+      }
       return true;
     } catch (error) {
       set({ syncError: error.message || 'Intel sync failed' });
