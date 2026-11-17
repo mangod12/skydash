@@ -19,7 +19,6 @@ export function useSystemHealth() {
   const [now, setNow] = useState(0);
   const [start] = useState(() => Date.now());
   const msgRef = useRef(0);
-  const prevLenRef = useRef(0);
 
   const isConnected = useTelemetryStore((s) => s.isConnected);
   const latency = useTelemetryStore((s) => s.latency);
@@ -33,10 +32,14 @@ export function useSystemHealth() {
   const anns = useMapStore((s) => s.annotations);
 
   useEffect(() => {
-    const d = histLen - prevLenRef.current;
-    if (d > 0) msgRef.current += d;
-    prevLenRef.current = histLen;
-  }, [histLen]);
+    // History is a bounded ring, so its length stops growing after 200 frames.
+    // Count new history snapshots instead of treating length growth as traffic.
+    return useTelemetryStore.subscribe((state, previous) => {
+      if (state.history !== previous.history && state.history.length > 0) {
+        msgRef.current += 1;
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => {
