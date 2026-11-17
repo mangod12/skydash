@@ -57,3 +57,23 @@ describe('telemetry history identity', () => {
     expect(history.at(-1).altitude).toBe(249);
   });
 });
+
+describe('empty fleet snapshot', () => {
+  it('clears selected telemetry, chart history and alerts without claiming a disconnect', () => {
+    const store = useTelemetryStore.getState();
+    store.updateTelemetry({ ...sample, battery_voltage: 10, altitude: 30 }, 0);
+    expect(useTelemetryStore.getState().alerts.length).toBeGreaterThan(0);
+    store.updateFleet([]);
+    const empty = useTelemetryStore.getState();
+    expect(empty.fleet).toEqual([]);
+    expect(empty.data).toBeNull();
+    expect(empty.activeDroneId).toBeNull();
+    expect(empty.history).toEqual([]);
+    expect(empty.alerts).toEqual([]);
+    expect(empty.isConnected).toBe(true);
+    store.updateFleet([{ ...sample, drone_id: 'next' }]);
+    store.updateTelemetry({ ...sample, drone_id: 'next', altitude: 50 }, 0);
+    expect(useTelemetryStore.getState().activeDroneId).toBe('next');
+    expect(useTelemetryStore.getState().history).toHaveLength(1);
+  });
+});
