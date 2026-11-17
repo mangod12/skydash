@@ -60,6 +60,10 @@ class EntityStore:
             f"SELECT COUNT(*) FROM {table}"
         ).fetchone()[0]
 
+    def count(self) -> int:
+        """Count entities without loading or decoding their payloads."""
+        return self._count("entities")
+
     def _row_to_entity(self, row) -> Dict:
         d = dict(row)
         d["coordinates"] = json.loads(d["coordinates"]) if d["coordinates"] else None

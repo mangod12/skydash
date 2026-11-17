@@ -42,6 +42,20 @@ class TestHealthAndTelemetry(_ApiTestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["status"], "healthy")
 
+    def test_health_counts_entities_without_materialising_payloads(self):
+        from unittest.mock import patch
+
+        for name in ("Alpha", "Beta", "Gamma"):
+            self.client.post("/api/entities", json={"name": name})
+        with patch.object(entity_store, "_row_to_entity", side_effect=AssertionError("Do not load rows")):
+            response = self.client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["entities"], 3)
+        self.assertEqual(response.json()["status"], "healthy")
+
+    def test_health_reports_an_empty_entity_store(self):
+        self.assertEqual(self.client.get("/health").json()["entities"], 0)
+
     def test_telemetry_returns_fleet(self):
         r = self.client.get("/telemetry")
         self.assertEqual(r.status_code, 200)
