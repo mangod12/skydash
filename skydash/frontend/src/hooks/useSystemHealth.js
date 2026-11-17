@@ -60,8 +60,14 @@ export function useSystemHealth() {
     }
     try {
       const r = await fetch(`${API}/health`);
-      if (r.ok) setBackendUp((await r.json()).uptime ?? null);
-    } catch { /* silent */ }
+      if (!r.ok) throw new Error('Health request failed');
+      const data = await r.json();
+      const uptime = data?.uptime;
+      setBackendUp(Number.isFinite(uptime) && uptime >= 0 ? uptime : null);
+    } catch {
+      // A failed check cannot keep presenting an earlier uptime as current.
+      setBackendUp(null);
+    }
   }, []);
 
   useEffect(() => {

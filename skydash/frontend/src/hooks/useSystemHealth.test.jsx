@@ -4,14 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSystemHealth } from './useSystemHealth';
 import { useTelemetryStore } from '../stores/telemetryStore';
 
-vi.mock('../utils/runtimeConfig', () => ({ API_BASE: '', API_CONFIGURED: false }));
+const config = vi.hoisted(() => ({ API_BASE: 'https://test', API_CONFIGURED: false }));
+vi.mock('../utils/runtimeConfig', () => config);
 const frame = { drone_id: 'one', timestamp: 123, battery_voltage: 16, altitude: 20 };
 
 beforeEach(() => {
   vi.useFakeTimers();
+  config.API_CONFIGURED = false;
   useTelemetryStore.setState({ data: null, history: [], fleet: [], isConnected: false });
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 const advance = () => act(() => vi.advanceTimersByTime(1000));
 
 describe('system health telemetry rate', () => {
@@ -41,4 +43,30 @@ describe('system health telemetry rate', () => {
     expect(result.current.rateHistory.at(-1).v).toBe(3);
     expect(result.current.pipeline.dataPoints).toBe(1);
   });
+});
+
+describe('backend health uptime freshness', () => {
+  it.each(['http', 'network', 'json', 'missing', 'negative', 'string', 'nonfinite'])(
+    'clears old backend uptime after %s failure and recovers', async (kind) => {
+      config.API_CONFIGURED = true;
+      const good = () => Promise.resolve({ ok: true, json: async () => ({ uptime: 123 }) });
+      const fetchMock = vi.fn(good);
+      vi.stubGlobal('fetch', fetchMock);
+      const { result } = renderHook(() => useSystemHealth());
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(result.current.uptime.backend).toBe(123);
+      if (kind === 'network') fetchMock.mockRejectedValueOnce(new Error('offline'));
+      else if (kind === 'http') fetchMock.mockResolvedValueOnce({ ok: false });
+      else if (kind === 'json') fetchMock.mockResolvedValueOnce({ ok: true, json: async () => { throw new Error('bad JSON'); } });
+      else {
+        const uptime = { negative: -1, string: '123', nonfinite: Infinity }[kind];
+        fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ uptime }) });
+      }
+      await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+      expect(result.current.uptime.backend).toBeNull();
+      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ uptime: 0 }) });
+      await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+      expect(result.current.uptime.backend).toBe(0);
+    },
+  );
 });
