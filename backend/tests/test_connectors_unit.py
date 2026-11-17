@@ -48,6 +48,41 @@ class TestOpenSky(unittest.TestCase):
             conn.fetch_aircraft()
         self.assertEqual(get.call_count, 1)
 
+    def test_cache_is_scoped_to_the_requested_region(self):
+        conn = OpenSkyConnector()
+        first_region, next_region = [1, 2, 3, 4], [5, 6, 7, 8]
+        with patch("connectors.requests.get", side_effect=[
+            response(200, {"states": [state(icao="first")]}),
+            response(200, {"states": [state(icao="next")]}),
+            response(200, {"states": [state(icao="global")]}),
+        ]) as get:
+            self.assertEqual(conn.fetch_aircraft(first_region)[0]["icao24"], "first")
+            self.assertEqual(conn.fetch_aircraft(list(first_region))[0]["icao24"], "first")
+            self.assertEqual(conn.fetch_aircraft(next_region)[0]["icao24"], "next")
+            self.assertEqual(conn.fetch_aircraft()[0]["icao24"], "global")
+        self.assertEqual(get.call_count, 3)
+
+    def test_other_region_cache_is_never_used_as_failure_fallback(self):
+        conn = OpenSkyConnector()
+        region = [1, 2, 3, 4]
+        with patch("connectors.requests.get", return_value=response(200, {"states": [state()]})):
+            cached = conn.fetch_aircraft(region)
+        for failure in (response(429), RuntimeError("down")):
+            with self.subTest(failure=type(failure).__name__):
+                kwargs = {"side_effect": failure} if isinstance(failure, Exception) else {"return_value": failure}
+                with patch("connectors.requests.get", **kwargs):
+                    self.assertEqual(conn.fetch_aircraft([5, 6, 7, 8]), [])
+                    self.assertEqual(conn.fetch_aircraft(), [])
+                self.assertEqual(conn.cache, cached)
+                self.assertEqual(conn.cache_bbox, tuple(region))
+
+    def test_empty_region_result_is_cached_within_ttl(self):
+        conn = OpenSkyConnector()
+        with patch("connectors.requests.get", return_value=response(200, {"states": []})) as get:
+            self.assertEqual(conn.fetch_aircraft([1, 2, 3, 4]), [])
+            self.assertEqual(conn.fetch_aircraft([1, 2, 3, 4]), [])
+        get.assert_called_once()
+
     def test_returns_cache_on_http_error_and_exception(self):
         conn = OpenSkyConnector()
         conn.cache = [{"icao24": "cached"}]
