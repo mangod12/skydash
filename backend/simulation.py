@@ -65,7 +65,7 @@ class DroneSimulator:
         self.hold_position = None
         self.emergency_stopped = False
         self.last_command = None
-        self._last_command_elapsed = None
+        self._rtl_started_at = None
 
         self.wind_speed = random.uniform(1, 4)
         self.wind_direction = random.uniform(0, 360)
@@ -146,7 +146,7 @@ class DroneSimulator:
 
         if self.mode == "RTL":
             lat, lng, heading = self._pattern_position(t)
-            command_start = self.start_time if self._last_command_elapsed is None else self._last_command_elapsed
+            command_start = self.start_time if self._rtl_started_at is None else self._rtl_started_at
             frac = _clamp((time.monotonic() - command_start) / 20, 0.0, 1.0)
             return (
                 lat + (self.base_lat - lat) * frac,
@@ -247,6 +247,10 @@ class DroneSimulator:
             mode = str(params.get("mode", "")).upper()
             if mode not in SUPPORTED_MODES:
                 raise ValueError(f"Unsupported mode: {mode}")
+            if mode == "RTL" and self.mode != "RTL":
+                self._rtl_started_at = time.monotonic()
+            elif mode != "RTL":
+                self._rtl_started_at = None
             self.mode = mode
             self.emergency_stopped = False
             self.hold_position = None
@@ -293,7 +297,6 @@ class DroneSimulator:
             self.speed_scale = MIN_SPEED_SCALE
 
         self.last_command = now
-        self._last_command_elapsed = time.monotonic()
         return self.get_command_state()
 
 
