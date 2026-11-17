@@ -149,6 +149,18 @@ describe('generateCSV', () => {
     expect(csv).toContain('ent-002(associated_with)');
   });
 
+  it.each(['line1\rline2', 'line1\r\nline2', 'line1\nline2'])(
+    'quotes embedded line separators in entity cells', (name) => {
+      const csv = generateCSV([{ ...ENTITIES[0], name }], []);
+      expect(csv).toContain(`,"${name}",vehicle,`);
+    },
+  );
+
+  it('quotes and neutralizes a carriage-return-prefixed cell', () => {
+    const csv = generateCSV([{ ...ENTITIES[0], name: '\r=1+1' }], []);
+    expect(csv).toContain(`,"'\r=1+1",vehicle,`);
+  });
+
   it('handles empty input', () => {
     const csv = generateCSV([], []);
     const lines = csv.split('\n');
