@@ -92,6 +92,29 @@ class TestUpdateRoutes(unittest.TestCase):
         for field in map_fields:
             self.assertIsNone(response.json()["data"][field])
 
+    def test_detection_changes_roll_back_when_mission_update_fails(self):
+        import sqlite3
+
+        detection = mission_store.add_detection(self.mid, {"source_name": "Original", "model": "test"})
+        before = mission_store.get_mission(self.mid)
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_detection_timestamp BEFORE UPDATE ON missions
+                        BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END""")
+        conn.commit()
+        for operation in (lambda: mission_store.add_detection(self.mid, {"source_name": "Failed"}),
+                          lambda: mission_store.delete_detection(detection["id"], self.mid)):
+            with self.assertRaises(sqlite3.IntegrityError):
+                operation()
+            self.assertFalse(conn.in_transaction)
+            entity_store.add_event({"description": "Unrelated commit"})
+            self.assertEqual(mission_store.get_detections(self.mid), [detection])
+            self.assertEqual(mission_store.get_mission(self.mid), before)
+        conn.execute("DROP TRIGGER reject_detection_timestamp")
+        conn.commit()
+        self.assertTrue(mission_store.delete_detection(detection["id"], self.mid))
+        self.assertEqual(mission_store.get_detections(self.mid), [])
+        self.assertIsNotNone(mission_store.add_detection(self.mid, {"source_name": "Retry"}))
+
     def test_note_changes_roll_back_when_mission_timestamp_update_fails(self):
         import sqlite3
 
