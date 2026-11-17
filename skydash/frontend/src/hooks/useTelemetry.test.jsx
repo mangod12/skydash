@@ -31,6 +31,35 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.use
 const settle = async () => { await act(async () => { await Promise.resolve(); }); };
 
 describe('telemetry connection lifecycle', () => {
+  it('replaces fleet membership when snapshots shrink to one or zero drones', async () => {
+    useTelemetryStore.setState({ fleet: [], activeDroneId: null });
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    const socket = FakeSocket.instances[0];
+    const drone = (id) => ({ drone_id: id, altitude: 50, battery_voltage: 16 });
+    const send = (data) => act(() => socket.onmessage({ data: JSON.stringify({ type: 'telemetry', data }) }));
+    send([drone('one'), drone('two')]);
+    expect(useTelemetryStore.getState().fleet.map((d) => d.drone_id)).toEqual(['one', 'two']);
+    send([drone('two')]);
+    expect(useTelemetryStore.getState().fleet.map((d) => d.drone_id)).toEqual(['two']);
+    expect(useTelemetryStore.getState().activeDroneId).toBe('two');
+    send([]);
+    expect(useTelemetryStore.getState().fleet).toEqual([]);
+    unmount();
+  });
+
+  it('updates single-drone fleet membership through HTTP fallback too', async () => {
+    useTelemetryStore.setState({ fleet: [{ drone_id: 'removed' }], activeDroneId: 'removed' });
+    apiFetch.mockResolvedValue({ ok: true, json: async () => ({ data: [{ drone_id: 'remaining', altitude: 50 }] }) });
+    const { unmount } = renderHook(() => useTelemetry());
+    await settle();
+    act(() => FakeSocket.instances[0].close());
+    await settle();
+    expect(useTelemetryStore.getState().fleet.map((d) => d.drone_id)).toEqual(['remaining']);
+    expect(useTelemetryStore.getState().activeDroneId).toBe('remaining');
+    unmount();
+  });
+
   it('does not open a socket when a ticket resolves after unmount', async () => {
     let resolve;
     telemetrySocketUrl.mockReturnValue(new Promise((done) => { resolve = done; }));
