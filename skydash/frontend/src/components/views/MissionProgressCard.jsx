@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
+import PanelState from '../common/PanelState';
 import GlassCard from '../common/GlassCard';
 
 const PHASES = [
@@ -47,7 +48,7 @@ export default function MissionProgressCard({ mission }) {
         <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-3">
           MISSION PROGRESS
         </h3>
-        <div className="text-zinc-700 text-[10px] text-center py-4">NO ACTIVE MISSION</div>
+        <PanelState title="No active mission" hint="Start a mission from the Missions view." />
       </GlassCard>
     );
   }

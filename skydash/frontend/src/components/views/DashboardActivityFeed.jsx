@@ -1,3 +1,4 @@
+import PanelState from '../common/PanelState';
 import GlassCard from '../common/GlassCard';
 import ActivityItem from '../common/ActivityItem';
 import { useActivityStore } from '../../stores/activityStore';
@@ -33,9 +34,7 @@ export default function DashboardActivityFeed() {
       </div>
       <div className="space-y-1 overflow-y-auto max-h-[440px] pr-1 custom-scrollbar">
         {filteredActivities.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-zinc-700 text-[10px] tracking-wider">
-            NO ACTIVITY
-          </div>
+          <PanelState title="No activity yet" hint="Operator and system events will be listed here." />
         ) : (
           filteredActivities.slice(0, 20).map((activity) => (
             <ActivityItem key={activity.id} activity={activity} />

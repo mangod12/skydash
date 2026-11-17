@@ -1,3 +1,4 @@
+import PanelState from '../common/PanelState';
 import { Plane, Battery, Signal } from 'lucide-react';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
@@ -65,7 +66,7 @@ export function FleetPanel() {
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto">
         {fleet.length === 0 && (
-          <div className="text-center text-zinc-600 text-sm py-8">NO FLEET DATA</div>
+          <PanelState title="No fleet data" hint="Waiting for drone telemetry." />
         )}
         {fleet.map((drone) => (
           <DroneCard key={drone.drone_id} drone={drone} />

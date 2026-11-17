@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { AlertTriangle, TrendingUp, Eye, MapPin } from 'lucide-react';
+import PanelState from '../common/PanelState';
 import GlassCard from '../common/GlassCard';
 
 const FINDING_ICONS = {
@@ -115,7 +116,7 @@ export default function DashboardIntelSummary({ entities, events, relationships 
           })}
         </div>
       ) : (
-        <div className="text-zinc-700 text-[10px] text-center py-4">NO FINDINGS</div>
+        <PanelState title="No findings" hint="Findings appear once entities are tracked." />
       )}
     </GlassCard>
   );
