@@ -6,7 +6,7 @@ import { distanceBetween } from './coordinates';
  */
 function checkBatteryLow(drone, config) {
   const pct = drone.battery_percentage;
-  if (!Number.isFinite(pct)) return { triggered: false };
+  if (!Number.isFinite(pct) || !Number.isFinite(config.threshold)) return { triggered: false };
   if (pct < config.threshold) {
     return { triggered: true, message: `${drone.drone_id} battery at ${pct}%` };
   }
@@ -15,7 +15,7 @@ function checkBatteryLow(drone, config) {
 
 function checkSignalWeak(drone, config) {
   const sig = drone.signal_strength;
-  if (!Number.isFinite(sig)) return { triggered: false };
+  if (!Number.isFinite(sig) || !Number.isFinite(config.threshold)) return { triggered: false };
   if (sig < config.threshold) {
     return { triggered: true, message: `${drone.drone_id} signal at ${sig}%` };
   }
@@ -24,7 +24,7 @@ function checkSignalWeak(drone, config) {
 
 function checkAltitudeLimit(drone, config) {
   const alt = drone.altitude;
-  if (!Number.isFinite(alt)) return { triggered: false };
+  if (!Number.isFinite(alt) || !Number.isFinite(config.maxAlt)) return { triggered: false };
   if (alt > config.maxAlt) {
     return { triggered: true, message: `${drone.drone_id} altitude ${alt.toFixed(0)}m exceeds ${config.maxAlt}m` };
   }
@@ -33,7 +33,7 @@ function checkAltitudeLimit(drone, config) {
 
 function checkSpeedLimit(drone, config) {
   const spd = drone.ground_speed;
-  if (!Number.isFinite(spd)) return { triggered: false };
+  if (!Number.isFinite(spd) || !Number.isFinite(config.maxSpeed)) return { triggered: false };
   if (spd > config.maxSpeed) {
     return { triggered: true, message: `${drone.drone_id} speed ${spd.toFixed(1)} m/s exceeds ${config.maxSpeed}` };
   }
@@ -48,11 +48,11 @@ function checkGeofenceBreach(drone, config, geofences) {
   if (!validPosition(drone.gps?.latitude, drone.gps?.longitude)) return { triggered: false };
   const { latitude, longitude } = drone.gps;
   const fences = config.geofenceId
-    ? geofences.filter((g) => g.id === config.geofenceId)
+    ? geofences.filter((g) => g && g.id === config.geofenceId)
     : geofences;
 
   for (const fence of fences) {
-    if (fence.active === false || fence.type !== 'circle' || !validPosition(fence.center?.lat, fence.center?.lng)
+    if (!fence || fence.active === false || fence.type !== 'circle' || !validPosition(fence.center?.lat, fence.center?.lng)
         || !Number.isFinite(fence.radius) || fence.radius <= 0) continue;
     const dist = distanceBetween(latitude, longitude, fence.center.lat, fence.center.lng);
     if (dist > fence.radius) {
@@ -64,7 +64,7 @@ function checkGeofenceBreach(drone, config, geofences) {
 
 function checkProximity(drone, config, _geofences, entities) {
   if (!validPosition(drone.gps?.latitude, drone.gps?.longitude)) return { triggered: false };
-  const target = entities.find((e) => e.id === config.entityId);
+  const target = entities.find((e) => e && e.id === config.entityId);
   if (!Array.isArray(target?.coordinates) || !validPosition(target.coordinates[0], target.coordinates[1])) {
     return { triggered: false };
   }
@@ -95,7 +95,9 @@ const CHECKERS = {
  * @returns {{ triggered: boolean, message?: string }}
  */
 export function evaluateRule(rule, drone, geofences, entities) {
-  const checker = CHECKERS[rule.type];
-  if (!checker) return { triggered: false };
-  return checker(drone, rule.config, geofences, entities);
+  if (!rule || !drone || !Object.hasOwn(CHECKERS, rule.type)) return { triggered: false };
+  const config = rule.config;
+  if (!config || typeof config !== 'object' || Array.isArray(config)) return { triggered: false };
+  return CHECKERS[rule.type](drone, config,
+    Array.isArray(geofences) ? geofences : [], Array.isArray(entities) ? entities : []);
 }

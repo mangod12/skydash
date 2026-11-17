@@ -155,3 +155,33 @@ describe('disabled geofence alert behavior', () => {
     expect(evaluateRule(rule, outside, [fence], []).triggered).toBe(true);
   });
 });
+
+describe('alert rule input integrity', () => {
+  it.each(['constructor', '__proto__', 'toString'])('does not invoke inherited rule type %s', (type) => {
+    expect(evaluateRule({ type, config: {} }, {}, [], [])).toEqual({ triggered: false });
+  });
+  it.each([null, {}, { type: 'battery_low' }, { type: 'battery_low', config: null }, { type: 'battery_low', config: [] }])('ignores malformed rule %j', (candidate) => {
+    expect(evaluateRule(candidate, { battery_percentage: 1 }, null, null)).toEqual({ triggered: false });
+  });
+  it.each([
+    ['battery_low', 'threshold', 'battery_percentage', 1],
+    ['signal_weak', 'threshold', 'signal_strength', 1],
+    ['altitude_limit', 'maxAlt', 'altitude', 10],
+    ['speed_limit', 'maxSpeed', 'ground_speed', 10],
+  ])('does not coerce malformed %s limits into alerts', (type, key, field, value) => {
+    for (const bad of ['5', null, true, [], {}, NaN, Infinity, -Infinity]) {
+      expect(evaluateRule({ type, config: { [key]: bad } }, { [field]: value }, [], []).triggered).toBe(false);
+    }
+  });
+  it('keeps a genuine zero threshold valid', () => {
+    expect(evaluateRule({ type: 'altitude_limit', config: { maxAlt: 0 } }, { altitude: 1 }, [], []).triggered).toBe(true);
+  });
+  it('isolates missing spatial arrays and null records without disabling valid fences', () => {
+    const drone = { drone_id: 'D1', gps: { latitude: 1, longitude: 1 } };
+    const rule = { type: 'geofence_breach', config: { geofenceId: 'f' } };
+    const fence = { id: 'f', type: 'circle', center: { lat: 0, lng: 0 }, radius: 100 };
+    expect(evaluateRule(rule, drone, null, null).triggered).toBe(false);
+    expect(evaluateRule(rule, drone, [null, fence], null).triggered).toBe(true);
+    expect(evaluateRule({ type: 'proximity', config: { entityId: 'e' } }, drone, [], [null, { id: 'e', coordinates: [1, 1] }]).triggered).toBe(true);
+  });
+});
