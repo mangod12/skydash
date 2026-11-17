@@ -22,7 +22,7 @@ describe('authenticated request session boundaries', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise((done) => { resolve = done; })));
     const request = apiFetch('/api/entities');
     const rejection = expect(request).rejects.toThrow('Unauthorized');
-    expect(fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer old');
+    expect(fetch.mock.calls[0][1].headers.authorization).toBe('Bearer old');
     session = { ...session, token: 'new', logout: vi.fn() };
     resolve({ status: 401 });
     await rejection;
@@ -30,11 +30,29 @@ describe('authenticated request session boundaries', () => {
     expect(session.token).toBe('new');
   });
 
+  it.each([
+    new Headers({ 'Content-Type': 'application/json', 'X-Request-ID': 'req-1' }),
+    [['Content-Type', 'application/json'], ['X-Request-ID', 'req-1']],
+  ])('preserves standard HeadersInit forms', async (headers) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200 }));
+    await apiFetch('/api/entities', { headers });
+    const sent = new Headers(fetch.mock.calls[0][1].headers);
+    expect(sent.get('content-type')).toBe('application/json');
+    expect(sent.get('x-request-id')).toBe('req-1');
+    expect(sent.get('authorization')).toBe('Bearer old');
+  });
+
+  it('replaces an old authorization header regardless of casing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200 }));
+    await apiFetch('/api/entities', { headers: { authorization: 'Bearer obsolete' } });
+    expect(fetch.mock.calls[0][1].headers).toEqual({ authorization: 'Bearer old' });
+  });
+
   it('returns successful responses and preserves request options', async () => {
     const response = { status: 200 };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
     expect(await apiFetch('/api/entities', { method: 'PUT', headers: { 'Content-Type': 'application/json' } })).toBe(response);
-    expect(fetch).toHaveBeenCalledWith('/api/entities', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer old' } });
+    expect(fetch).toHaveBeenCalledWith('/api/entities', { method: 'PUT', headers: { 'content-type': 'application/json', authorization: 'Bearer old' } });
     expect(session.logout).not.toHaveBeenCalled();
   });
 });
