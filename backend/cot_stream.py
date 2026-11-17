@@ -27,6 +27,7 @@ log = logging.getLogger("skydash.cot")
 TYPE_TO_COT = {"vehicle": "G-E-V", "person": "G-U-C", "building": "G-I", "device": "G-E-S"}
 DRONE_COT_TYPE = "a-f-A-M-F-Q"  # friendly, air, military, fixed wing, UAV
 STALE_SECONDS = 30
+WRITE_TIMEOUT_SECONDS = 10
 
 
 def affiliation_for(threat: Optional[str]) -> str:
@@ -189,7 +190,9 @@ async def run_stream(get_entities, get_drones, target: Tuple[str, str, int], int
                         backoff = 1.0
                     for ev in events:
                         writer.write(ev)
-                    await writer.drain()
+                    # A connected peer may stop reading. Reconnect rather than
+                    # leaving the stream blocked forever on stale telemetry.
+                    await asyncio.wait_for(writer.drain(), WRITE_TIMEOUT_SECONDS)
                 await asyncio.sleep(interval)
             except asyncio.CancelledError:
                 raise
