@@ -173,6 +173,14 @@ class TestUpdateRoutes(unittest.TestCase):
                     self.assertEqual(response.status_code, 422)
                     self.assertEqual(self.client.get(url).json()["data"], original)
 
+    def test_entity_routes_reject_impossible_latitudes_without_changing_record(self):
+        before = entity_store.get_entity(self.eid)
+        for coords in ([90.001, 0], [-90.001, 0], [0, 180.001], [0, -180.001]):
+            with self.subTest(coords=coords):
+                self.assertEqual(self.client.post("/api/entities", json={"name": "Invalid", "coordinates": coords}).status_code, 422)
+                self.assertEqual(self.client.put(f"/api/entities/{self.eid}", json={"coordinates": coords}).status_code, 422)
+                self.assertEqual(entity_store.get_entity(self.eid), before)
+
     def test_nullable_update_fields_can_still_be_cleared(self):
         entity_url = f"/api/entities/{self.eid}"
         self.client.put(entity_url, json={"coordinates": [20.3, 85.8]})
