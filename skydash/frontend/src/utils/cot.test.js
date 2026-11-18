@@ -70,3 +70,14 @@ describe('CoT coordinate text integrity', () => {
     expect(result.entities[0].coordinates).toEqual(expected);
   });
 });
+
+describe('CoT confidence integrity', () => {
+  const xml = confidence => `<event uid="test" type="a-h-G"><point lat="0" lon="0"/><detail><skydash confidence="${confidence}"/></detail></event>`;
+  it.each(['90junk', '0x10', '-1', '101', 'NaN', 'Infinity', '', '   '])('uses the existing unknown default for invalid confidence %j', value => {
+    const { entities } = parseCoT(xml(value));
+    expect(entities[0].confidence).toBe(50);
+  });
+  it.each([['0', 0], ['100', 100], [' 82.5 ', 82.5], ['5e1', 50]])('preserves valid confidence %s', (value, expected) => {
+    expect(parseCoT(xml(value)).entities[0].confidence).toBe(expected);
+  });
+});
