@@ -1,3 +1,5 @@
+import { normalizeTelemetry } from './telemetryReadings';
+
 const THREAT_LABELS = { critical: 'CRITICAL', high: 'HIGH', medium: 'MEDIUM', low: 'LOW', none: 'NONE' };
 const THREAT_PRIORITY = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
 
@@ -148,28 +150,23 @@ function buildVisualDebrief(mission) {
 }
 
 function buildSustainment(telemetry) {
-  const fleet = telemetry?.fleet || [];
-  const primary = telemetry?.data;
+  const fleet = Array.isArray(telemetry?.fleet)
+    ? telemetry.fleet.map(normalizeTelemetry).filter(Boolean) : [];
+  const primary = normalizeTelemetry(telemetry?.data);
+  const drones = fleet.length > 0 ? fleet : primary ? [primary] : [];
+  const fleetStatus = drones.map((d) => ({
+    id: d.drone_id,
+    status: d.flight_mode?.trim().toUpperCase() || 'UNKNOWN',
+    battery: d.battery_voltage !== null ? `${d.battery_voltage.toFixed(1)}V` : 'N/A',
+    signal: d.signal_strength !== null ? `${d.signal_strength}%` : 'N/A',
+  }));
 
-  const fleetStatus = fleet.length > 0
-    ? fleet.map((d) => ({
-        id: d.drone_id || d.id,
-        status: d.mode?.toUpperCase() || 'UNKNOWN',
-        battery: d.battery_voltage ? `${d.battery_voltage.toFixed(1)}V` : 'N/A',
-        signal: d.signal_strength ? `${d.signal_strength}%` : 'N/A',
-      }))
-    : primary
-      ? [{ id: primary.drone_id || 'PRIMARY', status: primary.mode?.toUpperCase() || 'ACTIVE', battery: `${primary.battery_voltage?.toFixed(1) || 'N/A'}V`, signal: `${primary.signal_strength || 'N/A'}%` }]
-      : [];
-
-  const overallBattery = primary?.battery_voltage
+  const overallBattery = primary?.battery_voltage != null
     ? primary.battery_voltage >= 15.5 ? 'GREEN' : primary.battery_voltage >= 14.5 ? 'AMBER' : 'RED'
     : 'UNKNOWN';
-
-  const overallSignal = primary?.signal_strength
+  const overallSignal = primary?.signal_strength != null
     ? primary.signal_strength >= 70 ? 'GREEN' : primary.signal_strength >= 50 ? 'AMBER' : 'RED'
     : 'UNKNOWN';
-
   return { fleetStatus, overallBattery, overallSignal };
 }
 
