@@ -168,6 +168,45 @@ class TestTarget(unittest.TestCase):
 
 
 class TestStreamRecovery(unittest.IsolatedAsyncioTestCase):
+    async def test_slow_entity_snapshot_does_not_block_event_loop(self):
+        import threading
+        from unittest.mock import AsyncMock, Mock, patch
+
+        entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+        loop_thread = threading.get_ident()
+        fleet_threads = []
+
+        def slow_entities():
+            entered.set()
+            try:
+                release.wait(2)
+                return [ENTITY]
+            finally:
+                finished.set()
+
+        def fleet():
+            fleet_threads.append(threading.get_ident())
+            return [DRONE]
+
+        writer = Mock(drain=AsyncMock())
+        with patch.object(cot_stream.asyncio, "open_connection", AsyncMock(return_value=(None, writer))):
+            task = asyncio.create_task(cot_stream.run_stream(slow_entities, fleet, ("tcp", "tak.local", 8087), 5))
+            try:
+                self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                self.assertFalse(finished.is_set(), "CoT entity query blocked event loop")
+                release.set()
+                for _ in range(100):
+                    if writer.write.call_count == 2:
+                        break
+                    await asyncio.sleep(0.005)
+                self.assertEqual(writer.write.call_count, 2)
+                self.assertEqual(fleet_threads, [loop_thread])
+            finally:
+                release.set()
+                task.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await task
+
     async def test_stalled_write_times_out_and_reconnects(self):
         from unittest.mock import AsyncMock, Mock, patch
 

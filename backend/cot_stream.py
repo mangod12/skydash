@@ -176,7 +176,8 @@ async def run_stream(get_entities, get_drones, target: Tuple[str, str, int], int
     try:
         while True:
             try:
-                events = build_events(get_entities(), get_drones())
+                entities = await asyncio.to_thread(get_entities)
+                events = build_events(entities, get_drones())
                 if scheme == "udp":
                     if transport is None:
                         transport, _ = await loop.create_datagram_endpoint(
