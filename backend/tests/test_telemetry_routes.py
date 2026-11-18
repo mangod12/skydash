@@ -186,6 +186,21 @@ class TestTelemetryRoutes(unittest.TestCase):
             self.assertEqual(drone.yaw_offset, 350)
             self.assertEqual(drone.get_command_state()["orbit_radius_m"], 3000)
 
+    def test_websocket_api_key_exact_token_acceptance(self):
+        from unittest.mock import patch
+        from starlette.websockets import WebSocketDisconnect
+        from routes import telemetry
+
+        with patch.object(telemetry, "AUTH_ENABLED", False), \
+                patch.object(telemetry, "API_KEY", "fixture-api-key"):
+            for token in ("", "wrong", "fixture-api-key-extra", "Bearer%20fixture-api-key"):
+                with self.subTest(token=token), self.assertRaises(WebSocketDisconnect) as cm:
+                    with self.client.websocket_connect("/ws/telemetry?token=" + token):
+                        pass
+                self.assertEqual(cm.exception.code, 4001)
+            with self.client.websocket_connect("/ws/telemetry?token=fixture-api-key") as ws:
+                self.assertEqual(ws.receive_json()["type"], "telemetry")
+
     def test_websocket_failure_closes_and_allows_reconnect(self):
         from unittest.mock import patch
         from starlette.websockets import WebSocketDisconnect

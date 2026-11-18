@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import logging
 import os
+import secrets
 import time
 
 from fastapi import FastAPI, Request
@@ -112,8 +113,8 @@ async def auth_middleware(request: Request, call_next):
     if path in SKIP_AUTH_PATHS or path.startswith("/ws/"):
         return await call_next(request)
     if API_KEY and not AUTH_ENABLED:
-        token = request.headers.get("Authorization", "").replace("Bearer ", "")
-        if token != API_KEY:
+        raw = request.headers.get("Authorization", "")
+        if not raw.startswith("Bearer ") or not secrets.compare_digest(raw[7:].encode(), API_KEY.encode()):
             return JSONResponse(
                 status_code=401,
                 content={"success": False, "error": "Invalid or missing API key"},
