@@ -104,6 +104,7 @@ export default function OsintIngestPanel() {
           return (
             <button
               key={item.id}
+              disabled={loading}
               onClick={() => { setSource(item.id); setPreview([]); setMetadata(null); setError(null); }}
               className={clsx(
                 'flex items-center justify-center gap-1.5 rounded border px-2 py-1.5 text-[9px] font-semibold tracking-wider transition-colors',
@@ -126,7 +127,8 @@ export default function OsintIngestPanel() {
           {source === 'shodan' && (
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              disabled={loading}
+              onChange={(event) => { setQuery(event.target.value); setPreview([]); setMetadata(null); setError(null); }}
               className="mt-1 w-full bg-transparent text-[10px] font-mono text-zinc-300 outline-none placeholder:text-zinc-700"
               placeholder="webcam, scada, rtsp..."
             />
