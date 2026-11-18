@@ -2,6 +2,7 @@ import { CircleMarker, Tooltip, Circle, Popup } from 'react-leaflet';
 import { useIntelStore } from '../../stores/intelStore';
 import { useEntityNavigation } from '../../hooks/useEntityNavigation';
 import { THREAT_COLORS, COLORS } from '../../utils/designTokens';
+import { isValidCoordinate } from '../../utils/coordinates';
 
 const THREAT_STYLES = {
   none: { color: THREAT_COLORS.none, radius: 6, pulse: false },
@@ -28,7 +29,8 @@ export default function EntityMarkers({ onEntityContextMenu }) {
   return (
     <>
       {entities
-        .filter((e) => e.coordinates)
+        .filter((e) => e && Array.isArray(e.coordinates)
+          && isValidCoordinate(e.coordinates[0], e.coordinates[1]))
         .map((entity) => {
           const style = THREAT_STYLES[entity.threatLevel] || THREAT_STYLES.none;
           const isSelected = selectedEntityId === entity.id;
@@ -97,7 +99,7 @@ export default function EntityMarkers({ onEntityContextMenu }) {
                   <div className="text-[10px] font-mono space-y-0.5">
                     <div className="font-bold text-[11px]">{entity.name}</div>
                     <div style={{ color: style.color }}>
-                      {TYPE_LABELS[entity.type] || entity.type.toUpperCase()} | {entity.threatLevel.toUpperCase()} | {entity.confidence}%
+                      {TYPE_LABELS[entity.type] || (typeof entity.type === 'string' ? entity.type.toUpperCase() : 'UNKNOWN')} | {(typeof entity.threatLevel === 'string' ? entity.threatLevel.toUpperCase() : 'UNKNOWN')} | {entity.confidence}%
                     </div>
                     <div className="text-zinc-500">{entity.source}</div>
                   </div>
@@ -107,7 +109,7 @@ export default function EntityMarkers({ onEntityContextMenu }) {
                   <div className="text-[10px] font-mono space-y-1.5 min-w-[140px]">
                     <div className="font-bold text-[11px]">{entity.name}</div>
                     <div style={{ color: style.color }}>
-                      {TYPE_LABELS[entity.type] || entity.type.toUpperCase()} | {entity.threatLevel.toUpperCase()}
+                      {TYPE_LABELS[entity.type] || (typeof entity.type === 'string' ? entity.type.toUpperCase() : 'UNKNOWN')} | {(typeof entity.threatLevel === 'string' ? entity.threatLevel.toUpperCase() : 'UNKNOWN')}
                     </div>
                     <div className="text-zinc-500">CONF: {entity.confidence}%</div>
                     <button
