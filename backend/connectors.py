@@ -19,6 +19,10 @@ log = logging.getLogger("skydash.connectors")
 # ─── OpenSky ADS-B Connector ─────────────────────────────────
 
 
+class OpenSkyUnavailable(RuntimeError):
+    """An upstream refresh failed; expired aircraft must not be treated as live."""
+
+
 class OpenSkyConnector:
     """Live ADS-B aircraft tracking via OpenSky Network API."""
 
@@ -40,6 +44,11 @@ class OpenSkyConnector:
 
         Returns:
             List of aircraft dicts with position and flight data.
+
+        Raises:
+            OpenSkyUnavailable: A required upstream refresh failed. The last
+                successful cache is retained internally, but never returned
+                beyond its TTL on a failed refresh.
         """
         # Requests can run in separate API worker threads. Keep region/cache state
         # together and coalesce simultaneous refreshes for the same region.
@@ -68,9 +77,11 @@ class OpenSkyConnector:
             )
             if resp.status_code == 200:
                 data = resp.json()
-                if not isinstance(data, dict):
+                if not isinstance(data, dict) or "states" not in data:
                     raise ValueError("Invalid OpenSky response envelope")
-                states = data.get("states", []) or []
+                states = data["states"]
+                if states is None:
+                    states = []
                 if not isinstance(states, (list, tuple)):
                     raise ValueError("Invalid OpenSky state collection")
                 aircraft = []
@@ -115,11 +126,11 @@ class OpenSkyConnector:
                 log.info(f"OpenSky: fetched {len(aircraft)} aircraft")
                 return aircraft
             else:
-                log.warning(f"OpenSky API returned {resp.status_code}")
-                return self.cache if same_region else []
+                log.warning("OpenSky API returned HTTP %s", resp.status_code)
+                raise ValueError("OpenSky returned an unsuccessful status")
         except Exception as e:
-            log.warning(f"OpenSky fetch failed: {e}")
-            return self.cache if same_region else []
+            log.warning("OpenSky fetch failed (%s)", type(e).__name__)
+            raise OpenSkyUnavailable("OpenSky feed unavailable") from None
 
     def to_entities(self, aircraft: List[Dict]) -> List[Dict]:
         """Convert aircraft list to SkyDash entity format."""
