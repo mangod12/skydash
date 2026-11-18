@@ -372,6 +372,18 @@ test.describe('SkyDash E2E Tests', () => {
     data.primary_sha256 = 'a'.repeat(64); await panel.getByLabel('Import comparison review JSON').setInputFiles({ name: 'wrong-primary.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(data)) }); await expect(panel.getByRole('alert')).toContainText('Primary fingerprint mismatch'); await expect(panel.getByLabel('Comparison notes', { exact: true })).toHaveValue('Private synthetic comparison notes'); await expect(panel.getByLabel('Applied comparison alignment')).toContainText('A row 4');
   });
 
+  test('recorded review maps make no tile requests until per-map consent and reset on new sources', async ({ page }) => {
+    await page.getByRole('button', { name: 'Scenario Lab', exact: true }).click(); await page.getByRole('button', { name: 'FLIGHT LOG REPLAY', exact: true }).click();
+    const requests = []; await page.route('**/tile.openstreetmap.org/**', async route => { requests.push(route.request().url()); await route.fulfill({ status: 200, contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64') }); });
+    await page.getByText('Load synthetic sample', { exact: true }).click(); const track = page.getByLabel('Recorded flight track', { exact: true }); await expect(track.locator('.leaflet-overlay-pane svg path')).not.toHaveCount(0); await expect(track.locator('.leaflet-tile-pane img')).toHaveCount(0);
+    await page.getByLabel('Replay position', { exact: true }).fill('8'); await expect(page.getByLabel('Current recorded observation')).toContainText('at 4s'); expect(requests.length).toBe(0);
+    const comparison = page.getByRole('article', { name: 'Two-flight comparison', exact: true }); await comparison.getByText('Load synthetic baseline', { exact: true }).click(); const compared = comparison.getByLabel('Compared recorded tracks'); await expect(compared.locator('.leaflet-overlay-pane svg path')).not.toHaveCount(0); await expect(compared.locator('.leaflet-tile-pane img')).toHaveCount(0); expect(requests.length).toBe(0);
+    await page.getByLabel('Allow external basemap for primary replay', { exact: true }).check(); await expect.poll(() => requests.length).toBeGreaterThan(0); await expect(track.locator('.leaflet-tile-pane img')).not.toHaveCount(0); await expect(compared.locator('.leaflet-tile-pane img')).toHaveCount(0);
+    await page.getByLabel('Allow external basemap for primary replay', { exact: true }).uncheck(); await expect(track.locator('.leaflet-tile-pane img')).toHaveCount(0); const afterOff = requests.length; await track.getByRole('button', { name: 'Zoom in', exact: true }).click(); await expect(track.locator('.leaflet-tile-pane img')).toHaveCount(0); expect(requests.length).toBe(afterOff);
+    await comparison.getByLabel('Allow external basemap for two-flight comparison', { exact: true }).check(); await expect(compared.locator('.leaflet-tile-pane img')).not.toHaveCount(0); await comparison.getByText('Load synthetic baseline', { exact: true }).click(); await expect(comparison.getByLabel('Allow external basemap for two-flight comparison', { exact: true })).not.toBeChecked(); await expect(compared.locator('.leaflet-tile-pane img')).toHaveCount(0);
+    await page.getByLabel('Allow external basemap for primary replay', { exact: true }).check(); await page.getByText('Load synthetic sample', { exact: true }).click(); await expect(page.getByLabel('Allow external basemap for primary replay', { exact: true })).not.toBeChecked(); await expect(track.locator('.leaflet-tile-pane img')).toHaveCount(0);
+  });
+
   // ─── TELEMETRY DATA FLOW ─────────────────────────────────
 
   test('telemetry values update in real-time', async ({ page }) => {

@@ -133,3 +133,11 @@ describe('portable comparison review controls', () => {
     fireEvent.change(screen.getByLabelText('Review anchor label'), { target: { value: 'Pending' } }); expect(screen.getByText('Download comparison review JSON').disabled).toBe(true); expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });
+
+it('starts basemap off and resets permission on new baseline, imported review or clearing', async () => {
+  render(<FlightComparison primary={primary} />); await load(); const label = 'Allow external basemap for two-flight comparison'; expect(screen.getByLabelText(label).checked).toBe(false);
+  fireEvent.click(screen.getByLabelText(label)); expect(screen.getByLabelText(label).checked).toBe(true); await load(); expect(screen.getByLabelText(label).checked).toBe(false);
+  fireEvent.click(screen.getByLabelText(label)); const { createComparisonReview } = await import('../../utils/comparisonReview'); const contents = await createComparisonReview(primary, primary);
+  fireEvent.change(screen.getByLabelText('Import comparison review JSON'), { target: { files: [{ name:'review.json', size:contents.length, arrayBuffer:async()=>new TextEncoder().encode(contents).buffer }] } }); await screen.findByText('Preview comparison review: Primary test'); expect(screen.getByLabelText(label).checked).toBe(true); fireEvent.click(screen.getByText('Replace comparison with imported review')); expect(screen.getByLabelText(label).checked).toBe(false);
+  fireEvent.click(screen.getByLabelText(label)); fireEvent.click(screen.getByText('Clear comparison')); await load(); expect(screen.getByLabelText(label).checked).toBe(false);
+});

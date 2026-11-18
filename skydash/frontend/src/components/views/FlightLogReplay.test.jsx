@@ -113,3 +113,10 @@ describe('flight-log import, replay, debrief and archive workflow', () => {
     expect(screen.getByRole('alert').textContent).toContain('Download could not start'); fireEvent.click(screen.getByText('Back to Scenario Lab')); expect(onBack).toHaveBeenCalledOnce();
   });
 });
+
+it('keeps primary and comparison background permission separate, resets primary on source load', async () => {
+  render(<FlightLogReplay />); await sample(); const primary = screen.getByLabelText('Allow external basemap for primary replay'); expect(primary.checked).toBe(false);
+  fireEvent.click(primary); expect(primary.checked).toBe(true); fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByLabelText('Comparison time');
+  const comparison = screen.getByLabelText('Allow external basemap for two-flight comparison'); expect(comparison.checked).toBe(false); fireEvent.click(comparison); expect(comparison.checked).toBe(true); expect(primary.checked).toBe(true);
+  await sample(); expect(screen.getByLabelText('Allow external basemap for primary replay').checked).toBe(false); expect(globalThis.fetch).not.toHaveBeenCalled();
+});
