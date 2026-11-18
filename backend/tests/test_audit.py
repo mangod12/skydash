@@ -71,6 +71,29 @@ class TestAuditLog(unittest.TestCase):
             with self.subTest(path=path), patch.object(audit, "query", side_effect=slow):
                 asyncio.run(exercise())
 
+    def test_slow_audit_write_does_not_block_health_requests(self):
+        entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+        def slow(*args, **kwargs):
+            entered.set()
+            try:
+                release.wait(2)
+            finally:
+                finished.set()
+        async def exercise():
+            async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as client:
+                pending = asyncio.create_task(client.post("/api/auth/login", json={"username": "fixture", "password": "wrong"}))
+                try:
+                    self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                    response = await client.get("/health")
+                    self.assertEqual(response.status_code, 200)
+                    self.assertFalse(finished.is_set(), "Audit persistence blocked event loop")
+                finally:
+                    release.set()
+                    response = await pending
+                self.assertEqual(response.status_code, 401)
+        with patch.object(audit, "record", side_effect=slow):
+            asyncio.run(exercise())
+
     def test_should_audit(self):
         self.assertTrue(audit.should_audit("POST", "/api/entities"))
         self.assertTrue(audit.should_audit("POST", "/api/auth/login"))
