@@ -249,6 +249,28 @@ test.describe('SkyDash E2E Tests', () => {
     await expect(panel.getByLabel('Current recorded observation')).toContainText('Sample 1/6');
   });
 
+  test('instructor debrief markers seek replay and round-trip a source-bound sidecar', async ({ page }) => {
+    await page.keyboard.press('l'); await page.getByRole('button', { name: 'FLIGHT LOG REPLAY', exact: true }).click();
+    const panel = page.getByRole('region', { name: 'Flight log replay', exact: true }); await panel.getByRole('button', { name: 'Load synthetic sample', exact: true }).click();
+    await panel.getByLabel('Replay position', { exact: true }).fill('8');
+    await panel.getByRole('button', { name: 'Instructor debrief', exact: true }).click();
+    const review = panel.getByRole('article', { name: 'Instructor debrief timeline', exact: true });
+    await review.getByLabel('Marker kind', { exact: true }).selectOption('Question'); await review.getByLabel('Instructor marker note', { exact: true }).fill('Discuss the missing interval before inferring a flight event.');
+    await review.getByRole('button', { name: 'Add marker at cursor', exact: true }).click(); await expect(review.getByText('Source sample 4s, age 4.0s. DATA GAP. No observation at marker time.', { exact: true })).toBeVisible();
+    await review.getByLabel('Discussed at 8.0s', { exact: true }).check(); await review.getByLabel('Discussion summary', { exact: true }).fill('Synthetic training review only.');
+    const pending = page.waitForEvent('download'); await review.getByRole('button', { name: 'Download debrief JSON', exact: true }).click();
+    const stream = await (await pending).createReadStream(); const parts = []; for await (const part of stream) parts.push(part); const contents = Buffer.concat(parts); const data = JSON.parse(contents.toString('utf8'));
+    expect(data.markers[0].time_s).toBe(8); expect(data.markers[0].discussed).toBe(true); expect(data.source_sha256).toHaveLength(64); expect(data.csv_text).toBeUndefined();
+    await review.getByRole('button', { name: 'Clear instructor review', exact: true }).click(); await review.getByRole('button', { name: 'Confirm clear review', exact: true }).click(); await expect(review.getByRole('button', { name: 'Jump to 8.0s', exact: true })).toHaveCount(0);
+    await review.getByLabel('Import debrief JSON', { exact: true }).setInputFiles({ name: 'review.json', mimeType: 'application/json', buffer: contents });
+    await expect(review.getByRole('button', { name: 'Replace with imported review', exact: true })).toBeVisible(); await expect(review.getByRole('button', { name: 'Jump to 8.0s', exact: true })).toHaveCount(0);
+    await review.getByRole('button', { name: 'Replace with imported review', exact: true }).click(); await expect(review.getByLabel('Discussed at 8.0s', { exact: true })).toBeChecked();
+    await review.getByRole('button', { name: 'Jump to 8.0s', exact: true }).click(); await expect(panel.getByLabel('Replay position', { exact: true })).toHaveValue('8'); await expect(panel.getByLabel('Current recorded observation')).toContainText('at 4s');
+    const reportPending = page.waitForEvent('download'); await review.getByRole('button', { name: 'Download instructor report', exact: true }).click(); const reportStream = await (await reportPending).createReadStream(); const reportParts = []; for await (const part of reportStream) reportParts.push(part); const report = Buffer.concat(reportParts).toString('utf8');
+    expect(report).toContain('sample 3 at 4s'); expect(report).toContain('DATA GAP'); expect(report).toContain('Synthetic training review only.'); expect(report).toContain('Marked discussed: 1');
+    const mismatch = { ...data, source_sha256: 'b'.repeat(64) }; await review.getByLabel('Import debrief JSON', { exact: true }).setInputFiles({ name: 'wrong.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(mismatch)) }); await expect(review.getByRole('alert')).toContainText('fingerprint mismatch'); await expect(review.getByRole('button', { name: 'Jump to 8.0s', exact: true })).toBeVisible();
+  });
+
   // ─── TELEMETRY DATA FLOW ─────────────────────────────────
 
   test('telemetry values update in real-time', async ({ page }) => {

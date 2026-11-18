@@ -102,6 +102,11 @@ describe('flight-log import, replay, debrief and archive workflow', () => {
     fireEvent.change(screen.getByLabelText('Choose flight CSV'), { target: { files: [{ name: 'different.csv', size: changed.length, arrayBuffer: async () => new TextEncoder().encode(changed).buffer }] } });
     await screen.findByText(/Source: different.csv/); expect(screen.queryByLabelText('Comparison time')).toBeNull();
   });
+  it('clears source-bound instructor markers when a different primary CSV loads', async () => {
+    render(<FlightLogReplay />); await sample(); fireEvent.change(screen.getByLabelText('Instructor marker note'), { target: { value: 'Old source marker' } }); fireEvent.click(screen.getByText('Add marker at cursor')); expect(screen.getByLabelText('Instructor review markers').textContent).toContain('Old source marker');
+    const changed = SAMPLE_LOG.replace('28.61390', '28.61391'); fireEvent.change(screen.getByLabelText('Choose flight CSV'), { target: { files: [{ name: 'different.csv', size: changed.length, arrayBuffer: async () => new TextEncoder().encode(changed).buffer }] } });
+    await screen.findByText(/Source: different.csv/); expect(screen.queryByText('Old source marker')).toBeNull();
+  });
   it('reports download errors and returns to the lab', async () => {
     const onBack = vi.fn(); render(<FlightLogReplay onBack={onBack} />); await sample();
     URL.createObjectURL.mockImplementationOnce(() => { throw Error('blocked'); }); fireEvent.click(screen.getByText('Download source CSV'));
