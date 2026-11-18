@@ -100,6 +100,33 @@ class TestAuthHardening(unittest.TestCase):
                 self.client.post("/api/auth/login", json={"username": "alice", "password": "wrong"})
         self.assertEqual(auth_routes._login_pending, {})
 
+    def test_registration_hashing_does_not_block_other_api_requests(self):
+        entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+        def slow(*args):
+            entered.set()
+            try:
+                release.wait(3)
+                return "fixture-user"
+            finally:
+                finished.set()
+        async def exercise():
+            async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as client:
+                pending = asyncio.create_task(client.post("/api/auth/register", json={
+                    "username": "new-user", "password": self.good_pw,
+                }))
+                try:
+                    self.assertTrue(await asyncio.to_thread(entered.wait, 2))
+                    status = await client.get("/api/connectors/status")
+                    self.assertEqual(status.status_code, 200)
+                    self.assertFalse(finished.is_set(), "Registration blocked the API event loop")
+                finally:
+                    release.set()
+                    response = await pending
+                self.assertEqual(response.status_code, 200)
+        with patch.object(self.users, "create_user", side_effect=slow), \
+                patch.object(self.users, "get_user", return_value={"id": "fixture-user", "username": "new-user", "role": "analyst"}):
+            asyncio.run(exercise())
+
     def test_register_ignores_requested_role(self):
         resp = self.client.post(
             "/api/auth/register",

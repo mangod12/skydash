@@ -103,7 +103,8 @@ async def auth_login(body: AuthLogin, request: Request):
 
 
 @router.post("/api/auth/register")
-async def auth_register(body: AuthRegister):
+def auth_register(body: AuthRegister):
+    # Sync routes run in the worker pool: password hashing must not pause telemetry.
     # Public sign-up never grants elevated roles; body.role is ignored.
     # Set SKYDASH_ALLOW_REGISTRATION=false to close self-registration (production).
     if os.getenv("SKYDASH_ALLOW_REGISTRATION", "true").lower() in ("0", "false", "no"):
