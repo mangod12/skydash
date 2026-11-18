@@ -3,6 +3,7 @@ import InstructorDebrief from './InstructorDebrief';
 import TrainingEnvelope from './TrainingEnvelope';
 import ReviewCase from './ReviewCase';
 import SourceEvidence from './SourceEvidence';
+import CSVColumnMapping from './CSVColumnMapping';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { ArrowLeft, Download, Play, Pause, RotateCcw, Save, Upload } from 'lucide-react';
@@ -74,6 +75,11 @@ export default function FlightLogReplay({ onBack }) {
     select(opened.log); setReviewSeed(opened.data); setReviewRevision(value => value + 1);
     setMessage('Portable case opened in this browser only. No server archive record created.');
   };
+  const openMapped = converted => {
+    select({ filename: converted.filename, csv_text: converted.csv_text, sha256: converted.sha256, samples: converted.samples, model_version: converted.model_version, title: converted.filename.replace(/\.csv$/i, ''), notes: '' });
+    setReviewSeed(null); setReviewRevision(value => value + 1);
+    setMessage('Mapped CSV opened locally. Keep original source and conversion record separately; no server record created.');
+  };
   const run = async operation => {
     if (busy) return;
     setBusy(true); setPlaying(false); setError(''); setMessage('');
@@ -127,12 +133,13 @@ export default function FlightLogReplay({ onBack }) {
       <button disabled={busy} onClick={onBack} className="inline-flex items-center gap-2 text-xs text-zinc-400"><ArrowLeft size={14} /> Back to Scenario Lab</button>
       <header><p className="text-[10px] tracking-widest text-cyan-300">IMPORT / REPLAY / DEBRIEF</p><h1 className="mt-1 text-2xl font-semibold text-zinc-100">Flight Log Replay</h1><p className="mt-2 text-xs leading-relaxed text-zinc-400">{LOG_SCOPE}</p></header>
       {log && <div className="flex flex-wrap gap-2"><button className={button} onClick={() => { setPlaying(false); document.getElementById('source-evidence')?.scrollIntoView({ behavior: 'smooth' }); }}>Source evidence</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('training-envelope')?.scrollIntoView({ behavior: 'smooth' }); }}>Training envelope</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('instructor-debrief')?.scrollIntoView({ behavior: 'smooth' }); }}>Instructor debrief</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('flight-comparison')?.scrollIntoView({ behavior: 'smooth' }); }}>Compare two flights</button></div>}
+      <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><CSVColumnMapping workspaceBusy={busy} onOpen={openMapped} onPause={() => setPlaying(false)} /></div></details>
       <ReviewCase workspaceBusy={busy} log={busy ? null : log} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => setPlaying(false)} />
       <div className="grid gap-4 lg:grid-cols-3">
         <aside className="min-w-0 space-y-4">
           <div className="rounded-xl border border-white/10 p-4 space-y-3">
             <h2 className="text-sm font-semibold text-zinc-200">1. Preview a single-aircraft CSV</h2>
-            <p className="text-xs leading-relaxed text-zinc-400">CSV and notes stay in this browser until you choose Save to server. Map tiles are fetched from external providers for the viewed area. A new preview or opening a record replaces your unsaved draft. Direct binary MAVLink and PX4 ULog imports are not supported. Convert offline into this exact numeric schema first.</p>
+            <p className="text-xs leading-relaxed text-zinc-400">CSV and notes stay in this browser until you choose Save to server. Map tiles are fetched from external providers for the viewed area. A new preview or opening a record replaces your unsaved draft. Direct binary MAVLink and PX4 ULog imports are not supported. Use the explicit column mapper above for other numeric CSVs, or convert offline into this schema.</p>
             <code className="block break-all text-[10px] text-cyan-300">{LOG_HEADER}</code>
             <p className="text-xs text-zinc-500">UTF-8, unquoted numeric cells, 2 to 10,000 rows, 1MiB, up to 6 hours starting at 0s. Latitude within 85°; no dateline crossing. Optional altitude, speed and battery cells may be blank (unknown). Coordinates and time cannot be blank.</p>
             <label className="block text-xs text-zinc-300"><Upload size={14} className="inline mr-2" />Choose CSV<input aria-label="Choose flight CSV" type="file" accept=".csv,text/csv" disabled={busy} onChange={fileChosen} className="mt-2 block w-full min-w-0 text-xs text-zinc-400 file:mr-2 file:rounded file:border-0 file:bg-cyan-950 file:p-2 file:text-cyan-200" /></label>
