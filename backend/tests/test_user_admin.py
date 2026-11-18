@@ -1,4 +1,6 @@
 import os
+import asyncio
+import threading
 import secrets
 import shutil
 import tempfile
@@ -6,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
 import auth
 import database
@@ -43,6 +46,41 @@ class TestUserAdmin(unittest.TestCase):
     def hdr(self, role):
         t = auth.create_token(self.users.get_user(self.ids[role]))
         return {"Authorization": f"Bearer {t}"}
+
+    def test_account_database_work_does_not_block_other_requests(self):
+        cases = (
+            (self.users, "get_user", "GET", "/api/auth/me", None, {"id": self.ids["commander"]}),
+            (self.users, "list_users", "GET", "/api/users", None, []),
+            (self.users, "update_user", "PATCH", f"/api/users/{self.ids['viewer']}", {"role": "analyst"}, {"role": "analyst"}),
+            (auth_routes, "revoke_token", "POST", "/api/auth/logout", None, True),
+        )
+        for target, method, verb, path, body, result in cases:
+            header = self.hdr("commander")
+            entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+
+            def slow(*args, **kwargs):
+                entered.set()
+                try:
+                    release.wait(2)
+                    return result
+                finally:
+                    finished.set()
+
+            async def exercise():
+                async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as client:
+                    pending = asyncio.create_task(client.request(verb, path, headers=header, json=body))
+                    try:
+                        self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                        response = await client.get("/")
+                        self.assertEqual(response.status_code, 200)
+                        self.assertFalse(finished.is_set(), "Account database work blocked the event loop")
+                    finally:
+                        release.set()
+                        response = await pending
+                    self.assertEqual(response.status_code, 200)
+
+            with self.subTest(path=path), patch.object(target, method, side_effect=slow):
+                asyncio.run(exercise())
 
     def test_only_commander_can_list_or_update(self):
         for role in ("viewer", "analyst"):
