@@ -81,3 +81,23 @@ describe('CoT confidence integrity', () => {
     expect(parseCoT(xml(value)).entities[0].confidence).toBe(expected);
   });
 });
+
+describe('CoT import identity integrity', () => {
+  const document = uid => `<event uid="${uid}" type="a-f-G"><point lat="0" lon="0"/></event>`;
+  it('keeps different source UIDs distinct instead of overwriting imported entities', () => {
+    const uids = ['track/one', 'track_one', 'track:one', 'track%2Fone', 'track one', '~747261636b2f6f6e65', '轨迹'];
+    const imported = uids.map(uid => parseCoT(document(uid)).entities[0]);
+    expect(new Set(imported.map(entity => entity.id)).size).toBe(uids.length);
+    expect(imported.map(entity => entity.properties.cot_uid)).toEqual(uids);
+    expect(imported.every(entity => /^[A-Za-z0-9_.~!-]+$/.test(entity.id))).toBe(true);
+    for (const entity of imported) {
+      expect(parseCoT(document(entity.properties.cot_uid)).entities[0].id).toBe(entity.id);
+    }
+  });
+  it('preserves existing simple IDs and distinguishes escaped punctuation from literal text', () => {
+    expect(parseCoT(document('ANDROID-abc_123.4')).entities[0].id).toBe('cot-ANDROID-abc_123.4');
+    const punct = parseCoT(document('track!one')).entities[0].id;
+    const literal = parseCoT(document('track%21one')).entities[0].id;
+    expect(punct).not.toBe(literal);
+  });
+});

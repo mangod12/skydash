@@ -49,6 +49,13 @@ export function generateCoT(entities, now = Date.now()) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<events>\n${events.join('\n')}\n</events>\n`;
 }
 
+function importedEntityId(uid) {
+  if (/^[A-Za-z0-9_.-]+$/.test(uid)) return `cot-${uid}`;
+  // Reserve '~' for a lossless UTF-8 hex encoding; IDs remain safe in API paths.
+  const encoded = Array.from(new TextEncoder().encode(uid), byte => byte.toString(16).padStart(2, '0')).join('');
+  return `cot-~${encoded}`;
+}
+
 function parseDecimal(value) {
   // XML numeric fields must be complete decimal numbers, not a numeric prefix.
   const text = typeof value === 'string' ? value.trim() : '';
@@ -100,7 +107,7 @@ export function parseCoT(xml, { parser = new DOMParser() } = {}) {
     const conf = parseDecimal(sd?.getAttribute('confidence'));
     const time = Date.parse(ev.getAttribute('time') || '');
     entities.push({
-      id: `cot-${uid}`.replace(/[^A-Za-z0-9_.-]/g, '_'),
+      id: importedEntityId(uid),
       type: sd?.getAttribute('type') || entityTypeFromCot(type),
       name: callsign || uid,
       coordinates: [lat, lon],
