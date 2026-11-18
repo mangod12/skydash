@@ -53,3 +53,19 @@ describe('formatters', () => {
     expect(formatDistance(2.345, 'km')).toBe('2.35 km');
   });
 });
+
+describe('short distance unit integrity', () => {
+  it.each([
+    [0.005, 'km', '5 m'],
+    [0.005, 'nm', '9 m'],
+    [0.005, 'mi', '8 m'],
+  ])('converts %s %s to meters before labeling', (value, unit, expected) => {
+    expect(formatDistance(value, unit)).toBe(expected);
+  });
+  it.each(['km', 'nm', 'mi'])('keeps a genuine zero %s distance', unit => {
+    expect(formatDistance(0, unit)).toBe('0 m');
+  });
+  it.each([NaN, Infinity, -Infinity, -1, null, '0.005'])('does not label invalid distance %j as a real reading', value => {
+    expect(formatDistance(value, 'km')).toBe('--');
+  });
+});

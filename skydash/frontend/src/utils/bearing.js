@@ -132,6 +132,8 @@ export function formatBearing(degrees) {
  * Format distance with unit label
  */
 export function formatDistance(value, unit) {
-  if (value < 0.01) return `${(value * 1000).toFixed(0)} m`;
+  if (!Number.isFinite(value) || value < 0) return '--';
+  const kmPerUnit = unit === 'nm' ? 1.852 : unit === 'mi' ? 1.60934 : 1;
+  if (value < 0.01) return `${(value * kmPerUnit * 1000).toFixed(0)} m`;
   return `${value.toFixed(2)} ${unit}`;
 }
