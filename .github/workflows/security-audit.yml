@@ -27,6 +27,8 @@ jobs:
           python-version: '3.12'
       - run: pip install pip-audit
       - run: pip-audit -r backend/requirements.txt
+      - name: Audit optional real-drone dependencies
+        run: pip-audit -r backend/requirements_real_drone.txt
 
   node:
     name: npm audit (frontend, production deps)
