@@ -110,7 +110,7 @@ def get_sample_vision_frame():
 
 
 @router.get("/api/missions/{mission_id}/detections")
-async def get_mission_detections(mission_id: str):
+def get_mission_detections(mission_id: str):
     if not mission_store.get_mission(mission_id):
         raise HTTPException(status_code=404, detail="Mission not found")
     detections = mission_store.get_detections(mission_id)
@@ -119,7 +119,7 @@ async def get_mission_detections(mission_id: str):
 
 @router.post("/api/missions/{mission_id}/detections/analyze", status_code=201)
 async def analyze_mission_frame(mission_id: str, image: UploadFile = File(...)):
-    if not mission_store.get_mission(mission_id):
+    if not await run_in_threadpool(mission_store.get_mission, mission_id):
         raise HTTPException(status_code=404, detail="Mission not found")
 
     status = await run_in_threadpool(detector.status)
@@ -147,7 +147,7 @@ async def analyze_mission_frame(mission_id: str, image: UploadFile = File(...)):
         log.error("RT-DETR image analysis failed", exc_info=True)
         raise HTTPException(status_code=502, detail="Image analysis failed") from exc
 
-    detection = mission_store.add_detection(mission_id, result)
+    detection = await run_in_threadpool(mission_store.add_detection, mission_id, result)
     if not detection:
         raise HTTPException(status_code=404, detail="Mission not found")
     return {"success": True, "data": detection}
@@ -180,7 +180,7 @@ def analyze_sample_monitor_frame(mission_id: str):
 
 
 @router.delete("/api/missions/{mission_id}/detections/{detection_id}")
-async def delete_mission_detection(mission_id: str, detection_id: str):
+def delete_mission_detection(mission_id: str, detection_id: str):
     if not mission_store.get_mission(mission_id):
         raise HTTPException(status_code=404, detail="Mission not found")
     if not mission_store.delete_detection(detection_id, mission_id=mission_id):
