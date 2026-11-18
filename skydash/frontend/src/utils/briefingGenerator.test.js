@@ -43,6 +43,35 @@ describe('mission visual debrief briefing', () => {
 });
 
 
+describe('briefing entity evidence', () => {
+  function brief(entities) {
+    return generateBriefing({ name: 'Evidence', entityIds: entities.map(e => e.id) }, entities, {});
+  }
+  it('averages only known numeric confidence readings and preserves zero', () => {
+    const entities = [0, 100, null, '90', NaN, Infinity, -1, 101, true].map((confidence, id) => ({ id, name: `Entity ${id}`, confidence, threatLevel: 'none' }));
+    expect(brief(entities).situation.entitySummary).toContain('Average confidence: 50% (2/9 known)');
+  });
+  it('reports confidence as unknown instead of zero when no readings are known', () => {
+    expect(brief([{ id: 'one', name: 'Unknown' }]).situation.entitySummary).toContain('Average confidence: UNKNOWN');
+  });
+  it('does not certify no active threats when classifications are missing or invalid', () => {
+    const result = brief([{ id: 'one', threatLevel: 'unrated' }, { id: 'two' }, { id: 'three', threatLevel: 'none' }]);
+    expect(result.situation.threatAssessment).toContain('2 linked entity threat classification(s) unknown');
+    expect(result.situation.threatAssessment).not.toContain('No active threats');
+    expect(formatBriefingText(result)).not.toContain('Maximum threat level: undefined');
+  });
+  it('keeps known threat ranking while disclosing unknown classifications', () => {
+    const result = brief([{ id: 'one', name: 'Watch', threatLevel: 'low' }, { id: 'two', name: 'Urgent', threatLevel: 'critical' }, { id: 'three', threatLevel: 'constructor' }]);
+    expect(result.situation.threatAssessment).toContain('2 tracked threat(s)');
+    expect(result.situation.threatAssessment).toContain('Maximum threat level: CRITICAL');
+    expect(result.situation.threatAssessment).toContain('1 linked entity threat classification(s) unknown');
+    expect(result.execution.assignedEntities[2].threatLevel).toBe('UNKNOWN');
+  });
+  it('preserves the no-known-threat statement when all classifications are none', () => {
+    expect(brief([{ id: 'one', threatLevel: 'none', confidence: 0 }]).situation.threatAssessment).toContain('No active threats identified');
+  });
+});
+
 describe('briefing waypoint geometry', () => {
   it.each([null, [], [null, null], [false, false], ['0', '0'], [NaN, 0], [Infinity, 0], [91, 0], [0, -181], '00'].map(value => [value]))(
     'omits invalid waypoint coordinates without dropping the assigned entity: %j', coordinates => {

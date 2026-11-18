@@ -4,6 +4,10 @@ import { isValidCoordinate } from './coordinates';
 const THREAT_LABELS = { critical: 'CRITICAL', high: 'HIGH', medium: 'MEDIUM', low: 'LOW', none: 'NONE' };
 const THREAT_PRIORITY = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
 
+function threatLabel(value) {
+  return Object.hasOwn(THREAT_LABELS, value) ? THREAT_LABELS[value] : 'UNKNOWN';
+}
+
 /**
  * Returns current Zulu time formatted string.
  */
@@ -32,7 +36,7 @@ export function generateBriefing(mission, entities, telemetry) {
   );
 
   const threats = linkedEntities
-    .filter((e) => e.threatLevel && e.threatLevel !== 'none')
+    .filter((e) => threatLabel(e.threatLevel) !== 'UNKNOWN' && e.threatLevel !== 'none')
     .sort((a, b) => (THREAT_PRIORITY[b.threatLevel] || 0) - (THREAT_PRIORITY[a.threatLevel] || 0));
 
   const maxThreat = threats.length > 0 ? threats[0].threatLevel : 'none';
@@ -61,12 +65,19 @@ export function generateBriefing(mission, entities, telemetry) {
 }
 
 function buildSituation(entities, threats, maxThreat, mission) {
-  const threatAssessment = threats.length > 0
+  const unknownThreats = entities.filter(e => threatLabel(e.threatLevel) === 'UNKNOWN').length;
+  const unknownAssessment = `${unknownThreats} linked entity threat classification(s) unknown. Analyst review required.`;
+  const knownAssessment = threats.length > 0
     ? `${threats.length} tracked threat(s) identified within AO. Maximum threat level: ${THREAT_LABELS[maxThreat]}. Primary threats include ${threats.slice(0, 3).map((t) => t.name).join(', ')}.`
-    : 'No active threats identified within area of operations.';
+    : unknownThreats > 0 ? '' : 'No active threats identified within area of operations.';
+  const threatAssessment = [knownAssessment, unknownThreats > 0 ? unknownAssessment : ''].filter(Boolean).join(' ');
 
+  const confidences = entities.map(e => e.confidence).filter(value => Number.isFinite(value) && value >= 0 && value <= 100);
+  const confidenceSummary = confidences.length > 0
+    ? `${Math.round(confidences.reduce((sum, value) => sum + value, 0) / confidences.length)}% (${confidences.length}/${entities.length} known)`
+    : 'UNKNOWN';
   const entitySummary = entities.length > 0
-    ? `${entities.length} entities linked for operational monitoring. Types: ${[...new Set(entities.map((e) => e.type))].join(', ')}. Average confidence: ${Math.round(entities.reduce((s, e) => s + (e.confidence || 0), 0) / entities.length)}%.`
+    ? `${entities.length} entities linked for operational monitoring. Types: ${[...new Set(entities.map((e) => e.type || 'UNKNOWN'))].join(', ')}. Average confidence: ${confidenceSummary}.`
     : 'No entities currently linked to this mission.';
 
   const located = Number.isFinite(mission.center_lat) && Number.isFinite(mission.center_lng)
@@ -107,7 +118,7 @@ function buildExecution(mission, entities) {
     id: e.id,
     name: e.name,
     type: e.type,
-    threatLevel: THREAT_LABELS[e.threatLevel] || 'UNKNOWN',
+    threatLevel: threatLabel(e.threatLevel),
   }));
 
   const waypoints = entities
