@@ -106,3 +106,18 @@ describe('telemetry alert numeric readings', () => {
     expect(useTelemetryStore.getState().alerts).toEqual([]);
   });
 });
+
+describe('readiness selected-sample freshness', () => {
+  afterEach(() => vi.useRealTimers());
+  it('does not renew a selected sample timestamp when unrelated fleet frames arrive', () => {
+    vi.useFakeTimers(); vi.setSystemTime(1000);
+    useTelemetryStore.getState().updateTelemetry(sample, 0);
+    expect(useTelemetryStore.getState().dataReceivedAt).toBe(1000);
+    vi.setSystemTime(9000);
+    useTelemetryStore.getState().updateFleet([{ ...sample, drone_id: 'd2' }]);
+    expect(useTelemetryStore.getState().lastUpdate).toBe(9000);
+    expect(useTelemetryStore.getState().dataReceivedAt).toBe(1000);
+    useTelemetryStore.getState().updateFleet([]);
+    expect(useTelemetryStore.getState().dataReceivedAt).toBeNull();
+  });
+});
