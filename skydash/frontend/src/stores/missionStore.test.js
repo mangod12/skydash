@@ -274,6 +274,51 @@ describe('missionStore', () => {
     expect(useMissionStore.getState().missions[0].entityIds).toEqual([]);
   });
 
+  it.each([
+    ['addEntityToMission', [1, 'b']], ['removeEntityFromMission', [1, 'a']],
+    ['addNote', [1, 'new']], ['deleteNote', [1, 'n1']],
+    ['analyzeMissionImage', [1, new Blob(['image'])]], ['monitorSampleVideo', [1]],
+    ['deleteDetection', [1, 'd1']],
+  ])('does not let an older detail snapshot undo confirmed %s', async (action, args) => {
+    useMissionStore.setState({ missions: [mission(1, { entityIds: ['a'], notes: [{ id: 'n1' }], detections: [{ id: 'd1' }] })] });
+    let finish;
+    apiFetch.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const older = useMissionStore.getState().fetchMissionDetail(1);
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: { id: 'new' } }));
+    await useMissionStore.getState()[action](...args);
+    const confirmed = useMissionStore.getState().missions;
+    finish(await reply({ success: true, data: { id: 1, entities: ['a'], notes: [{ id: 'n1' }], detections: [{ id: 'd1' }] } }));
+    expect(await older).toBeNull();
+    expect(useMissionStore.getState().missions).toEqual(confirmed);
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: { id: 1, entities: ['fresh'], notes: [], detections: [] } }));
+    await useMissionStore.getState().fetchMissionDetail(1);
+    expect(useMissionStore.getState().missions[0].entityIds).toEqual(['fresh']);
+  });
+
+  it('keeps a pending detail valid after a rejected child write', async () => {
+    useMissionStore.setState({ missions: [mission(1)] });
+    let finish;
+    apiFetch.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const detail = useMissionStore.getState().fetchMissionDetail(1);
+    apiFetch.mockReturnValueOnce(reply({ success: false }, false));
+    expect(await useMissionStore.getState().addNote(1, 'new')).toBeNull();
+    finish(await reply({ success: true, data: { id: 1, entities: ['kept'], notes: [], detections: [] } }));
+    expect(await detail).toMatchObject({ id: 1 });
+    expect(useMissionStore.getState().missions[0].entityIds).toEqual(['kept']);
+  });
+
+  it('does not discard another mission detail when a child mutation succeeds', async () => {
+    useMissionStore.setState({ missions: [mission(1), mission(2)] });
+    let finish;
+    apiFetch.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const detail = useMissionStore.getState().fetchMissionDetail(2);
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: { id: 'new-note' } }));
+    await useMissionStore.getState().addNote(1, 'new');
+    finish(await reply({ success: true, data: { id: 2, entities: ['two'], notes: [], detections: [] } }));
+    expect(await detail).toMatchObject({ id: 2 });
+    expect(useMissionStore.getState().missions[1].entityIds).toEqual(['two']);
+  });
+
   it('fetchMissionDetail merges detail and uses a correct error message', async () => {
     useMissionStore.setState({ missions: [mission(1)] });
     apiFetch.mockReturnValueOnce(reply({ success: true, data: { id: 1, entities: ['a'], notes: [], detections: [] } }));

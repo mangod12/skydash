@@ -189,6 +189,8 @@ export const useMissionStore = create((set, get) => ({
       });
       const json = await res.json();
       if (res.ok && json?.success === true) {
+        // A detail snapshot started before this confirmed write is obsolete.
+        missionDetailGenerations.delete(missionId);
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -212,6 +214,8 @@ export const useMissionStore = create((set, get) => ({
       });
       const json = await res.json();
       if (res.ok && json?.success === true) {
+        // A detail snapshot started before this confirmed write is obsolete.
+        missionDetailGenerations.delete(missionId);
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -237,6 +241,8 @@ export const useMissionStore = create((set, get) => ({
       });
       const json = await res.json();
       if (res.ok && json?.success === true && json.data && typeof json.data === 'object' && !Array.isArray(json.data) && json.data.id != null) {
+        // A detail snapshot started before this confirmed write is obsolete.
+        missionDetailGenerations.delete(missionId);
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -260,6 +266,8 @@ export const useMissionStore = create((set, get) => ({
       });
       const json = await res.json();
       if (res.ok && json?.success === true) {
+        // A detail snapshot started before this confirmed write is obsolete.
+        missionDetailGenerations.delete(missionId);
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -304,6 +312,8 @@ export const useMissionStore = create((set, get) => ({
       });
       const json = await res.json();
       if (res.ok && json?.success === true && json.data && typeof json.data === 'object' && !Array.isArray(json.data) && json.data.id != null) {
+        // A detail snapshot started before this confirmed write is obsolete.
+        missionDetailGenerations.delete(missionId);
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -329,6 +339,8 @@ export const useMissionStore = create((set, get) => ({
       });
       const json = await res.json();
       if (res.ok && json?.success === true && json.data && typeof json.data === 'object' && !Array.isArray(json.data) && json.data.id != null) {
+        // A detail snapshot started before this confirmed write is obsolete.
+        missionDetailGenerations.delete(missionId);
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
@@ -355,6 +367,8 @@ export const useMissionStore = create((set, get) => ({
       });
       const json = await res.json();
       if (res.ok && json?.success === true) {
+        // A detail snapshot started before this confirmed write is obsolete.
+        missionDetailGenerations.delete(missionId);
         set((s) => ({
           missions: s.missions.map((m) =>
             m.id === missionId
