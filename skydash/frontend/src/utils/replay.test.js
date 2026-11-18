@@ -31,6 +31,19 @@ describe('replay helpers', () => {
     expect(normalizeFrames(undefined)).toEqual([]);
   });
 
+  it.each([NaN, Infinity, '16', true, false, {}, []])('does not coerce malformed replay metrics: %j', value => {
+    expect(normalizeFrames([{ timestamp: 1, altitude: value, battery_voltage: value,
+      ground_speed: value, signal_strength: value, gps: { latitude: value, longitude: value } }])[0])
+      .toEqual({ t: 1000, altitude: null, battery: null, speed: null, signal: null, lat: null, lng: null });
+  });
+  it('applies metric ranges without losing zero or below-origin altitude', () => {
+    expect(normalizeFrames([{ timestamp: 1, altitude: -10, battery_voltage: -1, ground_speed: -1,
+      signal_strength: 101, gps: { latitude: 91, longitude: 0 } }])[0])
+      .toEqual({ t: 1000, altitude: -10, battery: null, speed: null, signal: null, lat: null, lng: null });
+    expect(normalizeFrames([{ timestamp: 0, altitude: 0, battery_voltage: 0, ground_speed: 0,
+      signal_strength: 0, gps: { latitude: 0, longitude: 0 } }])[0])
+      .toEqual({ t: 0, altitude: 0, battery: 0, speed: 0, signal: 0, lat: 0, lng: 0 });
+  });
   it('clamps indexes', () => {
     expect(clampIndex(-3, 5)).toBe(0);
     expect(clampIndex(9, 5)).toBe(4);
