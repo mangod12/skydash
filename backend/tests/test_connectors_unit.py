@@ -4,7 +4,7 @@ import time
 import unittest
 from unittest.mock import MagicMock, patch
 
-from connectors import OpenSkyConnector, ShodanConnector
+from connectors import OpenSkyConnector, OpenSkyUnavailable, ShodanConnector
 
 
 def state(icao="abc123", callsign="UAL1 ", lon=-122.4, lat=37.7, baro=1000.0, geo=None):
@@ -49,9 +49,12 @@ class TestOpenSky(unittest.TestCase):
         with patch("connectors.requests.get", return_value=response(200, {"states": [state()]})):
             cached = connector.fetch_aircraft()
         connector._cache_time = None
-        for malformed in ([1], {"states": "invalid"}, {"states": {"wrong": []}}):
+        for malformed in ([1], {}, {"states": False}, {"states": 0}, {"states": ""},
+                          {"states": "invalid"}, {"states": {"wrong": []}}):
             with self.subTest(payload=malformed), patch("connectors.requests.get", return_value=response(200, malformed)):
-                self.assertEqual(connector.fetch_aircraft(), cached)
+                with self.assertRaises(OpenSkyUnavailable):
+                    connector.fetch_aircraft()
+                self.assertEqual(connector.cache, cached)
                 self.assertIsNone(connector._cache_time)
 
     def test_simultaneous_same_region_refreshes_only_fetch_once(self):
@@ -153,8 +156,10 @@ class TestOpenSky(unittest.TestCase):
             with self.subTest(failure=type(failure).__name__):
                 kwargs = {"side_effect": failure} if isinstance(failure, Exception) else {"return_value": failure}
                 with patch("connectors.requests.get", **kwargs):
-                    self.assertEqual(conn.fetch_aircraft([5, 6, 7, 8]), [])
-                    self.assertEqual(conn.fetch_aircraft(), [])
+                    with self.assertRaises(OpenSkyUnavailable):
+                        conn.fetch_aircraft([5, 6, 7, 8])
+                    with self.assertRaises(OpenSkyUnavailable):
+                        conn.fetch_aircraft()
                 self.assertEqual(conn.cache, cached)
                 self.assertEqual(conn.cache_bbox, tuple(region))
 
@@ -165,13 +170,27 @@ class TestOpenSky(unittest.TestCase):
             self.assertEqual(conn.fetch_aircraft([1, 2, 3, 4]), [])
         get.assert_called_once()
 
-    def test_returns_cache_on_http_error_and_exception(self):
+    def test_expired_cache_is_not_returned_on_http_error_or_exception(self):
         conn = OpenSkyConnector()
-        conn.cache = [{"icao24": "cached"}]
-        with patch("connectors.requests.get", return_value=response(429)):
-            self.assertEqual(conn.fetch_aircraft(), [{"icao24": "cached"}])
-        with patch("connectors.requests.get", side_effect=RuntimeError("down")):
-            self.assertEqual(conn.fetch_aircraft(), [{"icao24": "cached"}])
+        with patch("connectors.requests.get", return_value=response(200, {"states": [state()]})):
+            cached = conn.fetch_aircraft()
+        conn._cache_time = time.monotonic() - conn.cache_ttl
+        last_fetch = conn.last_fetch
+        for failure in (response(429), response(503), RuntimeError("down")):
+            kwargs = {"side_effect": failure} if isinstance(failure, Exception) else {"return_value": failure}
+            with self.subTest(failure=type(failure).__name__), patch("connectors.requests.get", **kwargs):
+                with self.assertRaisesRegex(OpenSkyUnavailable, "OpenSky feed unavailable"):
+                    conn.fetch_aircraft()
+                self.assertEqual(conn.cache, cached)
+                self.assertEqual(conn.last_fetch, last_fetch)
+        with patch("connectors.requests.get", return_value=response(200, {"states": []})):
+            self.assertEqual(conn.fetch_aircraft(), [])
+        self.assertEqual(conn.cache, [])
+
+    def test_initial_upstream_failure_is_not_a_successful_empty_feed(self):
+        with patch("connectors.requests.get", return_value=response(503)):
+            with self.assertRaises(OpenSkyUnavailable):
+                OpenSkyConnector().fetch_aircraft()
 
     def test_to_entities_shape(self):
         with patch("connectors.requests.get", return_value=response(200, {"states": [state(callsign="")]})):

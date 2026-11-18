@@ -137,6 +137,34 @@ class TestConnectorRoutes(unittest.TestCase):
         self.assertEqual(body["error"], "Internal server error")
         self.assertNotIn("secret", str(body))
 
+    def test_failed_refresh_never_serves_or_ingests_expired_aircraft(self):
+        from connectors import OpenSkyConnector
+        from unittest.mock import Mock
+
+        row = ["abc123", "TEST", "Test country", None, 1700000000,
+               -122.4, 37.5, 1000, False, 100, 90, 0, None, None]
+        successful = Mock(status_code=200)
+        successful.json.return_value = {"states": [row]}
+        unavailable = Mock(status_code=503)
+
+        for method, path, bbox in (
+            ("get", "/api/connectors/adsb", [37.0, -123.0, 38.0, -122.0]),
+            ("get", "/api/connectors/adsb/entities", None),
+            ("post", "/api/connectors/adsb/ingest", [37.0, -123.0, 38.0, -122.0]),
+        ):
+            connector = OpenSkyConnector()
+            with patch("connectors.requests.get", return_value=successful):
+                connector.fetch_aircraft(bbox)
+            connector._cache_time = None
+            with self.subTest(path=path), patch.object(connector_routes, "opensky", connector), \
+                    patch("connectors.requests.get", return_value=unavailable), \
+                    patch.object(entity_store, "upsert_entity") as upsert:
+                body = getattr(self.client, method)(path).json()
+                self.assertFalse(body["success"])
+                self.assertNotIn("data", body)
+                upsert.assert_not_called()
+                self.assertEqual(len(connector.cache), 1)
+
     def test_adsb_entities_converts_aircraft(self):
         with patch.object(connector_routes.opensky, "fetch_aircraft", return_value=[]), \
              patch.object(connector_routes.opensky, "to_entities", return_value=[aircraft_entity("adsb-test-1")]):
