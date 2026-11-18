@@ -96,11 +96,24 @@ class TestOpenSky(unittest.TestCase):
         self.assertEqual(aircraft[-1]["latitude"], 0)
         self.assertEqual(conn.cache, aircraft)
 
-    def test_falls_back_to_geometric_altitude_and_zero(self):
+    def test_falls_back_to_geometric_altitude_without_inventing_zero(self):
         rows = [state(baro=None, geo=900.0), state(icao="z", baro=None, geo=None)]
         with patch("connectors.requests.get", return_value=response(200, {"states": rows})):
             aircraft = OpenSkyConnector().fetch_aircraft()
-        self.assertEqual([a["altitude"] for a in aircraft], [900.0, 0])
+        self.assertEqual([a["altitude"] for a in aircraft], [900.0, None])
+
+    def test_missing_flight_metrics_stay_unknown_through_entity_conversion(self):
+        row = state(baro=None, geo=None)
+        row[9] = row[10] = row[11] = None
+        with patch("connectors.requests.get", return_value=response(200, {"states": [row]})):
+            connector = OpenSkyConnector()
+            aircraft = connector.fetch_aircraft()
+        self.assertEqual(len(aircraft), 1)
+        for field in ("altitude", "velocity", "heading", "vertical_rate"):
+            self.assertIsNone(aircraft[0][field])
+        properties = connector.to_entities(aircraft)[0]["properties"]
+        for field in ("altitude_m", "velocity_ms", "heading"):
+            self.assertIsNone(properties[field])
 
     def test_zero_barometric_altitude_is_not_replaced_by_geometric_altitude(self):
         with patch("connectors.requests.get", return_value=response(200, {"states": [state(baro=0, geo=900.0)]})):

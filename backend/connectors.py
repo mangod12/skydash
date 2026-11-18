@@ -99,11 +99,10 @@ class OpenSkyConnector:
                     if s[1] is not None and not isinstance(s[1], str):
                         continue
                     altitude = s[7] if s[7] is not None else s[13]
-                    altitude = 0 if altitude is None else altitude
-                    velocity = 0 if s[9] is None else s[9]
-                    heading = 0 if s[10] is None else s[10]
-                    vertical_rate = 0 if s[11] is None else s[11]
-                    if any(type(value) not in (int, float) or not math.isfinite(value)
+                    velocity = s[9]
+                    heading = s[10]
+                    vertical_rate = s[11]
+                    if any(value is not None and (type(value) not in (int, float) or not math.isfinite(value))
                            for value in (altitude, velocity, heading, vertical_rate)):
                         continue
                     aircraft.append({
@@ -143,9 +142,9 @@ class OpenSkyConnector:
                 "properties": {
                     "icao24": a["icao24"],
                     "origin_country": a["origin_country"],
-                    "altitude_m": round(a["altitude"]),
-                    "velocity_ms": round(a["velocity"], 1),
-                    "heading": round(a["heading"]),
+                    "altitude_m": round(a["altitude"]) if a["altitude"] is not None else None,
+                    "velocity_ms": round(a["velocity"], 1) if a["velocity"] is not None else None,
+                    "heading": round(a["heading"]) if a["heading"] is not None else None,
                     "on_ground": a["on_ground"],
                 },
                 "confidence": 95,
