@@ -4,6 +4,7 @@ import TrainingEnvelope from './TrainingEnvelope';
 import ReviewCase from './ReviewCase';
 import SourceEvidence from './SourceEvidence';
 import CSVColumnMapping from './CSVColumnMapping';
+import LocalReviewLibrary from './LocalReviewLibrary';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { ArrowLeft, Download, Play, Pause, RotateCcw, Save, Upload } from 'lucide-react';
@@ -134,6 +135,7 @@ export default function FlightLogReplay({ onBack }) {
       <header><p className="text-[10px] tracking-widest text-cyan-300">IMPORT / REPLAY / DEBRIEF</p><h1 className="mt-1 text-2xl font-semibold text-zinc-100">Flight Log Replay</h1><p className="mt-2 text-xs leading-relaxed text-zinc-400">{LOG_SCOPE}</p></header>
       {log && <div className="flex flex-wrap gap-2"><button className={button} onClick={() => { setPlaying(false); document.getElementById('source-evidence')?.scrollIntoView({ behavior: 'smooth' }); }}>Source evidence</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('training-envelope')?.scrollIntoView({ behavior: 'smooth' }); }}>Training envelope</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('instructor-debrief')?.scrollIntoView({ behavior: 'smooth' }); }}>Instructor debrief</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('flight-comparison')?.scrollIntoView({ behavior: 'smooth' }); }}>Compare two flights</button></div>}
       <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><CSVColumnMapping workspaceBusy={busy} onOpen={openMapped} onPause={() => setPlaying(false)} /></div></details>
+      <details className="rounded-xl border border-fuchsia-500/20 p-3"><summary className="cursor-pointer text-xs text-fuchsia-200">Device-local review library (explicit storage, not a backup)</summary><div className="mt-3"><LocalReviewLibrary hasSource={Boolean(log)} workspaceBusy={busy} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => setPlaying(false)} /></div></details>
       <ReviewCase workspaceBusy={busy} log={busy ? null : log} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => setPlaying(false)} />
       <div className="grid gap-4 lg:grid-cols-3">
         <aside className="min-w-0 space-y-4">
