@@ -214,15 +214,15 @@ async def audit_middleware(request: Request, call_next):
         response = await call_next(request)
     except Exception:
         if audited:
-            audit.record(request.method, path, 500, getattr(request.state, "user", None),
-                         client_ip(request))
+            await run_in_threadpool(audit.record, request.method, path, 500,
+                                    getattr(request.state, "user", None), client_ip(request))
         raise
     if audited:
         who = getattr(request.state, "user", None)
         if not who and getattr(request.state, "attempted_username", None):
             who = {"username": request.state.attempted_username}
-        audit.record(request.method, path, response.status_code, who,
-                     client_ip(request))
+        await run_in_threadpool(audit.record, request.method, path, response.status_code,
+                                who, client_ip(request))
     return response
 
 
