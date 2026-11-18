@@ -43,6 +43,15 @@ class TestBuildEvents(unittest.TestCase):
                 else:
                     self.assertEqual(float(track.get("speed")), speed)
 
+    def test_missing_identifiers_are_not_broadcast_as_shared_tracks(self):
+        for missing in (None, "", "   ", [], {}, True, 42):
+            with self.subTest(identifier=repr(missing)):
+                bad_drone = {**DRONE, "drone_id": missing}
+                bad_entity = {**ENTITY, "id": missing}
+                events = cot_stream.build_events([bad_entity, ENTITY], [bad_drone, DRONE], NOW)
+                self.assertEqual([ET.fromstring(event).get("uid") for event in events],
+                                 ["skydash-drone-ALPHA-1", "ent-1"])
+
     def test_invalid_xml_characters_do_not_break_cot_batch(self):
         from copy import deepcopy
 

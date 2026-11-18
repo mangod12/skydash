@@ -87,7 +87,8 @@ def build_events(entities: Iterable[Dict], drones: Iterable[Dict],
     now = now or datetime.now(timezone.utc)
     out: List[bytes] = []
     for d in drones:
-        if not isinstance(d, dict):
+        if (not isinstance(d, dict) or not isinstance(d.get("drone_id"), str)
+                or not d["drone_id"].strip()):
             continue
         gps = d.get("gps")
         if not isinstance(gps, dict):
@@ -114,7 +115,8 @@ def build_events(entities: Iterable[Dict], drones: Iterable[Dict],
             f'status: {d.get("status")}; battery: {d.get("battery_percentage")}%',
             hae=altitude, extra=track))
     for e in entities:
-        if not isinstance(e, dict):
+        if (not isinstance(e, dict) or not isinstance(e.get("id"), str)
+                or not e["id"].strip()):
             continue
         coords = e.get("coordinates")
         if not isinstance(coords, (list, tuple)) or len(coords) < 2 or not _valid(coords[0], coords[1]):
