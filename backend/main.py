@@ -11,6 +11,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from auth import verify_token
 from client_ip import client_ip
@@ -127,7 +128,7 @@ async def auth_middleware(request: Request, call_next):
                 status_code=401,
                 content={"success": False, "error": "Missing auth token"},
             )
-        payload = verify_token(raw[7:])
+        payload = await run_in_threadpool(verify_token, raw[7:])
         if not payload:
             return JSONResponse(
                 status_code=401,
