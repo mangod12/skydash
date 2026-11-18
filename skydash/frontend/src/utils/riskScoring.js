@@ -25,14 +25,13 @@ function countRelationships(entityId, relationships) {
   ).length;
 }
 
-/**
- * Count events for an entity in the last 24 hours.
- */
-function countRecentEvents(entityId, events) {
-  const cutoff = Date.now() - TWENTY_FOUR_HOURS;
-  return events.filter(
-    (e) => e.entityId === entityId && e.time > cutoff,
-  ).length;
+/** Use one known, inclusive lookback window for activity and escalation. */
+function recentEventsFor(entityId, events, now) {
+  const cutoff = now - TWENTY_FOUR_HOURS;
+  return (Array.isArray(events) ? events : []).filter(
+    (e) => e && e.entityId === entityId && Number.isFinite(e.time)
+      && e.time >= cutoff && e.time <= now,
+  );
 }
 
 function validPosition(coords) {
@@ -56,20 +55,6 @@ function hasProximityCritical(entity, allEntities) {
 }
 
 /**
- * Detect if threat level has escalated based on recent critical/alert events.
- */
-function hasEscalationTrend(entityId, events) {
-  const cutoff = Date.now() - TWENTY_FOUR_HOURS;
-  const recentCritical = events.filter(
-    (e) =>
-      e.entityId === entityId &&
-      e.time > cutoff &&
-      (e.severity === 'critical' || e.severity === 'warning'),
-  );
-  return recentCritical.length >= 2;
-}
-
-/**
  * Calculate a risk score for a single entity (0-100).
  * @param {object} entity - Entity with threatLevel, confidence, coordinates
  * @param {object[]} relationships - All relationships
@@ -81,11 +66,12 @@ export function calculateRiskScore(entity, relationships, events, allEntities = 
   const baseThreat = BASE_THREAT[entity.threatLevel] ?? 0;
   const relCount = countRelationships(entity.id, relationships);
   const relBonus = Math.min(relCount * RELATIONSHIP_BONUS_PER, RELATIONSHIP_BONUS_MAX);
-  const recentCount = countRecentEvents(entity.id, events);
-  const activityBonus = Math.min(recentCount * RECENT_EVENT_BONUS_PER, RECENT_EVENT_BONUS_MAX);
+  const recentEvents = recentEventsFor(entity.id, events, Date.now());
+  const activityBonus = Math.min(recentEvents.length * RECENT_EVENT_BONUS_PER, RECENT_EVENT_BONUS_MAX);
   const confidenceMultiplier = (entity.confidence ?? 50) / 100;
   const proximityBonus = hasProximityCritical(entity, allEntities) ? PROXIMITY_BONUS : 0;
-  const escalationBonus = hasEscalationTrend(entity.id, events) ? ESCALATION_BONUS : 0;
+  const escalationBonus = recentEvents.filter(e => e.severity === 'critical' || e.severity === 'warning').length >= 2
+    ? ESCALATION_BONUS : 0;
 
   const raw = baseThreat + relBonus + activityBonus + proximityBonus + escalationBonus;
   const score = Math.min(100, Math.max(0, Math.round(raw * confidenceMultiplier)));
