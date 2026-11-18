@@ -48,6 +48,31 @@ class TestExportRoutes(unittest.TestCase):
     def rows(self, response):
         return list(csv.reader(io.StringIO(response.text)))
 
+    def test_csv_nonfinite_numbers_are_missing_not_measurements(self):
+        from unittest.mock import patch
+        for value in (float("nan"), float("inf"), float("-inf")):
+            sample = snapshot(10, ["fixture"])
+            sample["timestamp"] = value
+            drone = sample["drones"][0]
+            for key in ("altitude", "battery_voltage", "battery_percentage", "ground_speed", "signal_strength"):
+                drone[key] = value
+            for readings in (drone["gps"], drone["attitude"], drone["wind"]):
+                for key in readings:
+                    readings[key] = value
+            telemetry_history.clear()
+            telemetry_history.append(sample)
+            with self.subTest(value=value):
+                rows = self.rows(self.client.get("/api/export/telemetry/csv"))
+                self.assertEqual(rows[1], ["", "fixture"] + [""] * 14)
+                with patch.object(entity_store, "list_entities", return_value=[{
+                        "id": "fixture", "confidence": value, "lastSeen": value}]):
+                    entities = self.rows(self.client.get("/api/export/entities/csv"))
+                self.assertEqual(entities[1][4], "")
+                self.assertEqual(entities[1][-1], "")
+        telemetry_history.clear()
+        telemetry_history.append(snapshot(0, ["zero-time"]))
+        self.assertEqual(self.rows(self.client.get("/api/export/telemetry/csv"))[1][0], "0")
+
     def test_geojson_swaps_to_lng_lat_and_skips_entities_without_coordinates(self):
         self.client.post("/api/entities", json={"name": "Pinned", "coordinates": [20.5, 85.5]})
         self.client.post("/api/entities", json={"name": "Floating"})

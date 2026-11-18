@@ -24,6 +24,9 @@ def _valid_position(coords):
 
 
 def _csv_value(value):
+    # Nonfinite adapter readings are missing data, not spreadsheet measurements.
+    if isinstance(value, float) and not math.isfinite(value):
+        return ""
     # Type-corrupt legacy fields must not bypass text formula neutralisation.
     if isinstance(value, str):
         return _safe_cell(value)
@@ -136,7 +139,7 @@ async def export_telemetry_csv(
                 ]
                 # Connector-provided text must not become spreadsheet formulas.
                 # Keep real numeric telemetry (including negative coordinates) numeric.
-                writer.writerow([_safe_cell(value) if isinstance(value, str) else value for value in row])
+                writer.writerow([_csv_value(value) for value in row])
                 rows_written += 1
 
         output.seek(0)
