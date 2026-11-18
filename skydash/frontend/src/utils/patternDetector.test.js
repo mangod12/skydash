@@ -3,6 +3,7 @@ import {
   detectSpatialClusters,
   detectTemporalBursts,
   detectHubs,
+  detectCorridors,
   detectIsolated,
   detectThreatEscalation,
 } from './patternDetector';
@@ -203,5 +204,16 @@ describe('detectThreatEscalation', () => {
     ];
     const result = detectThreatEscalation(entities, events, 3600000);
     expect(result[0].risk).toBe('extreme');
+  });
+});
+
+describe('pattern identity integrity', () => {
+  it.each(['constructor', '__proto__', 'toString'])('treats %s as a literal entity ID in corridors and hubs', id => {
+    const entities = [{ id, name: 'Special' }, { id: 'next', name: 'Next' }];
+    const relationships = [{ from: id, to: 'next', type: 'traveled_to' }];
+    expect(detectCorridors(entities, relationships)).toEqual([{ path: [id, 'next'], name: 'Special → Next' }]);
+    const hubs = detectHubs(entities, relationships, 1);
+    expect(hubs).toHaveLength(2);
+    expect(hubs.find(h => h.entity.id === id)).toMatchObject({ degree: 1, connections: ['Next'] });
   });
 });
