@@ -228,12 +228,12 @@ class MissionStore:
     # ─── Mission Notes ────────────────────────────────────────
 
     def add_note(self, mission_id: str, content: str) -> Optional[dict]:
-        if not self.get_mission(mission_id):
-            return None
         nid = self._new_id()
         now = self._now_iso()
         conn = db.get_connection()
         with db.get_lock(), conn:
+            if not self.get_mission(mission_id):
+                return None
             conn.execute(
                 "INSERT INTO mission_notes (id, mission_id, content, created_at) VALUES (?,?,?,?)",
                 (nid, mission_id, content, now),
@@ -270,9 +270,6 @@ class MissionStore:
     # Mission detections
 
     def add_detection(self, mission_id: str, result: dict) -> Optional[dict]:
-        if not self.get_mission(mission_id):
-            return None
-
         detection_id = self._new_id()
         now = self._now_iso()
         source_name = result.get("source_name") or "uploaded-frame"
@@ -282,6 +279,8 @@ class MissionStore:
 
         conn = db.get_connection()
         with db.get_lock(), conn:
+            if not self.get_mission(mission_id):
+                return None
             conn.execute(
                 """
                 INSERT INTO mission_detections

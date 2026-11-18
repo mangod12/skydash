@@ -64,6 +64,33 @@ class TestConcurrentDeletes(_ApiTestCase):
             self.assertIsNone(real_get(item["id"]))
 
 
+class TestMissionChildInsertRace(_ApiTestCase):
+    def test_deleted_mission_is_rechecked_after_write_lock_acquisition(self):
+        import contextlib
+        from unittest.mock import patch
+
+        for method, payload, table in (
+            ("add_note", "note", "mission_notes"),
+            ("add_detection", {"summary": {"count": 1}}, "mission_detections"),
+        ):
+            mission = mission_store.create_mission({"name": "Deleted before insert"})["id"]
+            conn = database.get_connection()
+            real_lock = database.get_lock()
+
+            @contextlib.contextmanager
+            def delete_before_lock():
+                # Model another writer winning the lock after the initial lookup.
+                with real_lock, conn:
+                    conn.execute("DELETE FROM missions WHERE id=?", (mission,))
+                with real_lock:
+                    yield
+
+            with self.subTest(method=method), patch.object(database, "get_lock", side_effect=delete_before_lock):
+                self.assertIsNone(getattr(mission_store, method)(mission, payload))
+            self.assertFalse(conn.in_transaction)
+            self.assertEqual(conn.execute(f"SELECT COUNT(*) FROM {table} WHERE mission_id=?", (mission,)).fetchone()[0], 0)
+
+
 class TestHealthAndTelemetry(_ApiTestCase):
     def test_health(self):
         r = self.client.get("/health")
