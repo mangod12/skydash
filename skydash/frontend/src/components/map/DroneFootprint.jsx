@@ -1,5 +1,6 @@
 import { Polygon } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
+import { isValidCoordinate } from '../../utils/coordinates';
 
 const FOV_DEG = 60;
 const DEG_TO_RAD = Math.PI / 180;
@@ -11,7 +12,8 @@ const EARTH_RADIUS_M = 6371000;
  * Returns 4 corner coordinates [lat, lng].
  */
 function computeFootprint(lat, lng, alt, heading) {
-  if (!alt || alt < 5) return null;
+  if (!isValidCoordinate(lat, lng) || !Number.isFinite(alt) || alt < 5
+      || !Number.isFinite(heading)) return null;
 
   // Ground distance from nadir to edge = alt * tan(FOV/2)
   const halfFovRad = (FOV_DEG / 2) * DEG_TO_RAD;
@@ -26,7 +28,7 @@ function computeFootprint(lat, lng, alt, heading) {
   const dLngHalf = dLng * 0.75;
 
   // Rotate corners by heading
-  const hdgRad = (heading || 0) * DEG_TO_RAD;
+  const hdgRad = heading * DEG_TO_RAD;
   const cos = Math.cos(hdgRad);
   const sin = Math.sin(hdgRad);
 
@@ -37,10 +39,11 @@ function computeFootprint(lat, lng, alt, heading) {
     [ dLatHalf, -dLngHalf],
   ];
 
-  return corners.map(([dy, dx]) => [
+  const footprint = corners.map(([dy, dx]) => [
     lat + dy * cos - dx * sin,
     lng + dx * cos + dy * sin,
   ]);
+  return footprint.every(([y, x]) => isValidCoordinate(y, x)) ? footprint : null;
 }
 
 export default function DroneFootprint() {
