@@ -69,6 +69,18 @@ class TestTelemetryRoutes(unittest.TestCase):
         self.assertEqual(body["metadata"]["count"], 2)
         self.assertIn("value", body["data"][0])
 
+    def test_per_drone_history_uses_snapshot_clock_not_adapter_elapsed_time(self):
+        telemetry_history.clear()
+        telemetry_history.append({"timestamp": 1794974400, "drones": [
+            {"drone_id": "D1", "timestamp": 12.5, "altitude": 20},
+        ]})
+        full = self.client.get("/api/telemetry/history", params={"drone_id": "D1"}).json()["data"]
+        field = self.client.get("/api/telemetry/history", params={"drone_id": "D1", "field": "altitude"}).json()["data"]
+        self.assertEqual(full[0]["timestamp"], 1794974400)
+        self.assertEqual(full[0]["timestamp"], field[0]["timestamp"])
+        self.assertEqual(full[0]["altitude"], 20)
+        self.assertEqual(telemetry_history[-1]["drones"][0]["timestamp"], 12.5)
+
     def test_history_rejects_unknown_field_and_bad_limit(self):
         self.assertEqual(
             self.client.get("/api/telemetry/history", params={"field": "bogus"}).status_code, 400

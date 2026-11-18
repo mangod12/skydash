@@ -123,6 +123,9 @@ async def get_telemetry_history(
                     entry["value"] = drone_data.get(field)
                 else:
                     entry.update(drone_data)
+                    # Adapter timestamps may be uptime rather than wall-clock seconds.
+                    # History endpoints must consistently use the recorder's clock.
+                    entry["timestamp"] = snapshot["timestamp"]
                 result.append(entry)
         return {
             "success": True,
