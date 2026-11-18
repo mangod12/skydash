@@ -4,37 +4,29 @@ import { AlertTriangle } from 'lucide-react';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMapStore } from '../../stores/mapStore';
 
-const PROXIMITY_THRESHOLD_KM = 0.5;
-const DEG_TO_RAD = Math.PI / 180;
+import { distanceBetween, isValidCoordinate } from '../../utils/coordinates';
 
-function haversineKm(lat1, lng1, lat2, lng2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * DEG_TO_RAD;
-  const dLng = (lng2 - lng1) * DEG_TO_RAD;
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * DEG_TO_RAD) * Math.cos(lat2 * DEG_TO_RAD) *
-    Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
+const PROXIMITY_THRESHOLD_M = 500;
 
 export default function ProximityWarning() {
   const dronePos = useMapStore((s) => s.dronePosition);
   const entities = useIntelStore((s) => s.entities);
 
   const threats = useMemo(() => {
-    if (!dronePos) return [];
+    if (!dronePos || !isValidCoordinate(dronePos.lat, dronePos.lng)) return [];
     return entities
       .filter((e) =>
-        e.coordinates &&
+        e && Array.isArray(e.coordinates) &&
+        isValidCoordinate(e.coordinates[0], e.coordinates[1]) &&
         (e.threatLevel === 'high' || e.threatLevel === 'critical'),
       )
       .map((e) => ({
         id: e.id,
         name: e.name,
         threat: e.threatLevel,
-        dist: haversineKm(dronePos.lat, dronePos.lng, e.coordinates[0], e.coordinates[1]),
+        dist: distanceBetween(dronePos.lat, dronePos.lng, e.coordinates[0], e.coordinates[1]),
       }))
-      .filter((t) => t.dist <= PROXIMITY_THRESHOLD_KM)
+      .filter((t) => t.dist <= PROXIMITY_THRESHOLD_M)
       .sort((a, b) => a.dist - b.dist);
   }, [dronePos, entities]);
 
@@ -61,7 +53,7 @@ export default function ProximityWarning() {
                     {t.name}
                   </span>
                   <span className="text-[9px] font-mono tabular-nums text-red-400">
-                    {Math.round(t.dist * 1000)}m
+                    {Math.round(t.dist)}m
                   </span>
                 </div>
               ))}
