@@ -65,6 +65,40 @@ class TestVisionRoutes(unittest.TestCase):
         database.reset()
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
+    def test_vision_store_work_does_not_block_other_api_requests(self):
+        mission_id = self._create_mission()
+        cases = [
+            ("get", f"/api/missions/{mission_id}/detections", "get_detections", [], False),
+            ("delete", f"/api/missions/{mission_id}/detections/one", "delete_detection", True, False),
+            ("post", f"/api/missions/{mission_id}/detections/analyze", "get_mission", {"id": mission_id}, True),
+            ("post", f"/api/missions/{mission_id}/detections/analyze", "add_detection", {"id": "one"}, True),
+        ]
+        for method, path, name, value, upload in cases:
+            entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+            def slow(*args, **kwargs):
+                entered.set()
+                try:
+                    release.wait(2)
+                    return value
+                finally:
+                    finished.set()
+            async def exercise():
+                async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as client:
+                    kwargs = {"files": {"image": ("frame.jpg", b"fixture", "image/jpeg")}} if upload else {}
+                    pending = asyncio.create_task(client.request(method, path, **kwargs))
+                    try:
+                        self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                        response = await client.get("/api/connectors/status")
+                        self.assertEqual(response.status_code, 200)
+                        self.assertFalse(finished.is_set(), "Vision database work blocked API event loop")
+                    finally:
+                        release.set()
+                        response = await pending
+                    self.assertIn(response.status_code, (200, 201))
+            with self.subTest(path=path, operation=name), patch.object(mission_store, name, side_effect=slow), \
+                    patch("routes.vision.detector", _FakeDetector()):
+                asyncio.run(exercise())
+
     def _create_mission(self):
         response = self.client.post("/api/missions", json={"name": "Vision mission"})
         self.assertEqual(response.status_code, 201)
