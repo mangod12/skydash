@@ -152,7 +152,7 @@ def auth_register(body: AuthRegister):
 
 
 @router.get("/api/auth/me")
-async def auth_me(request: Request):
+def auth_me(request: Request):
     if not AUTH_ENABLED:
         return JSONResponse(
             status_code=400,
@@ -191,7 +191,7 @@ async def auth_ws_ticket(request: Request):
 
 
 @router.post("/api/auth/logout")
-async def auth_logout(request: Request):
+def auth_logout(request: Request):
     """Revoke the presented token so it stops working immediately, not at expiry."""
     payload = getattr(request.state, "user", None)
     if not AUTH_ENABLED or not payload:
@@ -217,14 +217,14 @@ class UserUpdate(BaseModel):
 
 
 @router.get("/api/users")
-async def users_list():
+def users_list():
     if not user_store:
         return JSONResponse(status_code=400, content={"success": False, "error": "Auth not enabled"})
     return {"success": True, "data": user_store.list_users()}
 
 
 @router.patch("/api/users/{user_id}")
-async def users_update(user_id: str, body: UserUpdate, request: Request):
+def users_update(user_id: str, body: UserUpdate, request: Request):
     if not user_store:
         return JSONResponse(status_code=400, content={"success": False, "error": "Auth not enabled"})
     if body.role is not None and body.role not in VALID_ROLES:
