@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
   detectSpatialClusters,
   detectTemporalBursts,
@@ -215,5 +215,29 @@ describe('pattern identity integrity', () => {
     const hubs = detectHubs(entities, relationships, 1);
     expect(hubs).toHaveLength(2);
     expect(hubs.find(h => h.entity.id === id)).toMatchObject({ degree: 1, connections: ['Next'] });
+  });
+});
+
+describe('pattern event time integrity', () => {
+  afterEach(() => vi.useRealTimers());
+  it('excludes future and invalid events from recent threat escalation', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-18T07:00:00Z'));
+    const time = Date.now();
+    const entities = [{ id: 'one', threatLevel: 'critical' }];
+    const events = [time + 1, Infinity, String(time), NaN, null].map(time => ({ entityId: 'one', time }));
+    expect(detectThreatEscalation(entities, events)).toEqual([]);
+    expect(detectThreatEscalation([null, ...entities], [null, ...events, { entityId: 'one', time }])[0].risk).toBe('critical');
+  });
+  it('isolates malformed event rows and timestamps before burst detection', () => {
+    const good = [1, 2, 3].map(time => ({ id: String(time), time }));
+    const result = detectTemporalBursts([null, {}, { time: '2' }, { time: NaN }, { time: Infinity }, ...good], 10);
+    expect(result).toEqual([{ start: 1, end: 3, events: good, count: 3 }]);
+  });
+  it.each([null, '1000', NaN, Infinity, -1])('rejects invalid temporal windows %j', window => {
+    const entities = [{ id: 'one', threatLevel: 'critical' }];
+    const events = [1, 2, 3].map(time => ({ entityId: 'one', time }));
+    expect(detectTemporalBursts(events, window)).toEqual([]);
+    expect(detectThreatEscalation(entities, events, window)).toEqual([]);
   });
 });

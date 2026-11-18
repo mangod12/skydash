@@ -48,8 +48,10 @@ export function detectSpatialClusters(entities, radiusM = 500) {
  * Returns windows where event count exceeds threshold (default >2 in 30min).
  */
 export function detectTemporalBursts(events, windowMs = 1800000) {
-  if (events.length < 2) return [];
-  const sorted = [...events].sort((a, b) => a.time - b.time);
+  if (!Array.isArray(events) || !Number.isFinite(windowMs) || windowMs < 0) return [];
+  const sorted = events.filter(e => e && Number.isFinite(e.time) && Math.abs(e.time) <= 8.64e15)
+    .sort((a, b) => a.time - b.time);
+  if (sorted.length < 3) return [];
   const bursts = [];
   let i = 0;
 
@@ -138,12 +140,15 @@ export function detectIsolated(entities, relationships) {
 
 /** Threat escalation — high/critical entities with recent events (last hour). */
 export function detectThreatEscalation(entities, events, recentMs = 3600000) {
+  if (!Number.isFinite(recentMs) || recentMs < 0) return [];
   const now = Date.now();
   const cutoff = now - recentMs;
-  const highThreat = entities.filter((e) => e.threatLevel === 'high' || e.threatLevel === 'critical');
+  const highThreat = (Array.isArray(entities) ? entities : []).filter((e) => e && (e.threatLevel === 'high' || e.threatLevel === 'critical'));
+  const recentEvents = (Array.isArray(events) ? events : []).filter(ev => ev && Number.isFinite(ev.time)
+    && ev.time >= cutoff && ev.time <= now);
 
   return highThreat.map((entity) => {
-    const recent = events.filter((ev) => ev.entityId === entity.id && ev.time >= cutoff);
+    const recent = recentEvents.filter((ev) => ev.entityId === entity.id);
     const risk = entity.threatLevel === 'critical' ? (recent.length >= 2 ? 'extreme' : 'critical') : (recent.length >= 2 ? 'high' : 'elevated');
     return { entity, recentEvents: recent, risk };
   }).filter((r) => r.recentEvents.length > 0)
