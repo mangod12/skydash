@@ -81,6 +81,36 @@ describe('missionStore', () => {
     expect(toast).not.toHaveBeenCalled();
   });
 
+  it.each(['create', 'update', 'delete'])('does not let an older list overwrite a confirmed %s', async action => {
+    useMissionStore.setState({ missions: [mission(1)], activeMissionId: 1 });
+    let finish;
+    apiFetch.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const pending = useMissionStore.getState().fetchMissions();
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: mission(action === 'create' ? 2 : 1, { name: 'Confirmed' }) }));
+    if (action === 'create') await useMissionStore.getState().createMission({ name: 'Confirmed' });
+    if (action === 'update') await useMissionStore.getState().updateMission(1, { name: 'Confirmed' });
+    if (action === 'delete') await useMissionStore.getState().deleteMission(1);
+    const confirmed = useMissionStore.getState().missions;
+    finish(await reply({ success: true, data: [mission(1)] }));
+    await pending;
+    expect(useMissionStore.getState().missions).toEqual(confirmed);
+    expect(useMissionStore.getState().loading).toBe(false);
+    expect(useMissionStore.getState().fetchError).toBe(false);
+  });
+
+  it('keeps a pending list authoritative after a failed write', async () => {
+    let finish;
+    apiFetch.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const pending = useMissionStore.getState().fetchMissions();
+    apiFetch.mockReturnValueOnce(reply({ success: false }, false));
+    expect(await useMissionStore.getState().deleteMission(1)).toBe(false);
+    expect(useMissionStore.getState().loading).toBe(true);
+    finish(await reply({ success: true, data: [mission(2)] }));
+    await pending;
+    expect(useMissionStore.getState().missions.map(m => m.id)).toEqual([2]);
+    expect(useMissionStore.getState().loading).toBe(false);
+  });
+
   it('keeps loading while the latest refresh remains unresolved', async () => {
     let finishOld;
     let finishNew;
