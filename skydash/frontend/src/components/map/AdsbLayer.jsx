@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { CircleMarker, Tooltip } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
-import { ADSB_CONFIGURED, ADSB_URL } from '../../utils/runtimeConfig';
+import { ADSB_CONFIGURED, ADSB_URL, API_BASE, API_CONFIGURED } from '../../utils/runtimeConfig';
+import { apiFetch } from '../../utils/api';
 
 const POLL_INTERVAL = 15000;
 const BOUNDS = { lamin: 37.6, lomin: -122.6, lamax: 37.9, lomax: -122.2 };
@@ -63,7 +64,14 @@ export default function AdsbLayer() {
           lat_min: String(BOUNDS.lamin), lon_min: String(BOUNDS.lomin),
           lat_max: String(BOUNDS.lamax), lon_max: String(BOUNDS.lomax),
         });
-        const res = await fetch(`${ADSB_URL}?${params.toString()}`, { signal: controller.signal });
+        const url = new URL(ADSB_URL, window.location.href);
+        for (const [name, value] of params) url.searchParams.set(name, value);
+        // Only the configured backend may receive the SkyDash session token.
+        // Custom third-party feeds use plain fetch, including their own 401s.
+        const backendOrigin = API_CONFIGURED
+          ? new URL(API_BASE || '/', window.location.href).origin : null;
+        const request = url.origin === backendOrigin ? apiFetch : fetch;
+        const res = await request(url.href, { signal: controller.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data.success === false) throw new Error('Feed unavailable');
