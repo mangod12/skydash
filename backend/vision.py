@@ -2,6 +2,7 @@
 
 import os
 import math
+import logging
 import tempfile
 import threading
 import time
@@ -13,8 +14,33 @@ from typing import Dict, Iterator, List, Optional
 
 SUPPORTED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 DEFAULT_MODEL = os.getenv("SKYDASH_RTDETR_MODEL", "rtdetr-l.pt")
-DEFAULT_CONFIDENCE = float(os.getenv("SKYDASH_RTDETR_CONFIDENCE", "0.35"))
-MAX_UPLOAD_BYTES = int(os.getenv("SKYDASH_RTDETR_MAX_UPLOAD_BYTES", str(8 * 1024 * 1024)))
+log = logging.getLogger("skydash.vision")
+
+
+def _confidence_from_env():
+    try:
+        value = float(os.getenv("SKYDASH_RTDETR_CONFIDENCE", "0.35"))
+        if math.isfinite(value) and 0 <= value <= 1:
+            return value
+    except (ValueError, OverflowError):
+        pass
+    log.warning("Invalid SKYDASH_RTDETR_CONFIDENCE; using 0.35")
+    return 0.35
+
+
+def _upload_limit_from_env():
+    try:
+        value = int(os.getenv("SKYDASH_RTDETR_MAX_UPLOAD_BYTES", str(8 * 1024 * 1024)))
+        if value > 0:
+            return value
+    except (ValueError, OverflowError):
+        pass
+    log.warning("Invalid SKYDASH_RTDETR_MAX_UPLOAD_BYTES; using 8388608")
+    return 8 * 1024 * 1024
+
+
+DEFAULT_CONFIDENCE = _confidence_from_env()
+MAX_UPLOAD_BYTES = _upload_limit_from_env()
 
 
 @dataclass
