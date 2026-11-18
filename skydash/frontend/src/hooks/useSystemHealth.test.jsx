@@ -46,6 +46,55 @@ describe('system health telemetry rate', () => {
 });
 
 describe('backend health uptime freshness', () => {
+  it('times out stalled refreshes, clears old uptime and ignores their late results', async () => {
+    config.API_CONFIGURED = true;
+    let finish;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ uptime: 123 }) })
+      .mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }))
+      .mockResolvedValue({ ok: true, json: async () => ({ uptime: 0 }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useSystemHealth());
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(result.current.uptime.backend).toBe(123);
+    await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+    const signal = fetchMock.mock.calls[1][1]?.signal;
+    await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+    expect(signal?.aborted).toBe(true);
+    expect(result.current.uptime.backend).toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(result.current.uptime.backend).toBe(0);
+    await act(async () => { finish({ ok: true, json: async () => ({ uptime: 999 }) }); });
+    expect(result.current.uptime.backend).toBe(0);
+  });
+
+  it('aborts on cleanup and does not rearm polling after unmount', async () => {
+    config.API_CONFIGURED = true;
+    const fetchMock = vi.fn(() => new Promise(() => {}));
+    vi.stubGlobal('fetch', fetchMock);
+    const { unmount } = renderHook(() => useSystemHealth());
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    const signal = fetchMock.mock.calls[0][1]?.signal;
+    unmount();
+    expect(signal?.aborted).toBe(true);
+    await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('also fences stalled JSON bodies after headers arrive', async () => {
+    config.API_CONFIGURED = true;
+    let finish;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => new Promise(resolve => { finish = resolve; }) })
+      .mockResolvedValue({ ok: true, json: async () => ({ uptime: 456 }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useSystemHealth());
+    await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
+    expect(result.current.uptime.backend).toBe(456);
+    await act(async () => { finish({ uptime: 999 }); });
+    expect(result.current.uptime.backend).toBe(456);
+  });
+
   it.each(['http', 'network', 'json', 'missing', 'negative', 'string', 'nonfinite'])(
     'clears old backend uptime after %s failure and recovers', async (kind) => {
       config.API_CONFIGURED = true;

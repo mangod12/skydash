@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTelemetryStore } from '../stores/telemetryStore';
 import { useIntelStore } from '../stores/intelStore';
 import { useAuditStore } from '../stores/auditStore';
@@ -54,31 +54,47 @@ export function useSystemHealth() {
     return () => clearInterval(id);
   }, []);
 
-  const fetchUp = useCallback(async () => {
-    if (!API_CONFIGURED) {
-      setBackendUp(null);
-      return;
-    }
-    try {
-      const r = await fetch(`${API}/health`);
-      if (!r.ok) throw new Error('Health request failed');
-      const data = await r.json();
-      const uptime = data?.uptime;
-      setBackendUp(Number.isFinite(uptime) && uptime >= 0 ? uptime : null);
-    } catch {
-      // A failed check cannot keep presenting an earlier uptime as current.
-      setBackendUp(null);
-    }
-  }, []);
-
   useEffect(() => {
+    if (!API_CONFIGURED) return undefined;
+    let active = true;
+    let pending = null;
+    const fetchUp = async () => {
+      if (!active || pending) return;
+      const request = { controller: new AbortController(), timer: null, expired: false };
+      pending = request;
+      const live = () => active && !request.expired;
+      request.timer = setTimeout(() => {
+        request.expired = true;
+        if (pending === request) pending = null;
+        request.controller.abort();
+        if (active) setBackendUp(null);
+      }, 10000);
+      try {
+        const r = await fetch(`${API}/health`, { signal: request.controller.signal });
+        if (!r.ok) throw new Error('Health request failed');
+        const data = await r.json();
+        const uptime = data?.uptime;
+        if (live()) setBackendUp(Number.isFinite(uptime) && uptime >= 0 ? uptime : null);
+      } catch {
+        // A failed check cannot keep presenting an earlier uptime as current.
+        if (live()) setBackendUp(null);
+      } finally {
+        clearTimeout(request.timer);
+        if (pending === request) pending = null;
+      }
+    };
     const first = setTimeout(fetchUp, 0);
     const id = setInterval(fetchUp, 15000);
     return () => {
+      active = false;
       clearTimeout(first);
       clearInterval(id);
+      if (pending) {
+        clearTimeout(pending.timer);
+        pending.controller.abort();
+      }
     };
-  }, [fetchUp]);
+  }, []);
 
   const drones = fleet.length > 0 ? fleet : (data ? [data] : []);
   // Simulator, MAVLink and DJI records expose the boolean `armed` field.
