@@ -119,11 +119,15 @@ async def export_telemetry_csv(
                 wind = drone.get("wind")
                 wind = wind if isinstance(wind, dict) else {}
 
+                position = [gps.get("latitude", gps.get("lat")),
+                            gps.get("longitude", gps.get("lng"))]
+                if not _valid_position(position):
+                    position = ["", ""]
+
                 row = [
                     ts,
                     drone.get("drone_id", ""),
-                    gps.get("latitude", gps.get("lat", "")),
-                    gps.get("longitude", gps.get("lng", "")),
+                    *position,
                     drone.get("altitude", ""),
                     drone.get("battery_voltage", ""),
                     drone.get("battery_percentage", ""),
