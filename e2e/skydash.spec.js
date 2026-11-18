@@ -179,6 +179,53 @@ test.describe('SkyDash E2E Tests', () => {
     await expect(page.getByRole('heading', { name: 'Scenario Lab', exact: true })).toBeVisible();
   });
 
+  test('flight log import replays gaps, saves an immutable debrief and reopens after reload', async ({ page, request }) => {
+    const title = `E2E log ${Date.now()}`;
+    const longitude = (77.209 + Math.random() * 0.001).toFixed(8);
+    const csv = `time_s,latitude,longitude,altitude_m,ground_speed_m_s,battery_pct\n0,28.6139,${longitude},10,0,95\n2,28.6140,${longitude},20,5,94\n4,28.6141,${longitude},30,6,93\n12,28.6142,${longitude},,5,\n14,28.6143,${longitude},35,4,91\n16,28.6144,${longitude},25,0,90\n`;
+    let savedId;
+    try {
+      await page.keyboard.press('l');
+      await page.getByRole('button', { name: 'FLIGHT LOG REPLAY', exact: true }).click();
+      let panel = page.getByRole('region', { name: 'Flight log replay', exact: true });
+      await panel.getByLabel('Choose flight CSV').setInputFiles({ name: 'synthetic-e2e.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+      await expect(panel.getByText(/Local preview loaded/)).toBeVisible();
+      await panel.getByLabel('Replay position', { exact: true }).fill('8');
+      await expect(panel.getByText(/DATA GAP/)).toBeVisible();
+      await expect(panel.getByLabel('Current recorded observation')).toContainText('Sample 3/6 at 4s');
+      await panel.getByLabel('Replay position', { exact: true }).fill('12');
+      await expect(panel.getByLabel('Current recorded observation')).toContainText('altitude unknown');
+      await panel.getByLabel('Review title', { exact: true }).fill(title);
+      await panel.getByLabel('Analyst notes', { exact: true }).fill('Discuss the 8s observation gap. Synthetic test, not flight certification.');
+      await panel.getByRole('button', { name: 'Refresh server archive', exact: true }).click();
+      await expect(panel.getByText(/Server archive refreshed/)).toBeVisible();
+      const savedResponse = page.waitForResponse(response => response.url().endsWith('/api/flight-logs') && response.request().method() === 'POST');
+      await panel.getByRole('button', { name: 'Save to server', exact: true }).click();
+      const response = await savedResponse; expect(response.status()).toBe(201); savedId = (await response.json()).data.id;
+      await expect(panel.getByText(/Saved to the server SQLite archive/)).toBeVisible();
+      await page.reload(); await page.waitForSelector('text=CONNECTED');
+      await expect(page.getByText('SPATIAL INTELLIGENCE OS v2.0', { exact: true })).toBeHidden();
+      await page.keyboard.press('l'); await page.getByRole('button', { name: 'FLIGHT LOG REPLAY', exact: true }).click();
+      panel = page.getByRole('region', { name: 'Flight log replay', exact: true });
+      await panel.getByRole('button', { name: 'Refresh server archive', exact: true }).click();
+      await panel.getByRole('button', { name: new RegExp(title) }).click();
+      await expect(panel.getByText(/checksum verified/)).toBeVisible();
+      await expect(panel.getByLabel('Analyst notes', { exact: true })).toBeDisabled();
+      await expect(panel.getByLabel('Current recorded observation')).toContainText('Sample 1/6 at 0s');
+      const pending = page.waitForEvent('download');
+      await panel.getByRole('button', { name: 'Download after-action report', exact: true }).click();
+      const download = await pending; const stream = await download.createReadStream(); const parts = [];
+      for await (const part of stream) parts.push(part);
+      const report = Buffer.concat(parts).toString('utf8');
+      expect(report).toContain(savedId); expect(report).toContain('Gaps over 5s: 1'); expect(report).toContain('Discuss the 8s observation gap'); expect(report).toContain('not a verified aircraft feed');
+      await page.screenshot({ path: 'e2e/screenshots/flight-log-replay.png', fullPage: true });
+      await panel.getByRole('button', { name: 'Delete server record', exact: true }).click();
+      await panel.getByRole('button', { name: 'Confirm delete record', exact: true }).click();
+      await expect(panel.getByText(/Server record deleted/)).toBeVisible();
+      expect((await request.get(`${API}/api/flight-logs/${savedId}`)).status()).toBe(404); savedId = undefined;
+    } finally { if (savedId) await request.delete(`${API}/api/flight-logs/${savedId}`); }
+  });
+
   // ─── TELEMETRY DATA FLOW ─────────────────────────────────
 
   test('telemetry values update in real-time', async ({ page }) => {

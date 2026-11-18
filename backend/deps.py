@@ -9,6 +9,7 @@ from typing import Dict
 from simulation import FleetSimulator
 from entities import EntityStore
 from missions import MissionStore
+from flight_logs import FlightLogStore
 from connectors import OpenSkyConnector, ShodanConnector
 from auth import UserStore
 import database
@@ -39,6 +40,7 @@ log = logging.getLogger("skydash")
 fleet = FleetSimulator()
 entity_store = EntityStore()
 mission_store = MissionStore()
+flight_log_store = FlightLogStore()
 
 database.check_migrations()
 

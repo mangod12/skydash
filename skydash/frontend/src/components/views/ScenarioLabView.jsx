@@ -20,6 +20,7 @@ import {
 import GlassCard from '../common/GlassCard';
 import ExerciseReviewPanel from './ExerciseReviewPanel';
 import SearchGridPlanner from './SearchGridPlanner';
+import FlightLogReplay from './FlightLogReplay';
 import { PanelBoundary } from '../common/ErrorBoundary';
 import ScenarioOverlay from '../map/ScenarioOverlay';
 import { useMapStore } from '../../stores/mapStore';
@@ -206,6 +207,7 @@ export default function ScenarioLabView() {
   const progress = frame.progress;
   const nextSpeed = SCENARIO_SPEEDS[(SCENARIO_SPEEDS.indexOf(speed) + 1) % SCENARIO_SPEEDS.length];
 
+  if (planning === 'flight-log') return <FlightLogReplay onBack={() => setPlanning(false)} />;
   if (planning) return <SearchGridPlanner initialCenter={frame.scenario.center} onBack={() => setPlanning(false)} />;
 
   return (
@@ -226,6 +228,7 @@ export default function ScenarioLabView() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => { pause(); setPlanning('flight-log'); }} className="px-3 py-2 rounded-xl text-[10px] font-semibold tracking-wider border border-cyan-500/25 text-cyan-300">FLIGHT LOG REPLAY</button>
               <button onClick={() => { pause(); setPlanning(true); }} className="px-3 py-2 rounded-xl text-[10px] font-semibold tracking-wider border border-cyan-500/25 text-cyan-300">SEARCH GRID PLANNER</button>
               <button onClick={() => document.getElementById('exercise-review')?.scrollIntoView({ behavior: 'smooth' })} className="px-3 py-2 rounded-xl text-[10px] font-semibold tracking-wider border border-cyan-500/25 text-cyan-300">AFTER-ACTION REVIEW</button>
               <button
