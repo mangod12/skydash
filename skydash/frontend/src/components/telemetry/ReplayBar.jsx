@@ -11,7 +11,9 @@ export default function ReplayBar() {
 
 function ReplaySession({ activeDroneId }) {
   const requestRef = useRef(null);
+  const timeoutRef = useRef(null);
   useEffect(() => () => {
+    clearTimeout(timeoutRef.current);
     requestRef.current?.abort();
     requestRef.current = null;
   }, []);
@@ -23,10 +25,18 @@ function ReplaySession({ activeDroneId }) {
 
   const load = useCallback(async () => {
     if (!API_CONFIGURED || !activeDroneId) return;
+    clearTimeout(timeoutRef.current);
     requestRef.current?.abort();
     const controller = new AbortController();
     requestRef.current = controller;
     const current = () => requestRef.current === controller && !controller.signal.aborted;
+    timeoutRef.current = setTimeout(() => {
+      if (!current()) return;
+      controller.abort();
+      requestRef.current = null;
+      setError('Could not load history');
+      setLoading(false);
+    }, 10000);
     setLoading(true);
     setError('');
     try {
@@ -45,6 +55,7 @@ function ReplaySession({ activeDroneId }) {
       if (current()) setError('Could not load history');
     } finally {
       if (current()) {
+        clearTimeout(timeoutRef.current);
         setLoading(false);
         requestRef.current = null;
       }
