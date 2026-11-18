@@ -75,7 +75,7 @@ export function useTelemetry() {
     if (previousPosition && previousPosition.droneId !== normalized.drone_id) {
       useMapStore.getState().clearDronePosition();
     }
-    if (normalized.gps) {
+    if (Number.isFinite(normalized.gps.latitude) && Number.isFinite(normalized.gps.longitude)) {
       updateDronePosition(
         normalized.gps.latitude,
         normalized.gps.longitude,
@@ -83,6 +83,10 @@ export function useTelemetry() {
         normalized.attitude.yaw,
         normalized.drone_id
       );
+    } else {
+      // A new frame with unknown GPS cannot keep an old point looking current.
+      // Break the trail too, so recovery does not draw across the missing segment.
+      useMapStore.getState().clearDronePosition();
     }
 
     return true;

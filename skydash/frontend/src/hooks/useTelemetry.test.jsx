@@ -327,6 +327,43 @@ describe('telemetry connection lifecycle', () => {
   });
 
 
+  it.each([undefined, null, {}, { latitude: null, longitude: 30 },
+    { latitude: 20, longitude: '30' }, { latitude: true, longitude: 30 },
+    { latitude: 91, longitude: 30 }, { latitude: 20, longitude: -181 }])(
+    'clears the current point and breaks the trail when the same drone loses GPS: %j', async (gps) => {
+      useMapStore.getState().clearDronePosition();
+      useTelemetryStore.setState({ activeDroneId: null });
+      renderHook(() => useTelemetry());
+      await settle();
+      const send = data => act(() => FakeSocket.instances[0].onmessage({ data: JSON.stringify({ type: 'telemetry', data }) }));
+      send([{ drone_id: 'one', gps: { latitude: 20, longitude: 30 } }]);
+      expect(useMapStore.getState().dronePosition).toMatchObject({ lat: 20, lng: 30 });
+      send([{ drone_id: 'one', gps, altitude: 50 }]);
+      expect(useTelemetryStore.getState().isConnected).toBe(true);
+      expect(useTelemetryStore.getState().data.altitude).toBe(50);
+      expect(useMapStore.getState().dronePosition).toBeNull();
+      expect(useMapStore.getState().flightPath).toEqual([]);
+      send([{ drone_id: 'one', gps: { latitude: 0, longitude: 0 } }]);
+      expect(useMapStore.getState().dronePosition).toMatchObject({ lat: 0, lng: 0 });
+      expect(useMapStore.getState().flightPath).toHaveLength(1);
+    },
+  );
+
+  it('clears unknown GPS from a single-record HTTP fallback frame too', async () => {
+    useMapStore.getState().clearDronePosition();
+    useTelemetryStore.setState({ activeDroneId: null });
+    apiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { drone_id: 'one', gps: { latitude: 20, longitude: 30 } } }) })
+      .mockResolvedValue({ ok: true, json: async () => ({ data: { drone_id: 'one', gps: null } }) });
+    renderHook(() => useTelemetry());
+    await settle();
+    act(() => FakeSocket.instances[0].close());
+    await settle();
+    expect(useMapStore.getState().dronePosition).toMatchObject({ lat: 20, lng: 30 });
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+    expect(useMapStore.getState().dronePosition).toBeNull();
+    expect(useMapStore.getState().flightPath).toEqual([]);
+  });
+
   it('does not retain a previous drone map position when the new drone has unknown GPS', async () => {
     useMapStore.getState().clearDronePosition();
     const { unmount } = renderHook(() => useTelemetry());
