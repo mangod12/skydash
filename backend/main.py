@@ -279,13 +279,13 @@ async def health():
 
 
 @app.get("/api/audit")
-async def get_audit(limit: int = 100, username: str = None, since: float = None):
+def get_audit(limit: int = 100, username: str = None, since: float = None):
     """Audit trail, newest first. Commander role only (enforced in middleware)."""
     return {"success": True, "data": audit.query(limit, username, since)}
 
 
 @app.get("/api/audit/export")
-async def export_audit(limit: int = 10000, username: str = None, since: float = None):
+def export_audit(limit: int = 10000, username: str = None, since: float = None):
     """Audit trail as CSV, newest first, up to 10000 rows. Commander role only."""
     from fastapi.responses import Response
     rows = audit.query(limit, username, since, max_limit=10000)
