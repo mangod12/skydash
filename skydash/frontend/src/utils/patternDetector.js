@@ -80,7 +80,7 @@ export function detectCorridors(entities, relationships) {
   if (travelEdges.length === 0) return [];
 
   const entityMap = Object.fromEntries(entities.map((e) => [e.id, e]));
-  const adj = {};
+  const adj = Object.create(null);
   for (const edge of travelEdges) {
     (adj[edge.from] ??= []).push(edge.to);
   }
@@ -110,8 +110,8 @@ export function detectCorridors(entities, relationships) {
 
 /** Hub entities — degree centrality > threshold. */
 export function detectHubs(entities, relationships, minDegree = 3) {
-  const degree = {};
-  const connections = {};
+  const degree = Object.create(null);
+  const connections = Object.create(null);
   for (const r of relationships) {
     degree[r.from] = (degree[r.from] ?? 0) + 1;
     degree[r.to] = (degree[r.to] ?? 0) + 1;
