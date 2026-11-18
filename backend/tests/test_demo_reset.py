@@ -1,9 +1,14 @@
 import os
+import asyncio
+import threading
+from unittest.mock import patch
 import shutil
 import tempfile
 import unittest
 
 from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
+from routes import demo
 
 import database
 from deps import entity_store, mission_store
@@ -23,6 +28,32 @@ class TestDemoReset(unittest.TestCase):
     def tearDown(self):
         database.reset()
         shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_slow_database_reset_does_not_block_other_requests(self):
+        for target, method in ((demo.mission_store, "clear_all"), (demo.entity_store, "reset_demo")):
+            entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+
+            def slow():
+                entered.set()
+                try:
+                    release.wait(2)
+                finally:
+                    finished.set()
+
+            async def exercise():
+                async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as client:
+                    pending = asyncio.create_task(client.post("/api/demo/reset", json={"confirm": True}))
+                    try:
+                        self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                        self.assertEqual((await client.get("/")).status_code, 200)
+                        self.assertFalse(finished.is_set(), "Demo database reset blocked event loop")
+                    finally:
+                        release.set()
+                        response = await pending
+                    self.assertTrue(response.json()["success"])
+
+            with self.subTest(method=method), patch.object(target, method, side_effect=slow):
+                asyncio.run(exercise())
 
     def test_requires_confirm(self):
         r = self.client.post("/api/demo/reset", json={})
