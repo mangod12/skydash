@@ -69,3 +69,14 @@ describe('short distance unit integrity', () => {
     expect(formatDistance(value, 'km')).toBe('--');
   });
 });
+
+describe('antipodal distance rounding', () => {
+  it.each(['km', 'nm', 'mi'])('keeps opposite-point distances finite in %s', unit => {
+    // This representable latitude rounds the haversine slightly above one.
+    const latitude = -88.30000000000004;
+    const distance = calculateDistance(latitude, 0, -latitude, 180, unit);
+    const factor = unit === 'nm' ? 1.852 : unit === 'mi' ? 1.60934 : 1;
+    expect(distance).toBeCloseTo(Math.PI * 6371.009 / factor, 5);
+    expect(formatDistance(distance, unit)).not.toBe('--');
+  });
+});

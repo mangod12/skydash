@@ -38,7 +38,9 @@ export function calculateDistance(lat1, lng1, lat2, lng2, unit = 'km') {
   const a = Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
     Math.cos(phi1) * Math.cos(phi2) *
     Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  // Floating-point rounding can put antipodal pairs just outside [0, 1].
+  const haversine = Math.max(0, Math.min(1, a));
+  const c = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
   const km = EARTH_RADIUS_KM * c;
 
   switch (unit) {
