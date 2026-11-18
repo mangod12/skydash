@@ -149,7 +149,7 @@ export const useMissionStore = create((set, get) => ({
       const json = await res.json();
       if (!current()) return null;
       const detail = json?.data;
-      const validDetail = detail && typeof detail === 'object' && !Array.isArray(detail)
+      const validDetail = validMission(detail) && detail.id === id
         && Array.isArray(detail.entities) && Array.isArray(detail.notes) && Array.isArray(detail.detections);
       if (!res.ok || json?.success !== true || !validDetail) {
         const message = json?.detail || json?.error || 'Failed to load mission';

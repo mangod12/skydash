@@ -256,9 +256,27 @@ describe('missionStore', () => {
     expect(useMissionStore.getState().missions[0].detections).toEqual([]);
   });
 
+  it.each([undefined, null, '', {}, 2, '1'])('rejects detail for an absent or different mission identity: %j', async (id) => {
+    const original = [mission(1, { entityIds: ['original'], notes: [{ id: 'note' }], detections: [] })];
+    useMissionStore.setState({ missions: original, activeMissionId: 1 });
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: { id, entities: ['other'], notes: [], detections: [] } }));
+    expect(await useMissionStore.getState().fetchMissionDetail(1)).toBe(false);
+    expect(useMissionStore.getState().missions).toEqual(original);
+    expect(useMissionStore.getState().activeMissionId).toBe(1);
+    expect(toast).toHaveBeenCalledWith('Failed to load mission', 'error');
+  });
+
+  it('accepts a matching string mission identity from the backend', async () => {
+    useMissionStore.setState({ missions: [mission('mission-one')] });
+    const detail = { id: 'mission-one', entities: [], notes: [], detections: [] };
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: detail }));
+    expect(await useMissionStore.getState().fetchMissionDetail('mission-one')).toEqual(detail);
+    expect(useMissionStore.getState().missions[0].entityIds).toEqual([]);
+  });
+
   it('fetchMissionDetail merges detail and uses a correct error message', async () => {
     useMissionStore.setState({ missions: [mission(1)] });
-    apiFetch.mockReturnValueOnce(reply({ success: true, data: { entities: ['a'], notes: [], detections: [] } }));
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: { id: 1, entities: ['a'], notes: [], detections: [] } }));
     await useMissionStore.getState().fetchMissionDetail(1);
     expect(useMissionStore.getState().missions[0].entityIds).toEqual(['a']);
 
@@ -276,7 +294,7 @@ describe('missionStore', () => {
       expect(await useMissionStore.getState().fetchMissionDetail(1)).toBe(false);
       expect(useMissionStore.getState().missions).toEqual(original);
       expect(toast).toHaveBeenCalledWith('Failed to load mission', 'error');
-      apiFetch.mockReturnValueOnce(reply({ success: true, data: { entities: [], notes: [], detections: [] } }));
+      apiFetch.mockReturnValueOnce(reply({ success: true, data: { id: 1, entities: [], notes: [], detections: [] } }));
       await useMissionStore.getState().fetchMissionDetail(1);
       expect(useMissionStore.getState().missions[0]).toMatchObject({ entityIds: [], notes: [], detections: [] });
     },
@@ -289,11 +307,11 @@ describe('missionStore', () => {
       finishOld = outcome === 'network failure' ? reject : resolve;
     }));
     const older = useMissionStore.getState().fetchMissionDetail(1);
-    const latest = { entities: ['new'], notes: [{ id: 'new-note' }], detections: [] };
+    const latest = { id: 1, entities: ['new'], notes: [{ id: 'new-note' }], detections: [] };
     apiFetch.mockReturnValueOnce(reply({ success: true, data: latest }));
     await useMissionStore.getState().fetchMissionDetail(1);
     if (outcome === 'network failure') finishOld(new Error('old failure'));
-    else finishOld(await reply({ success: true, data: { entities: ['old'], notes: [], detections: [] } }, outcome === 'success'));
+    else finishOld(await reply({ success: true, data: { id: 1, entities: ['old'], notes: [], detections: [] } }, outcome === 'success'));
     expect(await older).toBeNull();
     expect(useMissionStore.getState().missions[0]).toMatchObject({ entityIds: ['new'], notes: [{ id: 'new-note' }] });
     expect(toast).not.toHaveBeenCalled();
@@ -305,9 +323,9 @@ describe('missionStore', () => {
     apiFetch.mockImplementation(() => new Promise((resolve) => finish.push(resolve)));
     const first = useMissionStore.getState().fetchMissionDetail(1);
     const second = useMissionStore.getState().fetchMissionDetail(2);
-    finish[1](await reply({ success: true, data: { entities: ['two'], notes: [], detections: [] } }));
+    finish[1](await reply({ success: true, data: { id: 2, entities: ['two'], notes: [], detections: [] } }));
     await second;
-    finish[0](await reply({ success: true, data: { entities: ['one'], notes: [], detections: [] } }));
+    finish[0](await reply({ success: true, data: { id: 1, entities: ['one'], notes: [], detections: [] } }));
     await first;
     expect(useMissionStore.getState().missions.map((m) => m.entityIds)).toEqual([['one'], ['two']]);
   });
