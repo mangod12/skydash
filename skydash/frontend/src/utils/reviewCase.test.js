@@ -19,7 +19,7 @@ describe('single-file review case', () => {
   });
   it('recomputes the reading report from exact CSV and local models, preserving gap context and every match', async () => {
     const report = reviewCaseReport(await readReviewCase(JSON.stringify(await json())));
-    for (const part of [log.sha256, 'Analyst discussion note', 'Ask about gap', 'DATA GAP', 'sample 3 at 4s', 'Discussion summary', 'Training criteria', 'Sample 5 at 14s: 35m', 'Thresholds not policy', 'EXCLUDED: comparison baseline', 'not accepted as imported report text']) expect(report).toContain(part);
+    for (const part of [log.sha256, 'Analyst discussion note', 'Ask about gap', 'DATA GAP', 'sample 3 at 4s', 'Discussion summary', 'Training criteria', 'Sample 5 at 14s: 35m', 'Thresholds not policy', 'EXCLUDED: comparison baseline', 'not accepted as imported report text', 'SKYDASH / SOURCE EVIDENCE INVENTORY', 'skydash-source-evidence-v1']) expect(report).toContain(part);
   });
   it('preserves BOM and CRLF bytes instead of normalizing before checksum verification', async () => {
     const csv_text = '\uFEFF' + SAMPLE_LOG.replaceAll('\n', '\r\n'); log = { ...log, csv_text, sha256: await flightCSVHash(csv_text), samples: parseFlightCSV(csv_text) }; const opened = await readReviewCase(await createReviewCase(log, review, { markers: [], notes: '' }, null)); expect(opened.log.csv_text).toBe(csv_text);
