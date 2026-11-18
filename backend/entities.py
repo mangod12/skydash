@@ -270,8 +270,8 @@ class EntityStore:
         with db.get_lock(), conn:
             conn.execute("DELETE FROM relationships WHERE from_entity = ? OR to_entity = ?", (entity_id, entity_id))
             conn.execute("DELETE FROM events WHERE entityId = ?", (entity_id,))
-            conn.execute("DELETE FROM entities WHERE id = ?", (entity_id,))
-        return True
+            deleted = conn.execute("DELETE FROM entities WHERE id = ?", (entity_id,))
+        return deleted.rowcount > 0
 
     # ─── Relationships ───────────────────────────────────────
 
