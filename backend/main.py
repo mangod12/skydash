@@ -261,7 +261,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 @app.get("/health")
-async def health():
+def health():
     return {
         "status": "healthy",
         "uptime": round(time.monotonic() - start_time, 1),
