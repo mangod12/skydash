@@ -13,7 +13,7 @@ beforeEach(async () => {
   primary = { title: 'Primary test', filename: 'primary.csv', sha256: await flightCSVHash(SAMPLE_LOG), model_version: LOG_VERSION, csv_text: SAMPLE_LOG, samples: parseFlightCSV(SAMPLE_LOG) };
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
-const load = async () => { fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByLabelText('Comparison time'); };
+const load = async () => { fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByText(/Baseline B loaded locally/); await screen.findByLabelText('Comparison time'); };
 const file = text => ({ name: 'second.csv', size: text.length, arrayBuffer: async () => new TextEncoder().encode(text).buffer });
 describe('two-flight local comparison workflow', () => {
   it('requires a baseline, stays local, compares gaps and shorter-source boundaries explicitly', async () => {
