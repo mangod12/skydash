@@ -111,6 +111,21 @@ describe('missionStore', () => {
     expect(useMissionStore.getState().loading).toBe(false);
   });
 
+  it('preserves loaded child details when a summary list arrives later', async () => {
+    useMissionStore.setState({ missions: [mission(1)], activeMissionId: 1 });
+    let finish;
+    apiFetch.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const pending = useMissionStore.getState().fetchMissions();
+    const children = { entities: ['e1'], notes: [{ id: 'n1', content: 'Recorded note' }], detections: [{ id: 'd1' }] };
+    apiFetch.mockReturnValueOnce(reply({ success: true, data: { ...mission(1), ...children } }));
+    await useMissionStore.getState().fetchMissionDetail(1);
+    finish(await reply({ success: true, data: [mission(1, { name: 'Fresh summary' }), mission(2)] }));
+    await pending;
+    expect(useMissionStore.getState().missions[0]).toMatchObject({ name: 'Fresh summary', entityIds: ['e1'],
+      notes: children.notes, detections: children.detections });
+    expect(useMissionStore.getState().missions[1]).not.toHaveProperty('notes');
+  });
+
   it('keeps loading while the latest refresh remains unresolved', async () => {
     let finishOld;
     let finishNew;
