@@ -104,6 +104,42 @@ class TestConnectorRoutes(unittest.TestCase):
                 with patch.object(connector, name, side_effect=slow):
                     asyncio.run(exercise())
 
+    def test_slow_ingest_persistence_does_not_block_other_requests(self):
+        cases = (
+            ("/api/connectors/adsb/ingest", connector_routes.opensky, "fetch_aircraft"),
+            ("/api/connectors/shodan/ingest", connector_routes.shodan, "search"),
+        )
+        for path, connector, fetch in cases:
+            entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+            candidate = aircraft_entity("concurrency-fixture")
+
+            def slow(*args, **kwargs):
+                entered.set()
+                try:
+                    release.wait(2)
+                    return candidate
+                finally:
+                    finished.set()
+
+            async def exercise():
+                async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as client:
+                    pending = asyncio.create_task(client.post(path))
+                    try:
+                        self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                        response = await client.get("/api/connectors/status")
+                        self.assertEqual(response.status_code, 200)
+                        self.assertFalse(finished.is_set(), "Connector persistence blocked event loop")
+                    finally:
+                        release.set()
+                        response = await pending
+                    self.assertTrue(response.json()["success"])
+                    self.assertEqual(response.json()["data"], [candidate])
+
+            with self.subTest(path=path), patch.object(connector, fetch, return_value=[]), \
+                    patch.object(connector, "to_entities", return_value=[candidate]), \
+                    patch.object(entity_store, "upsert_entity", side_effect=slow):
+                asyncio.run(exercise())
+
     def test_adsb_passes_bbox_and_reports_count(self):
         with patch.object(connector_routes.opensky, "fetch_aircraft", return_value=[{"icao24": "a"}, {"icao24": "b"}]) as fetch:
             body = self.client.get(
