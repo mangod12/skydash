@@ -1,19 +1,24 @@
-import { useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import { BookmarkPlus, Download } from 'lucide-react';
 import { recordedObservation } from '../../utils/flightComparison';
 import { MAX_MARKERS, MAX_DEBRIEF_BYTES, MARKER_KINDS, DEBRIEF_SCOPE, createReviewMarker, validateMarkers, debriefSidecar, readDebriefSidecar, instructorReport } from '../../utils/instructorDebrief';
 const button = 'inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200 disabled:opacity-40 disabled:cursor-not-allowed';
 const input = 'mt-1 w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-sm text-zinc-200';
-export default function InstructorDebrief({ log, time, onSeek, onPause }) {
-  const [markers, setMarkers] = useState([]);
+const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onSeek, onPause, initialReview = null }, ref) {
+  const [markers, setMarkers] = useState(initialReview?.markers || []);
   const [kind, setKind] = useState('Observation');
   const [text, setText] = useState('');
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(initialReview?.notes || '');
   const [pending, setPending] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
+  useImperativeHandle(ref, () => ({ snapshot() {
+    if (busy || pending) throw new Error('Finish or cancel the debrief import before exporting a case.');
+    if (text.trim()) throw new Error('Add or clear the unadded instructor marker note before exporting a case.');
+    return debriefSidecar(log, markers, notes);
+  } }));
   const context = recordedObservation(log.samples, time);
   const add = event => {
     event.preventDefault(); onPause(); setError(''); setMessage('');
@@ -73,4 +78,5 @@ export default function InstructorDebrief({ log, time, onSeek, onPause }) {
     <div className="border-t border-white/10 pt-3 space-y-2"><h3 className="text-sm font-semibold text-zinc-200">Reopen a debrief sidecar</h3><p className="text-xs text-zinc-500">Load the matching source CSV first. JSON contains notes, marker times and source fingerprint, not the CSV. A valid sidecar still has unverified authorship. Confirm before replacing the current review. Up to 256KiB / 100 markers.</p><input aria-label="Import debrief JSON" type="file" accept=".json,application/json" disabled={busy} onChange={read} className="block w-full min-w-0 text-xs text-zinc-400" /></div>
     {pending && <div className="rounded-lg border border-amber-500/30 p-3 text-xs text-amber-300">Matching sidecar: {pending.markers.length} markers. Replace current {markers.length} markers and summary? Source CSV is unchanged.<div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={apply} className={button}>Replace with imported review</button><button type="button" onClick={() => { setPending(null); setMessage('Import cancelled. Current review kept.'); }} className={button}>Keep current review</button></div></div>}
   </article>;
-}
+});
+export default InstructorDebrief;
