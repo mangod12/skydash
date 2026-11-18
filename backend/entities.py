@@ -82,7 +82,7 @@ class EntityStore:
     def _row_to_event(self, row) -> Dict:
         return dict(row)
 
-    def _seed(self):
+    def _seed(self, conn=None):
         seeds = [
             {"id": "ent-001", "type": "vehicle", "name": "SUV-Black-4892", "coordinates": [37.7780, -122.4160],
              "properties": {"vehicle_id": "VH-4892", "color": "Black", "make": "Toyota Land Cruiser", "speed": "0 km/h"},
@@ -113,7 +113,8 @@ class EntityStore:
         ids = []
         for s in seeds:
             if not self.get_entity(s["id"]):
-                e = self.create_entity({**s, "firstSeen": now - 3600, "lastSeen": now})
+                data = {**s, "firstSeen": now - 3600, "lastSeen": now}
+                e = self._create_entity(conn, data) if conn is not None else self.create_entity(data)
             else:
                 e = self.get_entity(s["id"])
             ids.append(e["id"])
@@ -129,8 +130,13 @@ class EntityStore:
             ("ent-001", "ent-008", "traveled_to", 65),
             ("ent-002", "ent-008", "traveled_to", 48),
         ]:
-            self.add_relationship(from_id, to_id, rel_type, confidence)
-        self._remove_legacy_demo_rows()
+            if conn is not None:
+                self._add_relationship(conn, from_id, to_id, rel_type, confidence)
+            else:
+                self.add_relationship(from_id, to_id, rel_type, confidence)
+        # A reset starts with empty tables; startup alone needs legacy cleanup.
+        if conn is None:
+            self._remove_legacy_demo_rows()
 
     def reset_demo(self) -> None:
         """Wipe entities, relationships and events, then restore the demo seed."""
@@ -138,7 +144,7 @@ class EntityStore:
         with db.get_lock(), conn:
             for table in ("events", "relationships", "entities"):
                 conn.execute(f"DELETE FROM {table}")
-        self._seed()
+            self._seed(conn)
 
     def _remove_legacy_demo_rows(self):
         legacy_rows = db.get_connection().execute(
@@ -196,6 +202,12 @@ class EntityStore:
         return self._row_to_entity(row) if row else None
 
     def create_entity(self, data: Dict) -> Dict:
+        conn = db.get_connection()
+        with db.get_lock(), conn:
+            return self._create_entity(conn, data)
+
+    def _create_entity(self, conn, data: Dict) -> Dict:
+        """Insert within the caller's locked transaction; never commit here."""
         raw_id = data.get("id")
         requested_id = raw_id.strip() if isinstance(raw_id, str) else ""
         eid = requested_id if re.fullmatch(r"[A-Za-z0-9_-]{3,64}", requested_id) else str(uuid.uuid4())[:8]
@@ -213,17 +225,15 @@ class EntityStore:
             "firstSeen": data.get("firstSeen", now),
             "lastSeen": data.get("lastSeen", now),
         }
-        conn = db.get_connection()
-        with db.get_lock(), conn:
-            if conn.execute("SELECT 1 FROM entities WHERE id = ?", (eid,)).fetchone():
-                raise EntityAlreadyExists("Entity ID already exists")
-            conn.execute(
-                "INSERT INTO entities (id, type, name, coordinates, properties, confidence, source, tags, threatLevel, firstSeen, lastSeen) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                (eid, entity["type"], entity["name"], json.dumps(entity["coordinates"]),
-                 json.dumps(entity["properties"]), entity["confidence"], entity["source"],
-                 json.dumps(entity["tags"]), entity["threatLevel"], entity["firstSeen"], entity["lastSeen"]),
-            )
-            self._insert_event(conn, {"type": "detection", "description": f"Entity created: {entity['name']}", "entityId": eid, "severity": "info"})
+        if conn.execute("SELECT 1 FROM entities WHERE id = ?", (eid,)).fetchone():
+            raise EntityAlreadyExists("Entity ID already exists")
+        conn.execute(
+            "INSERT INTO entities (id, type, name, coordinates, properties, confidence, source, tags, threatLevel, firstSeen, lastSeen) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (eid, entity["type"], entity["name"], json.dumps(entity["coordinates"]),
+             json.dumps(entity["properties"]), entity["confidence"], entity["source"],
+             json.dumps(entity["tags"]), entity["threatLevel"], entity["firstSeen"], entity["lastSeen"]),
+        )
+        self._insert_event(conn, {"type": "detection", "description": f"Entity created: {entity['name']}", "entityId": eid, "severity": "info"})
         return entity
 
     def upsert_entity(self, data: Dict) -> Dict:
@@ -282,19 +292,23 @@ class EntityStore:
     def add_relationship(self, from_id: str, to_id: str, rel_type: str, confidence: int = 50) -> Dict:
         conn = db.get_connection()
         with db.get_lock(), conn:
-            for entity_id in (from_id, to_id):
-                if not conn.execute("SELECT 1 FROM entities WHERE id = ?", (entity_id,)).fetchone():
-                    raise LookupError("Relationship entity not found")
-            existing = conn.execute(
-                "SELECT * FROM relationships WHERE from_entity = ? AND to_entity = ? AND type = ?",
-                (from_id, to_id, rel_type),
-            ).fetchone()
-            if existing:
-                return self._row_to_rel(existing)
-            conn.execute(
-                "INSERT INTO relationships (from_entity, to_entity, type, confidence) VALUES (?,?,?,?)",
-                (from_id, to_id, rel_type, confidence),
-            )
+            return self._add_relationship(conn, from_id, to_id, rel_type, confidence)
+
+    def _add_relationship(self, conn, from_id: str, to_id: str, rel_type: str, confidence: int = 50) -> Dict:
+        """Insert within the caller's locked transaction; never commit here."""
+        for entity_id in (from_id, to_id):
+            if not conn.execute("SELECT 1 FROM entities WHERE id = ?", (entity_id,)).fetchone():
+                raise LookupError("Relationship entity not found")
+        existing = conn.execute(
+            "SELECT * FROM relationships WHERE from_entity = ? AND to_entity = ? AND type = ?",
+            (from_id, to_id, rel_type),
+        ).fetchone()
+        if existing:
+            return self._row_to_rel(existing)
+        conn.execute(
+            "INSERT INTO relationships (from_entity, to_entity, type, confidence) VALUES (?,?,?,?)",
+            (from_id, to_id, rel_type, confidence),
+        )
         return {"from": from_id, "to": to_id, "type": rel_type, "confidence": confidence}
 
     def get_entity_graph(self, entity_id: str) -> Dict:

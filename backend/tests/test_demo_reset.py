@@ -109,6 +109,34 @@ class TestDemoReset(unittest.TestCase):
         self.assertIsNone(entity_store.get_entity(extra))
         self.assertFalse(conn.in_transaction)
 
+    def test_seed_failure_restores_previous_entity_data_and_mission_links(self):
+        import sqlite3
+        extra = entity_store.create_entity({"name": "Keep on failed reset"})["id"]
+        entity_store.add_relationship(extra, "ent-001", "associated_with")
+        mission = mission_store.create_mission({"name": "Keep links"})["id"]
+        mission_store.add_entity_to_mission(mission, extra)
+        before_entities = entity_store.list_entities()
+        before_relationships = entity_store.relationships
+        before_events = entity_store.get_timeline(limit=1000)
+        conn = database.get_connection()
+        conn.execute("""CREATE TRIGGER reject_seed BEFORE INSERT ON entities
+                        WHEN NEW.id = 'ent-004'
+                        BEGIN SELECT RAISE(ABORT, 'synthetic seed failure'); END""")
+        conn.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            entity_store.reset_demo()
+        self.assertFalse(conn.in_transaction)
+        conn.execute("DROP TRIGGER reject_seed")
+        conn.commit()
+        entity_store.add_event({"description": "Unrelated later commit"})
+        self.assertEqual(entity_store.list_entities(), before_entities)
+        self.assertEqual(entity_store.relationships, before_relationships)
+        self.assertEqual(entity_store.get_timeline(limit=1000)[1:], before_events)
+        self.assertEqual(mission_store.get_mission_entities(mission), [extra])
+        entity_store.reset_demo()
+        self.assertEqual(entity_store.count(), 8)
+        self.assertIsNone(entity_store.get_entity(extra))
+
     def test_commander_only(self):
         self.assertEqual(required_role("POST", "/api/demo/reset"), "commander")
 
