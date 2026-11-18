@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import { logProvenance } from './provenanceStore';
 import { apiFetch } from '../utils/api';
 
-const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8001');
+import { API_BASE } from '../utils/runtimeConfig';
+
+const API = API_BASE;
 let intelRefreshGeneration = 0;
 const entityUpdateGenerations = new Map();
 
