@@ -59,3 +59,48 @@ describe('reproducible whole-source comparison report', () => {
     expect(comparisonReport({ ...log(), time: 0 }, baseline)).toBe(comparisonReport({ ...log(), time: 8 }, baseline));
   });
 });
+
+describe('manual reviewer-selected sample anchors', () => {
+  const anchor = { primaryIndex: 3, baselineIndex: 2, label: 'Instructor-selected discussion points' };
+  it('maps review zero to exact independent anchor samples, not CSV starts', () => {
+    const c = compareFlights(log(), baseline, 0, anchor);
+    expect(c.primaryObservation.sample.time_s).toBe(12); expect(c.baselineObservation.sample.time_s).toBe(4);
+    expect(c.alignment.primaryS).toBe(12); expect(c.alignment.baselineS).toBe(4);
+    expect(c.startS).toBe(-12); expect(c.endS).toBe(6); expect(c.commonStartS).toBe(-4); expect(c.commonEndS).toBe(4);
+  });
+  it('allows negative review time but does not invent pre-source observations', () => {
+    const c = compareFlights(log(), baseline, -6, anchor);
+    expect(c.primaryObservation.state).toBe('gap'); expect(c.primaryObservation.sample.time_s).toBe(4);
+    expect(c.baselineObservation.state).toBe('outside'); expect(c.currentDeltas.speed).toBeNull();
+    expect(compareFlights(log(), baseline, -4, anchor).baselineObservation.sample.time_s).toBe(0);
+  });
+  it('keeps shorter-source endpoints valid and hides observations beyond mapped ends', () => {
+    const end = compareFlights(log(), baseline, 4, anchor); expect(end.primaryObservation.sample.time_s).toBe(16);
+    expect(compareFlights(log(), baseline, 4.1, anchor).primaryObservation.state).toBe('outside');
+    expect(compareFlights(log(), baseline, 6, anchor).baselineObservation.sample.time_s).toBe(10);
+  });
+  it('never changes whole-source metrics or evidence counts with review anchors', () => {
+    const a = compareFlights(log(), baseline), b = compareFlights(log(), baseline, -1, anchor);
+    expect(a.deltas).toEqual(b.deltas); expect(a.primary).toEqual(b.primary); expect(a.baseline).toEqual(b.baseline);
+  });
+  it.each([
+    { primaryIndex: -1 }, { primaryIndex: 0.5 }, { primaryIndex: 6 }, { primaryIndex: NaN },
+    { baselineIndex: 6 }, { baselineIndex: '1' }, { label: '' }, { label: ' ' }, { label: 'x'.repeat(201) },
+  ])('rejects invalid anchors %j without falling back to CSV start', invalid => {
+    expect(() => compareFlights(log(), baseline, 0, { ...anchor, ...invalid })).toThrow('existing sample row');
+  });
+  it('reports reproducible row/time/label transform without changing summary scope', () => {
+    const report = comparisonReport(log(), baseline, 'Discussion notes', anchor);
+    for (const value of ['skydash-comparison-anchors-v1', 'MANUAL REVIEW ANCHORS', anchor.label, 'A CSV data row 4 at 12s; B CSV data row 3 at 4s', 'source time minus', 'Shared review-clock range: -4 to 4s', 'Whole-log metrics never change', 'not verified same events']) expect(report).toContain(value);
+    expect(comparisonReport(log(), baseline)).toContain('DEFAULT ALIGNMENT');
+  });
+});
+
+  it('keeps decimal mapped endpoints exact without extrapolation', () => {
+    const source = log(`${LOG_HEADER}\n0,0,0,0,0,0\n0.1,0,0,1,1,1\n0.3,0,0,2,2,2\n`);
+    const anchor = { primaryIndex: 1, baselineIndex: 1, label: 'Decimal endpoints' };
+    const c = compareFlights(source, source, 0, anchor);
+    expect(compareFlights(source, source, c.startS, anchor).primaryObservation.sample.time_s).toBe(0);
+    expect(compareFlights(source, source, c.endS, anchor).primaryObservation.sample.time_s).toBe(0.3);
+    expect(compareFlights(source, source, c.endS + 1e-6, anchor).primaryObservation.state).toBe('outside');
+  });

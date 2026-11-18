@@ -71,3 +71,35 @@ describe('two-flight local comparison workflow', () => {
     fireEvent.click(screen.getByText('Clear comparison')); expect(screen.queryByLabelText('Comparison time')).toBeNull(); expect(screen.getByText(/Primary A is unchanged/)).toBeTruthy();
   });
 });
+
+describe('manual comparison anchor controls', () => {
+  const fill = () => {
+    fireEvent.change(screen.getByLabelText('A anchor data row'), { target: { value: '4' } });
+    fireEvent.change(screen.getByLabelText('B anchor data row'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Review anchor label'), { target: { value: 'Selected discussion samples' } });
+  };
+  it('requires explicit apply, shows source-time anchors and preserves comparison notes', async () => {
+    render(<FlightComparison primary={primary} />); await load(); fireEvent.change(screen.getByLabelText('Comparison notes'), { target: { value: 'Keep context' } }); fill();
+    expect(screen.getByLabelText('Applied comparison alignment').textContent).toContain('CSV starts');
+    expect(screen.getByText('Download comparison report').disabled).toBe(true); expect(screen.getByText('Play comparison').disabled).toBe(true);
+    fireEvent.click(screen.getByText('Apply manual sample anchors'));
+    expect(screen.getByLabelText('Applied comparison alignment').textContent).toContain('A row 4 at 12s; B row 3 at 4s');
+    expect(screen.getByText('A 12s')).toBeTruthy(); expect(screen.getByText('B 4s')).toBeTruthy(); expect(screen.getByLabelText('Comparison time').min).toBe('-12'); expect(screen.getByLabelText('Comparison time').max).toBe('6');
+    expect(screen.getByLabelText('Comparison notes').value).toBe('Keep context'); expect(screen.getByText('Download comparison report').disabled).toBe(false);
+    fireEvent.change(screen.getByLabelText('Comparison time'), { target: { value: '-6' } }); expect(screen.getByText(/OUTSIDE SOURCE/)).toBeTruthy(); expect(screen.getByText(/DATA GAP/)).toBeTruthy();
+    fireEvent.click(screen.getByText('Reset comparison')); expect(screen.getByLabelText('Comparison time').value).toBe('0'); expect(screen.getByText('A 12s')).toBeTruthy(); expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+  it('keeps the applied alignment on invalid row/label and discards uncommitted edits', async () => {
+    render(<FlightComparison primary={primary} />); await load(); fill(); fireEvent.click(screen.getByText('Apply manual sample anchors'));
+    fireEvent.change(screen.getByLabelText('A anchor data row'), { target: { value: '999' } }); fireEvent.click(screen.getByText('Apply manual sample anchors'));
+    expect(screen.getByRole('alert').textContent).toContain('existing sample row'); expect(screen.getByLabelText('Applied comparison alignment').textContent).toContain('A row 4'); expect(screen.getByText('Download comparison report').disabled).toBe(true);
+    fireEvent.click(screen.getByText('Discard anchor edits')); expect(screen.getByLabelText('A anchor data row').value).toBe('4'); expect(screen.queryByRole('alert')).toBeNull(); expect(screen.getByText('Download comparison report').disabled).toBe(false);
+    fireEvent.change(screen.getByLabelText('Review anchor label'), { target: { value: '' } }); fireEvent.click(screen.getByText('Apply manual sample anchors')); expect(screen.getByRole('alert').textContent).toContain('review anchor label');
+  });
+  it('exports applied anchors and resets them when CSV starts or a new baseline is selected', async () => {
+    render(<FlightComparison primary={primary} />); await load(); fill(); fireEvent.click(screen.getByText('Apply manual sample anchors')); fireEvent.click(screen.getByText('Download comparison report'));
+    const blob = URL.createObjectURL.mock.calls[0][0]; const text = await new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsText(blob); }); expect(text).toContain('A CSV data row 4 at 12s; B CSV data row 3 at 4s'); expect(text).toContain('Selected discussion samples');
+    fireEvent.click(screen.getByText('Use CSV starts')); expect(screen.getByLabelText('Comparison time').min).toBe('0'); expect(screen.getByLabelText('Comparison time').max).toBe('16'); expect(screen.getByLabelText('Review anchor label').value).toBe('');
+    fill(); fireEvent.click(screen.getByText('Apply manual sample anchors')); await load(); expect(screen.getByLabelText('Applied comparison alignment').textContent).toContain('CSV starts'); expect(screen.getByLabelText('A anchor data row').value).toBe('1');
+  });
+});
