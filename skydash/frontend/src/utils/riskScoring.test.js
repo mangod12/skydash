@@ -28,6 +28,21 @@ describe('calculateRiskScore', () => {
     expect(result.breakdown.escalationBonus).toBe(15);
     expect(result.score).toBe(81);
   });
+  it.each([NaN, Infinity, -1, 101, '100', true, false, {}])('uses the existing unknown-confidence default for invalid input %j', confidence => {
+    const result = calculateRiskScore({ ...base, confidence }, [], []);
+    expect(result.breakdown.confidenceMultiplier).toBe(0.5);
+    expect(result.score).toBe(30);
+  });
+  it.each(['constructor', '__proto__', 'toString'])('does not inherit a base threat from the object prototype: %s', threatLevel => {
+    const result = calculateRiskScore({ ...base, threatLevel }, [], []);
+    expect(result.breakdown.baseThreat).toBe(0);
+    expect(result.score).toBe(0);
+  });
+  it.each([0, 25, 100])('preserves valid numeric confidence %s', confidence => {
+    const result = calculateRiskScore({ ...base, confidence }, [], []);
+    expect(result.breakdown.confidenceMultiplier).toBe(confidence / 100);
+    expect(result.score).toBe(Math.round(60 * confidence / 100));
+  });
   it('uses the base threat when nothing else applies', () => {
     expect(calculateRiskScore(base, [], []).score).toBe(60);
   });
