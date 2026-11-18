@@ -1,7 +1,8 @@
 import FlightComparison from './FlightComparison';
 import InstructorDebrief from './InstructorDebrief';
 import TrainingEnvelope from './TrainingEnvelope';
-import { useEffect, useMemo, useState } from 'react';
+import ReviewCase from './ReviewCase';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { ArrowLeft, Download, Play, Pause, RotateCcw, Save, Upload } from 'lucide-react';
 import { DARK_BASEMAP } from '../../utils/basemap';
@@ -34,6 +35,10 @@ async function verifiedRecord(data) {
 
 export default function FlightLogReplay({ onBack }) {
   const canWrite = useCan('analyst');
+  const debriefRef = useRef(null);
+  const envelopeRef = useRef(null);
+  const [reviewSeed, setReviewSeed] = useState(null);
+  const [reviewRevision, setReviewRevision] = useState(0);
   const [log, setLog] = useState(null);
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
@@ -59,7 +64,15 @@ export default function FlightLogReplay({ onBack }) {
     const timer = setInterval(() => { const now = performance.now(); const delta = (now - previous) / 1000; previous = now; setTime(value => Math.min(summary.durationS, value + delta * speed)); }, 100);
     return () => clearInterval(timer);
   }, [replaying, speed, summary]);
-  const select = data => { setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setConfirmDelete(false); };
+  const select = data => { if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setConfirmDelete(false); };
+  const caseSnapshot = () => {
+    if (busy || !log || !debriefRef.current || !envelopeRef.current) throw new Error('Wait for source loading to finish before exporting a case.');
+    return { log, review: { title: title.trim(), notes }, debrief: debriefRef.current.snapshot(), envelope: envelopeRef.current.snapshot() };
+  };
+  const openCase = opened => {
+    select(opened.log); setReviewSeed(opened.data); setReviewRevision(value => value + 1);
+    setMessage('Portable case opened in this browser only. No server archive record created.');
+  };
   const run = async operation => {
     if (busy) return;
     setBusy(true); setPlaying(false); setError(''); setMessage('');
@@ -113,6 +126,7 @@ export default function FlightLogReplay({ onBack }) {
       <button disabled={busy} onClick={onBack} className="inline-flex items-center gap-2 text-xs text-zinc-400"><ArrowLeft size={14} /> Back to Scenario Lab</button>
       <header><p className="text-[10px] tracking-widest text-cyan-300">IMPORT / REPLAY / DEBRIEF</p><h1 className="mt-1 text-2xl font-semibold text-zinc-100">Flight Log Replay</h1><p className="mt-2 text-xs leading-relaxed text-zinc-400">{LOG_SCOPE}</p></header>
       {log && <div className="flex flex-wrap gap-2"><button className={button} onClick={() => { setPlaying(false); document.getElementById('training-envelope')?.scrollIntoView({ behavior: 'smooth' }); }}>Training envelope</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('instructor-debrief')?.scrollIntoView({ behavior: 'smooth' }); }}>Instructor debrief</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('flight-comparison')?.scrollIntoView({ behavior: 'smooth' }); }}>Compare two flights</button></div>}
+      <ReviewCase workspaceBusy={busy} log={busy ? null : log} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => setPlaying(false)} />
       <div className="grid gap-4 lg:grid-cols-3">
         <aside className="min-w-0 space-y-4">
           <div className="rounded-xl border border-white/10 p-4 space-y-3">
@@ -173,9 +187,9 @@ export default function FlightLogReplay({ onBack }) {
               {!canWrite && <p className="text-xs text-amber-300">Analyst role required to save or delete shared records.</p>}
               {confirmDelete && <div className="text-xs text-amber-300">Permanently delete this server log and its fixed notes? Download both first if needed.<div className="mt-2 flex gap-2"><button disabled={busy} onClick={remove} className={button}>Confirm delete record</button><button disabled={busy} onClick={() => setConfirmDelete(false)} className={button}>Keep record</button></div></div>}
             </article>
-            <TrainingEnvelope key={`envelope-${log.sha256}`} log={log} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
-            <InstructorDebrief key={`instructor-${log.sha256}`} log={log} time={time} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
-            <FlightComparison key={`comparison-${log.sha256}`} primary={{ ...log, title: title.trim(), notes }} />
+            <TrainingEnvelope ref={envelopeRef} initialReview={reviewSeed?.envelope || null} key={`envelope-${log.sha256}-${reviewRevision}`} log={log} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
+            <InstructorDebrief ref={debriefRef} initialReview={reviewSeed?.debrief || null} key={`instructor-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
+            <FlightComparison key={`comparison-${log.sha256}-${reviewRevision}`} primary={{ ...log, title: title.trim(), notes }} />
           </> : <div className="rounded-xl border border-dashed border-white/10 p-8 text-sm text-zinc-500">Choose a CSV, load the synthetic sample, or reopen a server record to replay and debrief. This view does not change the live fleet or Scenario Lab scores.</div>}
         </div>
       </div>

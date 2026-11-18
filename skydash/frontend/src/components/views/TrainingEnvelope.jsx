@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import { Download, ListChecks } from 'lucide-react';
 import { ENVELOPE_RULES, ENVELOPE_SCOPE, validateEnvelope, evaluateEnvelope, envelopeProfileJSON, readEnvelopeProfile, envelopeReport } from '../../utils/trainingEnvelope';
 const button = 'inline-flex items-center justify-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 disabled:opacity-40 disabled:cursor-not-allowed';
@@ -6,16 +6,21 @@ const input = 'mt-1 w-full rounded-lg border border-white/10 bg-zinc-900 p-2 tex
 const blank = { name: '', maxAltitude: '', maxSpeed: '', minBattery: '' };
 const fromForm = form => validateEnvelope({ name: form.name, ...Object.fromEntries(ENVELOPE_RULES.map(rule => [rule.key, form[rule.key].trim() ? Number(form[rule.key]) : null])) });
 const toForm = profile => ({ name: profile.name, ...Object.fromEntries(ENVELOPE_RULES.map(rule => [rule.key, profile[rule.key] === null ? '' : String(profile[rule.key])])) });
-export default function TrainingEnvelope({ log, onSeek, onPause }) {
-  const [form, setForm] = useState(blank);
-  const [result, setResult] = useState(null);
+const TrainingEnvelope = forwardRef(function TrainingEnvelope({ log, onSeek, onPause, initialReview = null }, ref) {
+  const [form, setForm] = useState(() => initialReview ? toForm(initialReview.profile) : blank);
+  const [result, setResult] = useState(() => initialReview ? evaluateEnvelope(log, initialReview.profile) : null);
   const [dirty, setDirty] = useState(false);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(initialReview?.notes || '');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [pending, setPending] = useState(null);
   const [busy, setBusy] = useState(false);
   const [selection, setSelection] = useState({ rule: '', index: 0 });
+  useImperativeHandle(ref, () => ({ snapshot() {
+    if (busy || pending) throw new Error('Finish or cancel the profile import before exporting a case.');
+    if ((result && dirty) || (!result && Object.values(form).some(value => value.trim()))) throw new Error('Review the current envelope criteria before exporting a case. Unevaluated draft criteria cannot be packaged.');
+    return result ? { profile: result.profile, notes } : null;
+  } }));
   const change = (key, value) => { setForm(previous => ({ ...previous, [key]: value })); setDirty(true); setMessage(''); };
   const run = event => {
     event.preventDefault(); onPause(); setError(''); setMessage('');
@@ -71,4 +76,5 @@ export default function TrainingEnvelope({ log, onSeek, onPause }) {
     <div className="border-t border-white/10 pt-3 space-y-2"><h3 className="text-sm font-semibold text-zinc-200">Reuse a review profile</h3><p className="text-xs text-zinc-500">Import a profile JSON (up to 8KiB), confirm fields, then run on this source. A profile is not source-bound and contains no notes, samples or decisions. New fields invalidate the previous result; your review notes remain. Download profile JSON separately to reuse criteria.</p><input aria-label="Import review profile" type="file" accept=".json,application/json" disabled={busy} onChange={importFile} className="block w-full min-w-0 text-xs text-zinc-400" /></div>
     {pending && <div className="rounded-lg border border-amber-500/30 p-3 text-xs text-amber-300"><p>Replace criteria with profile {pending.name}? It is unverified, user-authored data.</p><ul>{ENVELOPE_RULES.map(rule => <li key={rule.key}>{rule.label}: {pending[rule.key] === null ? 'disabled' : `${rule.direction} ${pending[rule.key]}${rule.unit}`}</li>)}</ul><div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => { setForm(toForm(pending)); setPending(null); setDirty(true); setMessage('Imported profile fields applied. Review notes kept. Run explicitly to generate a new result.'); }} className={button}>Use imported criteria</button><button type="button" onClick={() => { setPending(null); setMessage('Profile import cancelled. Current fields and results kept.'); }} className={button}>Keep current criteria</button></div></div>}
   </article>;
-}
+});
+export default TrainingEnvelope;
