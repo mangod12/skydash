@@ -7,6 +7,7 @@ import os
 import time
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -220,6 +221,14 @@ app.add_middleware(
 )
 
 # ── Error handling ───────────────────────────────────────────
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Keep useful field errors without echoing credentials or non-JSON input.
+    errors = [{key: error[key] for key in ("type", "loc", "msg") if key in error}
+              for error in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": errors})
 
 
 @app.exception_handler(Exception)

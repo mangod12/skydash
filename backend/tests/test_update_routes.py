@@ -55,6 +55,40 @@ class TestUpdateRoutes(unittest.TestCase):
                     self.assertEqual(mission_store.count(), count)
                     self.assertEqual(mission_store.get_mission(self.mid), before)
 
+    def test_nonfinite_nested_properties_are_rejected_before_persistence(self):
+        before = entity_store.get_entity(self.eid)
+        count = entity_store.count()
+        # Exponent overflow is valid JSON syntax but parses to a nonfinite float.
+        for value in ('1e400', '-1e400', 'NaN', 'Infinity', '-Infinity'):
+            with self.subTest(value=value):
+                properties = '{"outer":[{"reading":' + value + '}]}'
+                for method, path, body in (
+                    ('post', '/api/entities', '{"name":"Invalid","properties":' + properties + '}'),
+                    ('put', f'/api/entities/{self.eid}', '{"properties":' + properties + '}'),
+                ):
+                    response = getattr(self.client, method)(path, content=body,
+                                                           headers={'content-type': 'application/json'})
+                    self.assertEqual(response.status_code, 422)
+                    self.assertEqual(entity_store.count(), count)
+                    self.assertEqual(entity_store.get_entity(self.eid), before)
+        self.assertEqual(self.client.get('/api/entities').status_code, 200)
+        valid = {"outer": [{"reading": 0, "available": True, "optional": None,
+                            "label": "normal", "negative": -1.5}]}
+        response = self.client.put(f'/api/entities/{self.eid}', json={"properties": valid})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["data"]["properties"], valid)
+
+    def test_validation_errors_do_not_echo_input_or_credentials(self):
+        secret = "invalid-private-password-marker"
+        response = self.client.post("/api/auth/register", json={
+            "username": "x" * 65, "password": [secret],
+        })
+        self.assertEqual(response.status_code, 422)
+        self.assertNotIn(secret, response.text)
+        self.assertTrue(response.json()["detail"])
+        for error in response.json()["detail"]:
+            self.assertEqual(set(error), {"type", "loc", "msg"})
+
     def test_entity_partial_update_keeps_other_fields(self):
         resp = self.client.put(f"/api/entities/{self.eid}", json={"confidence": 80})
         data = resp.json()["data"]
