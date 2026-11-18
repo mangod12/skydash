@@ -152,7 +152,22 @@ async def auth_middleware(request: Request, call_next):
     return await call_next(request)
 
 
-MAX_BODY_BYTES = int(os.getenv("SKYDASH_MAX_BODY_BYTES", str(25 * 1024 * 1024)))
+def _body_limit_from_env():
+    default = 25 * 1024 * 1024
+    raw = os.getenv("SKYDASH_MAX_BODY_BYTES")
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+        if value > 0:
+            return value
+    except ValueError:
+        pass
+    log.warning("Invalid SKYDASH_MAX_BODY_BYTES; using default %d bytes", default)
+    return default
+
+
+MAX_BODY_BYTES = _body_limit_from_env()
 
 
 @app.middleware("http")
