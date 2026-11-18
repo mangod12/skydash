@@ -36,6 +36,34 @@ class _ApiTestCase(unittest.TestCase):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
 
+class TestConcurrentDeletes(_ApiTestCase):
+    def test_only_one_concurrent_delete_reports_success(self):
+        import threading
+        from concurrent.futures import ThreadPoolExecutor
+        from unittest.mock import patch
+
+        for store, create, lookup, delete in (
+            (entity_store, "create_entity", "get_entity", "delete_entity"),
+            (mission_store, "create_mission", "get_mission", "delete_mission"),
+        ):
+            item = getattr(store, create)({"name": "Concurrent deletion"})
+            barrier = threading.Barrier(2)
+            real_get = getattr(store, lookup)
+
+            def simultaneous_lookup(item_id):
+                value = real_get(item_id)
+                barrier.wait(timeout=3)
+                return value
+
+            with self.subTest(store=type(store).__name__), \
+                    patch.object(store, lookup, side_effect=simultaneous_lookup), \
+                    ThreadPoolExecutor(max_workers=2) as pool:
+                jobs = [pool.submit(getattr(store, delete), item["id"]) for _ in range(2)]
+                results = [job.result(timeout=5) for job in jobs]
+                self.assertEqual(sorted(results), [False, True])
+            self.assertIsNone(real_get(item["id"]))
+
+
 class TestHealthAndTelemetry(_ApiTestCase):
     def test_health(self):
         r = self.client.get("/health")

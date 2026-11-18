@@ -176,8 +176,8 @@ class MissionStore:
             conn.execute("DELETE FROM mission_notes WHERE mission_id = ?", (mission_id,))
             conn.execute("DELETE FROM mission_entities WHERE mission_id = ?", (mission_id,))
             conn.execute("DELETE FROM mission_detections WHERE mission_id = ?", (mission_id,))
-            conn.execute("DELETE FROM missions WHERE id = ?", (mission_id,))
-        return True
+            deleted = conn.execute("DELETE FROM missions WHERE id = ?", (mission_id,))
+        return deleted.rowcount > 0
 
     # ─── Mission-Entity Junction ──────────────────────────────
 
