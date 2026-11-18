@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { CircleMarker, Tooltip } from 'react-leaflet';
 import { useMapStore } from '../../stores/mapStore';
 import { ADSB_CONFIGURED, ADSB_URL } from '../../utils/runtimeConfig';
@@ -7,77 +7,93 @@ const POLL_INTERVAL = 15000;
 const BOUNDS = { lamin: 37.6, lomin: -122.6, lamax: 37.9, lomax: -122.2 };
 
 function parseAircraftState(state) {
-  if (!Array.isArray(state)) {
-    return {
-      icao24: state.icao24,
-      callsign: (state.callsign || '').trim(),
-      country: state.origin_country || state.country,
-      longitude: state.longitude,
-      latitude: state.latitude,
-      altitude: state.altitude,
-      onGround: state.on_ground ?? state.onGround,
-      velocity: state.velocity,
-      heading: state.heading,
-    };
-  }
-
+  if (!state || typeof state !== 'object') return null;
+  const array = Array.isArray(state);
+  const value = (key, index) => array ? state[index] : state[key];
+  const latitude = value('latitude', 6);
+  const longitude = value('longitude', 5);
+  const id = value('icao24', 0);
+  if (typeof id !== 'string' || !id.trim()
+      || !Number.isFinite(latitude) || Math.abs(latitude) > 90
+      || !Number.isFinite(longitude) || Math.abs(longitude) > 180) return null;
+  const callsign = value('callsign', 1);
+  const country = value('origin_country', 2) ?? state.country;
   return {
-    icao24: state[0],
-    callsign: (state[1] || '').trim(),
-    country: state[2],
-    longitude: state[5],
-    latitude: state[6],
-    altitude: state[7],
-    onGround: state[8],
-    velocity: state[9],
-    heading: state[10],
+    icao24: id.trim(),
+    callsign: typeof callsign === 'string' ? callsign.trim() : '',
+    country: typeof country === 'string' ? country : '',
+    latitude, longitude,
+    altitude: value('altitude', 7),
+    onGround: value('on_ground', 8) ?? state.onGround,
+    velocity: value('velocity', 9),
+    heading: value('heading', 10),
   };
 }
 
 export default function AdsbLayer() {
   const [aircraft, setAircraft] = useState([]);
-  const [isLive, setIsLive] = useState(false);
+  const [status, setStatus] = useState(ADSB_CONFIGURED ? 'LOADING' : 'SIM');
   const layers = useMapStore((s) => s.layers);
-  const intervalRef = useRef(null);
 
   useEffect(() => {
     if (!layers.adsb) return undefined;
 
+    let active = true;
+    let inFlight = false;
+    let controller;
+    let timeout;
+    let first = true;
     const fetchAdsb = async () => {
+      if (inFlight) return;
+      if (first) {
+        setAircraft([]);
+        setStatus(ADSB_CONFIGURED ? 'LOADING' : 'SIM');
+        first = false;
+      }
       if (!ADSB_CONFIGURED) {
         setAircraft(generateSimulatedAircraft());
-        setIsLive(false);
+        setStatus('SIM');
         return;
       }
-
+      inFlight = true;
+      controller = new AbortController();
+      timeout = setTimeout(() => controller.abort(), 10000);
       try {
         const params = new URLSearchParams({
-          lat_min: String(BOUNDS.lamin),
-          lon_min: String(BOUNDS.lomin),
-          lat_max: String(BOUNDS.lamax),
-          lon_max: String(BOUNDS.lomax),
+          lat_min: String(BOUNDS.lamin), lon_min: String(BOUNDS.lomin),
+          lat_max: String(BOUNDS.lamax), lon_max: String(BOUNDS.lomax),
         });
-        const url = `${ADSB_URL}?${params.toString()}`;
-        const res = await fetch(url);
+        const res = await fetch(`${ADSB_URL}?${params.toString()}`, { signal: controller.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        const states = data.data || data.states || [];
-        if (states.length) {
-          setAircraft(states.map(parseAircraftState).filter((a) => a.latitude && a.longitude && !a.onGround));
-          setIsLive(true);
-        } else {
-          setAircraft(generateSimulatedAircraft());
-          setIsLive(false);
+        if (data.success === false) throw new Error('Feed unavailable');
+        const states = data.data ?? data.states;
+        if (!Array.isArray(states) && states !== null) throw new Error('Invalid feed');
+        const parsed = (states || []).map(parseAircraftState).filter(Boolean);
+        if (states?.length && !parsed.length) throw new Error('Invalid aircraft records');
+        const unique = [...new Map(parsed.map(item => [item.icao24, item])).values()];
+        if (active) {
+          setAircraft(unique.filter(item => !item.onGround));
+          setStatus('LIVE');
         }
       } catch {
-        setAircraft(generateSimulatedAircraft());
-        setIsLive(false);
+        if (active) {
+          setAircraft([]);
+          setStatus('UNAVAILABLE');
+        }
+      } finally {
+        clearTimeout(timeout);
+        inFlight = false;
       }
     };
-
     fetchAdsb();
-    intervalRef.current = setInterval(fetchAdsb, POLL_INTERVAL);
-    return () => clearInterval(intervalRef.current);
+    const interval = setInterval(fetchAdsb, POLL_INTERVAL);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      clearTimeout(timeout);
+      controller?.abort();
+    };
   }, [layers.adsb]);
 
   if (!layers.adsb) return null;
@@ -101,9 +117,9 @@ export default function AdsbLayer() {
             <div className="text-[10px] font-mono space-y-0.5">
               <div className="font-bold">{ac.callsign || ac.icao24}</div>
               <div className="text-zinc-400">
-                {ac.altitude ? `${Math.round(ac.altitude)}m` : '--'} |{' '}
-                {ac.velocity ? `${Math.round(ac.velocity)}m/s` : '--'} |{' '}
-                HDG {ac.heading ? Math.round(ac.heading) : '--'}
+                {Number.isFinite(ac.altitude) ? `${Math.round(ac.altitude)}m` : '--'} |{' '}
+                {Number.isFinite(ac.velocity) ? `${Math.round(ac.velocity)}m/s` : '--'} |{' '}
+                HDG {Number.isFinite(ac.heading) ? Math.round(ac.heading) : '--'}
               </div>
               <div className="text-zinc-500">{ac.country}</div>
             </div>
@@ -112,18 +128,19 @@ export default function AdsbLayer() {
       ))}
 
       {/* Live/Simulated badge */}
-      <AdsbBadge isLive={isLive} count={aircraft.length} />
+      <AdsbBadge status={status} count={aircraft.length} />
     </>
   );
 }
 
-function AdsbBadge({ isLive, count }) {
+function AdsbBadge({ status, count }) {
+  const isLive = status === 'LIVE';
   return (
     <div className="leaflet-top leaflet-left" style={{ top: 50, left: 10, position: 'absolute', zIndex: 1000 }}>
       <div className="bg-zinc-900/80 backdrop-blur-sm border border-white/[0.08] rounded-lg px-2.5 py-1 flex items-center gap-2 pointer-events-none">
         <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-amber-500'}`} />
         <span className={`text-[9px] font-mono font-bold tracking-wider ${isLive ? 'text-emerald-400' : 'text-amber-400'}`}>
-          ADS-B {isLive ? 'LIVE' : 'SIM'}
+          ADS-B {status}
         </span>
         <span className="text-[9px] font-mono text-zinc-600">{count}</span>
       </div>
