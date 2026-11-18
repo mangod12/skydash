@@ -2,6 +2,7 @@
 DJI SDK adapter for DJI drones (Mobile SDK / Onboard SDK)
 Requires DJI SDK setup on mobile device or onboard computer
 """
+import math
 import requests
 from typing import Dict
 import time
@@ -22,6 +23,16 @@ class DJIDrone:
         self.bridge_url = bridge_url
         self.session = requests.Session()
         
+    @staticmethod
+    def _number(value, minimum=None, maximum=None):
+        if type(value) not in (int, float) or not math.isfinite(value):
+            return None
+        if minimum is not None and value < minimum:
+            return None
+        if maximum is not None and value > maximum:
+            return None
+        return value
+
     def _read(self, path: str) -> Dict:
         response = self.session.get(f"{self.bridge_url}{path}", timeout=(3.05, 5))
         response.raise_for_status()
@@ -44,25 +55,35 @@ class DJIDrone:
             gps = self._read("/api/gps")
             status = self._read("/api/status")
             
+            lat = self._number(gps.get('latitude'), -90, 90)
+            lon = self._number(gps.get('longitude'), -180, 180)
+            if lat is None or lon is None:
+                lat = lon = None
+            satellites = gps.get('satellite_count')
+            if type(satellites) is not int or satellites < 0:
+                satellites = None
+            armed = status.get('motors_on')
+            if type(armed) is not bool:
+                armed = None
             return {
                 "timestamp": time.time(),
-                "altitude": gps.get('altitude', 0.0),
-                "battery_voltage": battery.get('voltage', 0.0),
+                "altitude": self._number(gps.get('altitude')),
+                "battery_voltage": self._number(battery.get('voltage'), 0),
                 "status": status.get('flight_mode', 'UNKNOWN'),
                 "attitude": {
-                    "roll": attitude.get('roll', 0.0),
-                    "pitch": attitude.get('pitch', 0.0),
-                    "yaw": attitude.get('yaw', 0.0)
+                    "roll": self._number(attitude.get('roll')),
+                    "pitch": self._number(attitude.get('pitch')),
+                    "yaw": self._number(attitude.get('yaw'))
                 },
                 "gps": {
-                    "satellites": gps.get('satellite_count', 0),
-                    "latitude": gps.get('latitude', 0.0),
-                    "longitude": gps.get('longitude', 0.0),
-                    "altitude": gps.get('altitude', 0.0)
+                    "satellites": satellites,
+                    "latitude": lat,
+                    "longitude": lon,
+                    "altitude": self._number(gps.get('altitude'))
                 },
-                "signal_strength": status.get('signal_strength', 0),
-                "ground_speed": gps.get('speed', 0.0),
-                "armed": status.get('motors_on', False),
+                "signal_strength": self._number(status.get('signal_strength'), 0, 100),
+                "ground_speed": self._number(gps.get('speed'), 0),
+                "armed": armed,
                 "flight_mode": status.get('flight_mode', 'UNKNOWN')
             }
         except Exception as e:
@@ -73,13 +94,13 @@ class DJIDrone:
         """Return empty telemetry on error"""
         return {
             "timestamp": time.time(),
-            "altitude": 0.0,
-            "battery_voltage": 0.0,
+            "altitude": None,
+            "battery_voltage": None,
             "status": "DISCONNECTED",
-            "attitude": {"roll": 0.0, "pitch": 0.0, "yaw": 0.0},
-            "gps": {"satellites": 0, "latitude": 0.0, "longitude": 0.0, "altitude": 0.0},
-            "signal_strength": 0,
-            "ground_speed": 0.0,
-            "armed": False,
+            "attitude": {"roll": None, "pitch": None, "yaw": None},
+            "gps": {"satellites": None, "latitude": None, "longitude": None, "altitude": None},
+            "signal_strength": None,
+            "ground_speed": None,
+            "armed": None,
             "flight_mode": "UNKNOWN"
         }
