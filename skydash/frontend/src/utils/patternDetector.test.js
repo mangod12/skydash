@@ -241,3 +241,28 @@ describe('pattern event time integrity', () => {
     expect(detectThreatEscalation(entities, events, window)).toEqual([]);
   });
 });
+
+describe('pattern hub degree integrity', () => {
+  const entities = [{ id: 'a', name: 'Alpha' }, { id: 'b', name: 'Bravo' }];
+  it('counts distinct neighbors rather than duplicate or reverse relationship records', () => {
+    const relationships = [
+      { from: 'a', to: 'b' }, { from: 'a', to: 'b' }, { from: 'b', to: 'a' },
+    ];
+    expect(detectHubs(entities, relationships)).toEqual([]);
+    expect(detectHubs(entities, relationships, 1)).toEqual([
+      { entity: entities[0], degree: 1, connections: ['Bravo'] },
+      { entity: entities[1], degree: 1, connections: ['Alpha'] },
+    ]);
+  });
+  it('ignores self-links and incomplete relationship records', () => {
+    const relationships = [null, {}, { from: 'a' }, { to: 'a' }, { from: 'a', to: 'a' }];
+    expect(detectHubs(entities, relationships, 1)).toEqual([]);
+  });
+  it('preserves distinct numeric and string IDs including zero', () => {
+    const entities = [{ id: 0, name: 'Zero' }, { id: 1, name: 'Numeric' }, { id: '1', name: 'String' }];
+    const relationships = [{ from: 0, to: 1 }, { from: 0, to: '1' }];
+    const hubs = detectHubs(entities, relationships, 1);
+    expect(hubs[0]).toEqual({ entity: entities[0], degree: 2, connections: ['Numeric', 'String'] });
+    expect(hubs.slice(1).map(h => h.entity)).toEqual(entities.slice(1));
+  });
+});

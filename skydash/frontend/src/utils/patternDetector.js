@@ -112,21 +112,24 @@ export function detectCorridors(entities, relationships) {
 
 /** Hub entities — degree centrality > threshold. */
 export function detectHubs(entities, relationships, minDegree = 3) {
-  const degree = Object.create(null);
-  const connections = Object.create(null);
-  for (const r of relationships) {
-    degree[r.from] = (degree[r.from] ?? 0) + 1;
-    degree[r.to] = (degree[r.to] ?? 0) + 1;
-    (connections[r.from] ??= new Set()).add(r.to);
-    (connections[r.to] ??= new Set()).add(r.from);
+  const validId = id => (typeof id === 'string' && id.length > 0)
+    || (typeof id === 'number' && Number.isFinite(id));
+  const connections = new Map();
+  for (const r of (Array.isArray(relationships) ? relationships : [])) {
+    if (!r || !validId(r.from) || !validId(r.to) || r.from === r.to) continue;
+    if (!connections.has(r.from)) connections.set(r.from, new Set());
+    if (!connections.has(r.to)) connections.set(r.to, new Set());
+    connections.get(r.from).add(r.to);
+    connections.get(r.to).add(r.from);
   }
-  const entityMap = Object.fromEntries(entities.map((e) => [e.id, e]));
-  return Object.entries(degree)
-    .filter(([, d]) => d >= minDegree)
-    .map(([id, d]) => ({
-      entity: entityMap[id] ?? { id, name: id },
-      degree: d,
-      connections: [...(connections[id] ?? [])].map((cid) => entityMap[cid]?.name ?? cid),
+  const entityMap = new Map((Array.isArray(entities) ? entities : [])
+    .filter(e => e && validId(e.id)).map(e => [e.id, e]));
+  return [...connections.entries()]
+    .filter(([, neighbors]) => neighbors.size >= minDegree)
+    .map(([id, neighbors]) => ({
+      entity: entityMap.get(id) ?? { id, name: id },
+      degree: neighbors.size,
+      connections: [...neighbors].map(cid => entityMap.get(cid)?.name ?? cid),
     }))
     .sort((a, b) => b.degree - a.degree);
 }
