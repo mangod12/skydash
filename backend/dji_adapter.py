@@ -22,6 +22,11 @@ class DJIDrone:
         self.bridge_url = bridge_url
         self.session = requests.Session()
         
+    def _read(self, path: str) -> Dict:
+        response = self.session.get(f"{self.bridge_url}{path}", timeout=(3.05, 5))
+        response.raise_for_status()
+        return response.json()
+
     def get_telemetry(self) -> Dict:
         """
         Fetch telemetry from DJI bridge
@@ -34,10 +39,10 @@ class DJIDrone:
         """
         try:
             # Example: fetch from your DJI bridge endpoints
-            attitude = self.session.get(f"{self.bridge_url}/api/attitude").json()
-            battery = self.session.get(f"{self.bridge_url}/api/battery").json()
-            gps = self.session.get(f"{self.bridge_url}/api/gps").json()
-            status = self.session.get(f"{self.bridge_url}/api/status").json()
+            attitude = self._read("/api/attitude")
+            battery = self._read("/api/battery")
+            gps = self._read("/api/gps")
+            status = self._read("/api/status")
             
             return {
                 "timestamp": time.time(),
