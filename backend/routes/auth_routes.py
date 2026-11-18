@@ -8,6 +8,7 @@ from collections import deque
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from auth import create_token, issue_ws_ticket, revoke_token
 from client_ip import client_ip
@@ -23,6 +24,7 @@ LOGIN_MAX_FAILURES = 5
 LOGIN_WINDOW_SECONDS = 60
 LOGIN_MAX_TRACKED = 10000
 _login_failures = {}
+_login_pending = {}
 _last_login_sweep = 0.0
 
 
@@ -41,7 +43,7 @@ def _recent_failures(key: str):
     cutoff = now - LOGIN_WINDOW_SECONDS
     if now - _last_login_sweep >= LOGIN_WINDOW_SECONDS:
         for old_key, bucket in list(_login_failures.items()):
-            if not bucket or bucket[-1] <= cutoff:
+            if not _login_pending.get(old_key) and (not bucket or bucket[-1] <= cutoff):
                 _login_failures.pop(old_key, None)
         _last_login_sweep = now
     failures = _login_failures.get(key)
@@ -65,13 +67,23 @@ async def auth_login(body: AuthLogin, request: Request):
         )
     key = _throttle_key(request, body.username)
     failures = _recent_failures(key)
-    if failures is None or len(failures) >= LOGIN_MAX_FAILURES:
+    if failures is None or len(failures) + _login_pending.get(key, 0) >= LOGIN_MAX_FAILURES:
         return JSONResponse(
             status_code=429,
             headers={"Retry-After": str(LOGIN_WINDOW_SECONDS)},
             content={"success": False, "error": "Too many failed attempts, try again shortly"},
         )
-    user = user_store.authenticate(body.username, body.password)
+    # Reserve before yielding so concurrent attempts cannot bypass the limit.
+    # Only the blocking password/database work leaves the event loop.
+    _login_pending[key] = _login_pending.get(key, 0) + 1
+    try:
+        user = await run_in_threadpool(user_store.authenticate, body.username, body.password)
+    finally:
+        remaining = _login_pending[key] - 1
+        if remaining:
+            _login_pending[key] = remaining
+        else:
+            _login_pending.pop(key, None)
     if not user:
         failures.append(time.monotonic())
         return JSONResponse(
@@ -79,7 +91,9 @@ async def auth_login(body: AuthLogin, request: Request):
             content={"success": False, "error": "Invalid credentials"},
         )
     token = create_token(user)
-    _login_failures.pop(key, None)
+    failures.clear()
+    if not _login_pending.get(key):
+        _login_failures.pop(key, None)
     safe_user = {
         "id": user["id"],
         "username": user["username"],

@@ -1,3 +1,5 @@
+import asyncio
+import threading
 import os
 import secrets
 import shutil
@@ -8,6 +10,7 @@ from datetime import datetime, timezone
 import unittest
 from unittest.mock import patch
 
+from httpx import ASGITransport, AsyncClient
 from fastapi.testclient import TestClient
 
 import auth
@@ -26,6 +29,7 @@ class TestAuthHardening(unittest.TestCase):
         mission_store._init_tables()
         self.users = auth.UserStore()
         auth_routes._login_failures.clear()
+        auth_routes._login_pending.clear()
         self.patches = [
             patch.object(auth_routes, "user_store", self.users),
         ]
@@ -37,8 +41,64 @@ class TestAuthHardening(unittest.TestCase):
         for p in self.patches:
             p.stop()
         auth_routes._login_failures.clear()
+        auth_routes._login_pending.clear()
         database.reset()
         shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_slow_password_check_does_not_block_api_or_bypass_pending_throttle(self):
+        entered, release = threading.Event(), threading.Event()
+        calls = []
+
+        def slow(*args):
+            calls.append(args)
+            entered.set()
+            release.wait(3)
+            return None
+
+        async def exercise():
+            async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as client:
+                pending = []
+                try:
+                    for _ in range(auth_routes.LOGIN_MAX_FAILURES):
+                        pending.append(asyncio.create_task(client.post("/api/auth/login", json={
+                            "username": "alice", "password": "wrong",
+                        })))
+                    self.assertTrue(await asyncio.to_thread(entered.wait, 2))
+                    # Let the already queued requests reserve their pending slots.
+                    for _ in range(100):
+                        if len(calls) == auth_routes.LOGIN_MAX_FAILURES:
+                            break
+                        await asyncio.sleep(0.005)
+                    self.assertEqual(len(calls), auth_routes.LOGIN_MAX_FAILURES)
+                    self.assertFalse(release.is_set())
+                    status = await client.get("/api/connectors/status")
+                    self.assertEqual(status.status_code, 200)
+                    self.assertTrue(all(not task.done() for task in pending), "Password check blocked the API event loop")
+                    blocked = await client.post("/api/auth/login", json={"username": "alice", "password": "wrong"})
+                    self.assertEqual(blocked.status_code, 429)
+                finally:
+                    release.set()
+                    responses = await asyncio.gather(*pending)
+                self.assertTrue(all(response.status_code == 401 for response in responses))
+                self.assertEqual(auth_routes._login_pending, {})
+                blocked = await client.post("/api/auth/login", json={"username": "alice", "password": "wrong"})
+                self.assertEqual(blocked.status_code, 429)
+        with patch.object(self.users, "authenticate", side_effect=slow):
+            asyncio.run(exercise())
+
+    def test_expiry_sweep_does_not_evict_pending_login_bucket(self):
+        auth_routes._login_failures["pending"] = auth_routes.deque([1.0])
+        auth_routes._login_pending["pending"] = 1
+        with patch.object(auth_routes.time, "monotonic", return_value=1000.0), \
+                patch.object(auth_routes, "_last_login_sweep", 0):
+            auth_routes._recent_failures("other")
+        self.assertIn("pending", auth_routes._login_failures)
+
+    def test_password_check_error_releases_pending_reservation(self):
+        with patch.object(self.users, "authenticate", side_effect=RuntimeError("fixture error")):
+            with self.assertRaises(RuntimeError):
+                self.client.post("/api/auth/login", json={"username": "alice", "password": "wrong"})
+        self.assertEqual(auth_routes._login_pending, {})
 
     def test_register_ignores_requested_role(self):
         resp = self.client.post(
