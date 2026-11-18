@@ -73,6 +73,20 @@ class TestExportRoutes(unittest.TestCase):
         telemetry_history.append(snapshot(0, ["zero-time"]))
         self.assertEqual(self.rows(self.client.get("/api/export/telemetry/csv"))[1][0], "0")
 
+    def test_telemetry_csv_rejects_invalid_position_pairs_and_keeps_boundaries(self):
+        bad = [(91, 0), (0, 181), (True, 0), (0, False), ("20", 30), (20, None)]
+        cases = [(lat, lon, ["", ""]) for lat, lon in bad]
+        cases += [(lat, lon, [str(lat), str(lon)]) for lat, lon in [(0, 0), (-90, -180), (90, 180)]]
+        for lat_key, lon_key in (("latitude", "longitude"), ("lat", "lng")):
+            for lat, lon, expected in cases:
+                sample = snapshot(1, ["fixture"])
+                sample["drones"][0]["gps"] = {lat_key: lat, lon_key: lon}
+                telemetry_history.clear()
+                telemetry_history.append(sample)
+                with self.subTest(keys=(lat_key, lon_key), latitude=lat, longitude=lon):
+                    row = self.rows(self.client.get("/api/export/telemetry/csv"))[1]
+                    self.assertEqual(row[2:4], expected)
+
     def test_geojson_swaps_to_lng_lat_and_skips_entities_without_coordinates(self):
         self.client.post("/api/entities", json={"name": "Pinned", "coordinates": [20.5, 85.5]})
         self.client.post("/api/entities", json={"name": "Floating"})
