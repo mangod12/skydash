@@ -49,6 +49,13 @@ export function generateCoT(entities, now = Date.now()) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<events>\n${events.join('\n')}\n</events>\n`;
 }
 
+function parseCoordinate(value) {
+  // XML coordinates must be complete decimal numbers, not a numeric prefix.
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text)) return NaN;
+  return Number(text);
+}
+
 function entityTypeFromCot(cotType) {
   const parts = cotType.split('-');
   const rest = parts.slice(2).join('-');
@@ -79,8 +86,8 @@ export function parseCoT(xml, { parser = new DOMParser() } = {}) {
   for (const ev of Array.from(doc.getElementsByTagName('event'))) {
     const type = ev.getAttribute('type') || '';
     const point = ev.getElementsByTagName('point')[0];
-    const lat = point ? parseFloat(point.getAttribute('lat')) : NaN;
-    const lon = point ? parseFloat(point.getAttribute('lon')) : NaN;
+    const lat = point ? parseCoordinate(point.getAttribute('lat')) : NaN;
+    const lon = point ? parseCoordinate(point.getAttribute('lon')) : NaN;
     if (!type.startsWith('a-') || !Number.isFinite(lat) || !Number.isFinite(lon)
       || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
       skipped += 1;
