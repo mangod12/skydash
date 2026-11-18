@@ -105,7 +105,7 @@ def build_events(entities: Iterable[Dict], drones: Iterable[Dict],
         attributes = []
         if course is not None:
             attributes.append(f'course="{course}"')
-        if speed is not None:
+        if speed is not None and speed >= 0:
             attributes.append(f'speed="{speed}"')
         track = '<track ' + ' '.join(attributes) + '/>' if attributes else ''
         out.append(_event(

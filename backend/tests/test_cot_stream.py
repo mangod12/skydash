@@ -29,6 +29,20 @@ class TestBuildEvents(unittest.TestCase):
         self.assertEqual(ent.find("detail/contact").get("callsign"), 'Truck "A" <1>')
         self.assertEqual(ent.get("stale"), "2026-01-01T12:00:30.000Z")
 
+    def test_negative_ground_speed_is_unknown_not_valid_track_speed(self):
+        from copy import deepcopy
+        for speed in (-1, -0.01, "-5", 0, 5):
+            drone = deepcopy(DRONE)
+            drone["ground_speed"] = speed
+            with self.subTest(speed=speed):
+                event = ET.fromstring(cot_stream.build_events([], [drone], NOW)[0])
+                track = event.find("detail/track")
+                self.assertEqual(track.get("course"), "180.0")
+                if float(speed) < 0:
+                    self.assertIsNone(track.get("speed"))
+                else:
+                    self.assertEqual(float(track.get("speed")), speed)
+
     def test_invalid_xml_characters_do_not_break_cot_batch(self):
         from copy import deepcopy
 
