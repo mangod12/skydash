@@ -20,8 +20,9 @@ const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
  * Count relationships involving an entity.
  */
 function countRelationships(entityId, relationships) {
-  return relationships.filter(
-    (r) => r.from === entityId || r.to === entityId,
+  return (Array.isArray(relationships) ? relationships : []).filter(
+    (r) => r && r.from != null && r.to != null && r.from !== r.to
+      && (r.from === entityId || r.to === entityId),
   ).length;
 }
 
@@ -45,8 +46,8 @@ function hasProximityCritical(entity, allEntities) {
   if (!validPosition(entity.coordinates)) return false;
   const [lat, lng] = entity.coordinates;
 
-  return allEntities.some((other) => {
-    if (other.id === entity.id) return false;
+  return (Array.isArray(allEntities) ? allEntities : []).some((other) => {
+    if (!other || other.id === entity.id) return false;
     if (other.threatLevel !== 'critical') return false;
     if (!validPosition(other.coordinates)) return false;
     const dist = distanceBetween(lat, lng, other.coordinates[0], other.coordinates[1]);

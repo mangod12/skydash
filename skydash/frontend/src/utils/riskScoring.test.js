@@ -43,6 +43,19 @@ describe('calculateRiskScore', () => {
     expect(result.breakdown.confidenceMultiplier).toBe(confidence / 100);
     expect(result.score).toBe(Math.round(60 * confidence / 100));
   });
+  it('ignores malformed and self relationships without losing valid links', () => {
+    const relationships = [null, undefined, {}, { from: 'e1' }, { to: 'e1' },
+      { from: 'e1', to: null }, { from: 'e1', to: 'e1' },
+      { from: 'e1', to: 'a' }, { from: 'b', to: 'e1' }];
+    expect(calculateRiskScore(base, relationships, []).breakdown.relBonus).toBe(10);
+    expect(calculateRiskScore(base, null, []).breakdown.relBonus).toBe(0);
+  });
+  it('isolates invalid fleet entries while checking proximity', () => {
+    expect(calculateRiskScore(base, [], [], [null, undefined, {},
+      { id: 'critical', threatLevel: 'critical', coordinates: [37.0, -122.0] },
+    ]).breakdown.proximityBonus).toBe(10);
+    expect(calculateRiskScore(base, [], [], null).breakdown.proximityBonus).toBe(0);
+  });
   it('uses the base threat when nothing else applies', () => {
     expect(calculateRiskScore(base, [], []).score).toBe(60);
   });
