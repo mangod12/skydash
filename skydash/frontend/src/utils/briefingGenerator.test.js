@@ -43,6 +43,38 @@ describe('mission visual debrief briefing', () => {
 });
 
 
+describe('briefing telemetry evidence', () => {
+  const mission = { name: 'Evidence', entityIds: [] };
+  it.each([false, true])('uses the real flight_mode and preserves zero readings with fleet=%j', fleet => {
+    const drone = { drone_id: 'one', flight_mode: 'HOLD', battery_voltage: 0, signal_strength: 0 };
+    const result = generateBriefing(mission, [], { data: drone, fleet: fleet ? [drone] : [] }).sustainment;
+    expect(result.fleetStatus).toEqual([{ id: 'one', status: 'HOLD', battery: '0.0V', signal: '0%' }]);
+    expect(result.overallBattery).toBe('RED');
+    expect(result.overallSignal).toBe('RED');
+  });
+  it.each([undefined, null, NaN, Infinity, -1, '16', true])('does not invent readiness from invalid readings: %j', value => {
+    const drone = { drone_id: 'one', battery_voltage: value, signal_strength: value };
+    const result = generateBriefing(mission, [], { data: drone, fleet: [null, {}, drone] }).sustainment;
+    expect(result.fleetStatus).toEqual([{ id: 'one', status: 'UNKNOWN', battery: 'N/A', signal: 'N/A' }]);
+    expect(result.overallBattery).toBe('UNKNOWN');
+    expect(result.overallSignal).toBe('UNKNOWN');
+  });
+  it('uses the same format for single records and fleets without adding units to unknown values', () => {
+    const drone = { drone_id: 'one', flight_mode: 'RTL' };
+    const single = generateBriefing(mission, [], { data: drone }).sustainment;
+    const fleet = generateBriefing(mission, [], { data: drone, fleet: [drone] }).sustainment;
+    expect(single).toEqual(fleet);
+    expect(single.fleetStatus[0]).toMatchObject({ battery: 'N/A', signal: 'N/A', status: 'RTL' });
+  });
+  it('keeps valid readiness thresholds and rejects overrange signal', () => {
+    const drone = { drone_id: 'one', flight_mode: 'ORBIT', battery_voltage: 16, signal_strength: 101 };
+    const result = generateBriefing(mission, [], { data: drone }).sustainment;
+    expect(result.overallBattery).toBe('GREEN');
+    expect(result.overallSignal).toBe('UNKNOWN');
+    expect(result.fleetStatus[0].signal).toBe('N/A');
+  });
+});
+
 describe('briefing UTC time and geographic context', () => {
   afterEach(() => vi.useRealTimers());
 
