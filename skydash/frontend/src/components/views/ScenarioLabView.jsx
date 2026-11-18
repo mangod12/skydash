@@ -18,6 +18,7 @@ import {
   Zap,
 } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
+import ExerciseReviewPanel from './ExerciseReviewPanel';
 import { PanelBoundary } from '../common/ErrorBoundary';
 import ScenarioOverlay from '../map/ScenarioOverlay';
 import { useMapStore } from '../../stores/mapStore';
@@ -221,6 +222,7 @@ export default function ScenarioLabView() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => document.getElementById('exercise-review')?.scrollIntoView({ behavior: 'smooth' })} className="px-3 py-2 rounded-xl text-[10px] font-semibold tracking-wider border border-cyan-500/25 text-cyan-300">AFTER-ACTION REVIEW</button>
               <button
                 onClick={status === 'running' ? pause : start}
                 className={clsx(
@@ -374,6 +376,7 @@ export default function ScenarioLabView() {
               </GlassCard>
             </div>
           </div>
+          <ExerciseReviewPanel />
         </div>
       </div>
     </PanelBoundary>

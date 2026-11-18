@@ -106,6 +106,48 @@ test.describe('SkyDash E2E Tests', () => {
     }
   });
 
+  test('exercise reviews persist, compare, reload and export model evidence', async ({ page }) => {
+    await page.keyboard.press('l');
+    await expect(page.getByRole('heading', { name: 'Scenario Lab', exact: true })).toBeVisible();
+    await page.getByLabel('Scenario timeline').press('End');
+    const review = page.getByRole('region', { name: 'Exercise after-action review' });
+    await review.getByLabel('Review title', { exact: true }).fill('Baseline completed snapshot');
+    await review.getByLabel('Lessons and follow-up (self-reported)').fill('Rehearsal snapshot, not field evidence.');
+    await review.getByRole('button', { name: 'Save exercise review', exact: true }).click();
+    await expect(review.getByText('1/20 saved', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'LAUNCH', exact: true }).click();
+    await page.getByRole('button', { name: 'SIGNAL LOSS', exact: true }).click();
+    await page.getByRole('button', { name: 'PAUSE', exact: true }).click();
+    await page.getByLabel('Scenario timeline').press('End');
+    await review.getByLabel('Review title', { exact: true }).fill('Signal-loss snapshot');
+    await review.getByRole('button', { name: 'Save exercise review', exact: true }).click();
+    await expect(review.getByText('2/20 saved', { exact: true })).toBeVisible();
+    const baselineValue = await review.getByLabel('Comparison baseline').locator('option').filter({ hasText: 'Baseline completed snapshot' }).getAttribute('value');
+    await review.getByLabel('Comparison baseline').selectOption(baselineValue);
+    await expect(review.getByText('Compared with Baseline completed snapshot', { exact: true })).toBeVisible();
+    const pending = page.waitForEvent('download');
+    await review.getByRole('button', { name: 'Export review', exact: true }).click();
+    const download = await pending;
+    const stream = await download.createReadStream(); const parts = [];
+    for await (const part of stream) parts.push(part);
+    const report = Buffer.concat(parts).toString('utf8');
+    expect(report).toContain('SIMULATION ONLY');
+    expect(report).toContain('Signal-loss snapshot');
+    expect(report).toContain('Baseline: Baseline completed snapshot');
+    expect(report).toContain('Signal Loss');
+    expect(report).toContain('not measured field results');
+    await page.screenshot({ path: 'e2e/screenshots/exercise-review-workflow.png' });
+    await page.reload(); await page.waitForSelector('text=CONNECTED', { timeout: 15000 });
+    await page.keyboard.press('l');
+    await expect(review.getByText('2/20 saved', { exact: true })).toBeVisible();
+    const selected = await review.getByLabel('Saved review', { exact: true }).locator('option').filter({ hasText: 'Signal-loss snapshot' }).getAttribute('value');
+    await review.getByLabel('Saved review', { exact: true }).selectOption(selected);
+    await review.getByRole('button', { name: 'Load saved exercise', exact: true }).click();
+    await review.getByRole('button', { name: 'Replace simulation', exact: true }).click();
+    await expect(page.getByLabel('Scenario timeline')).toHaveValue('180');
+    await expect(review.getByRole('status')).toContainText('no aircraft commands were sent');
+  });
+
   // ─── TELEMETRY DATA FLOW ─────────────────────────────────
 
   test('telemetry values update in real-time', async ({ page }) => {

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { validateExerciseReview } from '../utils/exerciseReview';
 import {
   DEFAULT_FLEET_PRESET_ID,
   DEFAULT_SCENARIO_ID,
@@ -100,6 +101,14 @@ export const useScenarioStore = create((set, get) => ({
         { id: config.id, injectedAt: state.elapsedSeconds },
       ],
     });
+    return true;
+  },
+
+  loadReview: (review) => {
+    if (!validateExerciseReview(review)) return false;
+    const config = review.configuration;
+    set({ ...config, injectedEvents: config.injectedEvents.map(item => ({ ...item })),
+      status: review.status, speed: 1 });
     return true;
   },
 
