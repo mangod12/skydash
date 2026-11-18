@@ -1,10 +1,33 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { calculateRiskScore, getRiskLevel, getRiskColor, scoreAllEntities } from './riskScoring';
 
 const base = { id: 'e1', threatLevel: 'high', confidence: 100, coordinates: [37.0, -122.0] };
 const now = () => Date.now();
 
 describe('calculateRiskScore', () => {
+  afterEach(() => vi.useRealTimers());
+  it('excludes future, invalid, and expired timestamps from activity and escalation', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-18T04:00:00Z'));
+    const time = Date.now();
+    const events = [time + 1, time + 3600000, String(time - 1), Infinity, NaN, null, true, time - 86400000 - 1]
+      .map(time => ({ entityId: 'e1', time, severity: 'critical' }));
+    const result = calculateRiskScore(base, [], events);
+    expect(result.breakdown.activityBonus).toBe(0);
+    expect(result.breakdown.escalationBonus).toBe(0);
+    expect(result.score).toBe(60);
+  });
+  it('uses one inclusive 24-hour window for both bonuses and tolerates invalid rows', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-18T04:00:00Z'));
+    const time = Date.now();
+    const events = [null, undefined, {}, { entityId: 'e1', time, severity: 'critical' },
+      { entityId: 'e1', time: time - 86400000, severity: 'warning' }];
+    const result = calculateRiskScore(base, [], events);
+    expect(result.breakdown.activityBonus).toBe(6);
+    expect(result.breakdown.escalationBonus).toBe(15);
+    expect(result.score).toBe(81);
+  });
   it('uses the base threat when nothing else applies', () => {
     expect(calculateRiskScore(base, [], []).score).toBe(60);
   });
