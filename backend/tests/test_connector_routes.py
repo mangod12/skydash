@@ -62,6 +62,28 @@ class TestConnectorRoutes(unittest.TestCase):
                 self.assertIsNone(rows[0]["lon"])
                 self.assertEqual((rows[1]["lat"], rows[1]["lon"]), (0, 0))
 
+    def test_concurrent_upserts_of_same_new_id_both_succeed(self):
+        from concurrent.futures import ThreadPoolExecutor
+        candidate = aircraft_entity("concurrent-new-contact")
+        self.created.append(candidate["id"])
+        barrier = threading.Barrier(2)
+        real_get = entity_store.get_entity
+        local = threading.local()
+
+        def synchronized_get(entity_id):
+            value = real_get(entity_id)
+            if entity_id == candidate["id"] and not getattr(local, "checked", False):
+                local.checked = True
+                barrier.wait(timeout=3)
+            return value
+
+        with patch.object(entity_store, "get_entity", side_effect=synchronized_get), \
+                ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(entity_store.upsert_entity, dict(candidate)) for _ in range(2)]
+            results = [future.result(timeout=5) for future in futures]
+        self.assertEqual([row["id"] for row in results], [candidate["id"]] * 2)
+        self.assertEqual(len([row for row in entity_store.list_entities() if row["id"] == candidate["id"]]), 1)
+
     def test_status_reports_both_connectors(self):
         body = self.client.get("/api/connectors/status").json()
         self.assertTrue(body["success"])

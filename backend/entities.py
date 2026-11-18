@@ -232,7 +232,15 @@ class EntityStore:
         existing = self.get_entity(requested_id) if requested_id else None
         if existing:
             return self.update_entity(existing["id"], data) or existing
-        return self.create_entity(data)
+        try:
+            return self.create_entity(data)
+        except EntityAlreadyExists:
+            # Another import may insert this ID after our initial lookup.
+            # Preserve upsert semantics without weakening explicit-create conflicts.
+            updated = self.update_entity(requested_id, data)
+            if updated is None:
+                raise
+            return updated
 
     _MUTABLE_FIELDS = {"type", "name", "coordinates", "properties", "confidence", "source", "tags", "threatLevel"}
 
