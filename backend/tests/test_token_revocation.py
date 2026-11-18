@@ -1,3 +1,5 @@
+import asyncio
+import threading
 import os
 import secrets
 import shutil
@@ -5,6 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from httpx import ASGITransport, AsyncClient
 from fastapi.testclient import TestClient
 
 import auth
@@ -43,6 +46,30 @@ class TestTokenRevocation(unittest.TestCase):
     def login(self):
         r = self.client.post("/api/auth/login", json={"username": "rev-user", "password": self.pw})
         return {"Authorization": f"Bearer {r.json()['data']['token']}"}
+
+    def test_slow_session_verification_does_not_block_health_requests(self):
+        entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+        def slow(*args):
+            entered.set()
+            try:
+                release.wait(2)
+                return None
+            finally:
+                finished.set()
+        async def exercise():
+            async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as client:
+                pending = asyncio.create_task(client.get("/api/entities", headers={"Authorization": "Bearer fixture"}))
+                try:
+                    self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                    response = await client.get("/health")
+                    self.assertEqual(response.status_code, 200)
+                    self.assertFalse(finished.is_set(), "Session database verification blocked event loop")
+                finally:
+                    release.set()
+                    response = await pending
+                self.assertEqual(response.status_code, 401)
+        with patch.object(main, "verify_token", side_effect=slow):
+            asyncio.run(exercise())
 
     def test_logout_revokes_token(self):
         h = self.login()
