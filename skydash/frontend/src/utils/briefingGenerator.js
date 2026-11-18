@@ -1,4 +1,5 @@
 import { normalizeTelemetry } from './telemetryReadings';
+import { isValidCoordinate } from './coordinates';
 
 const THREAT_LABELS = { critical: 'CRITICAL', high: 'HIGH', medium: 'MEDIUM', low: 'LOW', none: 'NONE' };
 const THREAT_PRIORITY = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
@@ -110,11 +111,12 @@ function buildExecution(mission, entities) {
   }));
 
   const waypoints = entities
-    .filter((e) => e.coordinates)
+    .filter((e) => Array.isArray(e.coordinates)
+      && isValidCoordinate(e.coordinates[0], e.coordinates[1]))
     .map((e) => ({
       name: e.name,
-      lat: e.coordinates[0]?.toFixed(6),
-      lng: e.coordinates[1]?.toFixed(6),
+      lat: e.coordinates[0].toFixed(6),
+      lng: e.coordinates[1].toFixed(6),
     }));
 
   return { timeline, assignedEntities, waypoints };

@@ -43,6 +43,28 @@ describe('mission visual debrief briefing', () => {
 });
 
 
+describe('briefing waypoint geometry', () => {
+  it.each([null, [], [null, null], [false, false], ['0', '0'], [NaN, 0], [Infinity, 0], [91, 0], [0, -181], '00'].map(value => [value]))(
+    'omits invalid waypoint coordinates without dropping the assigned entity: %j', coordinates => {
+      const mission = { name: 'Map evidence', entityIds: ['one'] };
+      const entities = [{ id: 'one', name: 'Linked', type: 'person', coordinates }];
+      const briefing = generateBriefing(mission, entities, {});
+      expect(briefing.execution.waypoints).toEqual([]);
+      expect(briefing.execution.assignedEntities).toHaveLength(1);
+      expect(formatBriefingText(briefing)).not.toContain('undefined, undefined');
+    },
+  );
+  it('preserves zero and valid boundary positions in lat/lon order', () => {
+    const entities = [{ id: 'one', name: 'Origin', coordinates: [0, 0] },
+      { id: 'two', name: 'Boundary', coordinates: [-90, 180] }];
+    const briefing = generateBriefing({ name: 'Valid', entityIds: ['one', 'two'] }, entities, {});
+    expect(briefing.execution.waypoints).toEqual([
+      { name: 'Origin', lat: '0.000000', lng: '0.000000' },
+      { name: 'Boundary', lat: '-90.000000', lng: '180.000000' },
+    ]);
+  });
+});
+
 describe('briefing telemetry evidence', () => {
   const mission = { name: 'Evidence', entityIds: [] };
   it.each([false, true])('uses the real flight_mode and preserves zero readings with fleet=%j', fleet => {
