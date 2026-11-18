@@ -255,11 +255,23 @@ class TestShodan(unittest.TestCase):
         self.assertTrue(all(entity["coordinates"] is None for entity in entities[1:]))
         self.assertEqual(entities[-1]["id"], "shodan-13_14_15_16")
 
-    def test_live_mode_failure_returns_empty(self):
+    def test_live_mode_failure_is_not_a_successful_empty_search(self):
         conn = ShodanConnector(api_key="test-key")
         with patch("connectors.requests.get", return_value=response(500)):
-            self.assertEqual(conn.search("x"), [])
+            with self.assertRaisesRegex(RuntimeError, "Shodan feed unavailable"):
+                conn.search("x")
         with patch("connectors.requests.get", side_effect=RuntimeError("down")):
+            with self.assertRaisesRegex(RuntimeError, "Shodan feed unavailable"):
+                conn.search("x")
+
+    def test_live_mode_rejects_malformed_envelopes_but_accepts_empty_matches(self):
+        conn = ShodanConnector(api_key="test-key")
+        for body in ([], None, {}, {"error": "upstream failure"},
+                     {"matches": None}, {"matches": {}}, {"matches": "bad"}):
+            with self.subTest(body=body), patch("connectors.requests.get", return_value=response(200, body)):
+                with self.assertRaisesRegex(RuntimeError, "Shodan feed unavailable"):
+                    conn.search("x")
+        with patch("connectors.requests.get", return_value=response(200, {"matches": []})):
             self.assertEqual(conn.search("x"), [])
 
     def test_shodan_request_errors_never_log_credential_bearing_urls(self):
@@ -273,7 +285,8 @@ class TestShodan(unittest.TestCase):
                     "Request failed: https://api.shodan.io/shodan/host/search?key=" + key
                 )
             ), self.assertLogs("skydash.connectors", level="WARNING") as captured:
-                self.assertEqual(conn.search("cam"), [])
+                with self.assertRaisesRegex(RuntimeError, "Shodan feed unavailable"):
+                    conn.search("cam")
             text = "\n".join(captured.output)
             self.assertIn(failure.__name__, text)
             self.assertNotIn(key, text)
