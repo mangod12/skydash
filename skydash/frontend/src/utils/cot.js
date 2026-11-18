@@ -49,8 +49,8 @@ export function generateCoT(entities, now = Date.now()) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<events>\n${events.join('\n')}\n</events>\n`;
 }
 
-function parseCoordinate(value) {
-  // XML coordinates must be complete decimal numbers, not a numeric prefix.
+function parseDecimal(value) {
+  // XML numeric fields must be complete decimal numbers, not a numeric prefix.
   const text = typeof value === 'string' ? value.trim() : '';
   if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text)) return NaN;
   return Number(text);
@@ -86,8 +86,8 @@ export function parseCoT(xml, { parser = new DOMParser() } = {}) {
   for (const ev of Array.from(doc.getElementsByTagName('event'))) {
     const type = ev.getAttribute('type') || '';
     const point = ev.getElementsByTagName('point')[0];
-    const lat = point ? parseCoordinate(point.getAttribute('lat')) : NaN;
-    const lon = point ? parseCoordinate(point.getAttribute('lon')) : NaN;
+    const lat = point ? parseDecimal(point.getAttribute('lat')) : NaN;
+    const lon = point ? parseDecimal(point.getAttribute('lon')) : NaN;
     if (!type.startsWith('a-') || !Number.isFinite(lat) || !Number.isFinite(lon)
       || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
       skipped += 1;
@@ -97,7 +97,7 @@ export function parseCoT(xml, { parser = new DOMParser() } = {}) {
     const callsign = ev.getElementsByTagName('contact')[0]?.getAttribute('callsign');
     const sd = ev.getElementsByTagName('skydash')[0];
     const aff = type.split('-')[1];
-    const conf = parseFloat(sd?.getAttribute('confidence'));
+    const conf = parseDecimal(sd?.getAttribute('confidence'));
     const time = Date.parse(ev.getAttribute('time') || '');
     entities.push({
       id: `cot-${uid}`.replace(/[^A-Za-z0-9_.-]/g, '_'),
@@ -105,7 +105,7 @@ export function parseCoT(xml, { parser = new DOMParser() } = {}) {
       name: callsign || uid,
       coordinates: [lat, lon],
       properties: { cot_type: type, cot_uid: uid },
-      confidence: Number.isFinite(conf) ? conf : 50,
+      confidence: Number.isFinite(conf) && conf >= 0 && conf <= 100 ? conf : 50,
       source: 'CoT import',
       firstSeen: Number.isFinite(time) ? time : Date.now(),
       lastSeen: Number.isFinite(time) ? time : Date.now(),
