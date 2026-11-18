@@ -148,6 +148,37 @@ test.describe('SkyDash E2E Tests', () => {
     await expect(review.getByRole('status')).toContainText('no aircraft commands were sent');
   });
 
+  test('search grid planner previews, invalidates edits and exports a non-executable concept', async ({ page }) => {
+    await page.keyboard.press('l');
+    await page.getByRole('button', { name: 'SEARCH GRID PLANNER', exact: true }).click();
+    const panel = page.getByRole('region', { name: 'Search grid planner' });
+    await expect(panel.getByRole('heading', { name: 'Search Grid Planner', exact: true })).toBeVisible();
+    await panel.getByLabel('Center latitude', { exact: true }).fill('0');
+    await panel.getByLabel('Center longitude', { exact: true }).fill('0');
+    await panel.getByRole('button', { name: 'Generate search grid', exact: true }).click();
+    await expect(panel.getByText('2.90km', { exact: true })).toBeVisible();
+    await expect(panel.getByText('START', { exact: true })).toBeVisible();
+    await expect(panel.getByText('END', { exact: true })).toBeVisible();
+    await panel.getByLabel('East-west width (m)', { exact: true }).fill('600');
+    await expect(panel.getByRole('button', { name: 'Export concept GeoJSON', exact: true })).toBeDisabled();
+    await expect(panel.getByText(/Preview and metrics still show/)).toBeVisible();
+    await panel.getByRole('button', { name: 'Generate search grid', exact: true }).click();
+    await expect(panel.getByText('3.40km', { exact: true })).toBeVisible();
+    const pending = page.waitForEvent('download');
+    await panel.getByRole('button', { name: 'Export concept GeoJSON', exact: true }).click();
+    const download = await pending; const stream = await download.createReadStream(); const parts = [];
+    for await (const part of stream) parts.push(part);
+    const geo = JSON.parse(Buffer.concat(parts).toString('utf8'));
+    expect(geo.type).toBe('FeatureCollection'); expect(geo.properties.laneCount).toBe(5);
+    expect(geo.properties.latitude).toBe(0); expect(geo.properties.longitude).toBe(0);
+    expect(geo.properties.scope).toContain('not an executable aircraft mission');
+    expect(geo.features.at(-1).properties.executable).toBe(false);
+    expect(geo.features[0].geometry.type).toBe('Polygon');
+    await page.screenshot({ path: 'e2e/screenshots/search-grid-workflow.png' });
+    await panel.getByRole('button', { name: 'Back to Scenario Lab', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Scenario Lab', exact: true })).toBeVisible();
+  });
+
   // ─── TELEMETRY DATA FLOW ─────────────────────────────────
 
   test('telemetry values update in real-time', async ({ page }) => {

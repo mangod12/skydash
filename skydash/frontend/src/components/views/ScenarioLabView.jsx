@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import {
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 import ExerciseReviewPanel from './ExerciseReviewPanel';
+import SearchGridPlanner from './SearchGridPlanner';
 import { PanelBoundary } from '../common/ErrorBoundary';
 import ScenarioOverlay from '../map/ScenarioOverlay';
 import { useMapStore } from '../../stores/mapStore';
@@ -161,6 +162,7 @@ function MissionResult({ frame }) {
 }
 
 export default function ScenarioLabView() {
+  const [planning, setPlanning] = useState(false);
   const {
     activeScenarioId,
     selectedFleetPresetId,
@@ -185,10 +187,10 @@ export default function ScenarioLabView() {
   );
 
   useEffect(() => {
-    if (status !== 'running') return undefined;
+    if (status !== 'running' || planning) return undefined;
     const id = setInterval(() => tick(speed * SIMULATION_STEP_SECONDS), 1000);
     return () => clearInterval(id);
-  }, [speed, status, tick]);
+  }, [speed, status, tick, planning]);
 
   const handleSelectScenario = (scenario) => {
     selectScenario(scenario.id);
@@ -203,6 +205,8 @@ export default function ScenarioLabView() {
   const canChangeFleet = status === 'idle';
   const progress = frame.progress;
   const nextSpeed = SCENARIO_SPEEDS[(SCENARIO_SPEEDS.indexOf(speed) + 1) % SCENARIO_SPEEDS.length];
+
+  if (planning) return <SearchGridPlanner initialCenter={frame.scenario.center} onBack={() => setPlanning(false)} />;
 
   return (
     <PanelBoundary name="Scenario Lab">
@@ -222,6 +226,7 @@ export default function ScenarioLabView() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => { pause(); setPlanning(true); }} className="px-3 py-2 rounded-xl text-[10px] font-semibold tracking-wider border border-cyan-500/25 text-cyan-300">SEARCH GRID PLANNER</button>
               <button onClick={() => document.getElementById('exercise-review')?.scrollIntoView({ behavior: 'smooth' })} className="px-3 py-2 rounded-xl text-[10px] font-semibold tracking-wider border border-cyan-500/25 text-cyan-300">AFTER-ACTION REVIEW</button>
               <button
                 onClick={status === 'running' ? pause : start}
