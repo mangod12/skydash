@@ -35,7 +35,16 @@ export function detectSpatialClusters(entities, radiusM = 500) {
     }
     if (group.length >= 2) {
       const lat = group.reduce((s, e) => s + e.coordinates[0], 0) / group.length;
-      const lng = group.reduce((s, e) => s + e.coordinates[1], 0) / group.length;
+      // Unwrap longitudes around one member before averaging. Arithmetic means
+      // otherwise put a 180-degree date-line cluster near Greenwich.
+      const referenceLng = group[0].coordinates[1];
+      const meanLng = group.reduce((s, e) => {
+        let lng = e.coordinates[1];
+        while (lng - referenceLng > 180) lng -= 360;
+        while (lng - referenceLng < -180) lng += 360;
+        return s + lng;
+      }, 0) / group.length;
+      const lng = meanLng > 180 ? meanLng - 360 : meanLng < -180 ? meanLng + 360 : meanLng;
       const maxR = Math.max(...group.map((e) => distanceBetween(lat, lng, e.coordinates[0], e.coordinates[1])));
       clusters.push({ centroid: [lat, lng], entities: group, radius: Math.round(maxR) });
     }

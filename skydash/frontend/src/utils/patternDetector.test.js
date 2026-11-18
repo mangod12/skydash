@@ -266,3 +266,21 @@ describe('pattern hub degree integrity', () => {
     expect(hubs.slice(1).map(h => h.entity)).toEqual(entities.slice(1));
   });
 });
+
+describe('spatial clusters across the date line', () => {
+  it.each([0, 45, -45])('keeps nearby entities at latitude %s centered on the date line', latitude => {
+    const entities = [
+      { id: 'east', coordinates: [latitude, 179.999] },
+      { id: 'west', coordinates: [latitude, -179.999] },
+    ];
+    const [cluster] = detectSpatialClusters(entities, 500);
+    expect(cluster.entities).toEqual(entities);
+    expect(cluster.centroid[0]).toBe(latitude);
+    expect(Math.abs(cluster.centroid[1])).toBeCloseTo(180, 6);
+    expect(cluster.radius).toBeGreaterThan(0);
+    expect(cluster.radius).toBeLessThan(120);
+    const [reversed] = detectSpatialClusters([...entities].reverse(), 500);
+    expect(Math.abs(reversed.centroid[1])).toBeCloseTo(180, 6);
+    expect(reversed.radius).toBe(cluster.radius);
+  });
+});
