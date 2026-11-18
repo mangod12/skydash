@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { apiFetch } from '../../utils/api';
 import { API_BASE, API_CONFIGURED } from '../../utils/runtimeConfig';
@@ -6,6 +6,15 @@ import { normalizeFrames, clampIndex, nextIndex, formatOffset } from '../../util
 
 export default function ReplayBar() {
   const activeDroneId = useTelemetryStore((s) => s.activeDroneId);
+  return <ReplaySession key={activeDroneId || 'no-drone'} activeDroneId={activeDroneId} />;
+}
+
+function ReplaySession({ activeDroneId }) {
+  const requestRef = useRef(null);
+  useEffect(() => () => {
+    requestRef.current?.abort();
+    requestRef.current = null;
+  }, []);
   const [frames, setFrames] = useState([]);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -14,22 +23,31 @@ export default function ReplayBar() {
 
   const load = useCallback(async () => {
     if (!API_CONFIGURED || !activeDroneId) return;
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
+    const current = () => requestRef.current === controller && !controller.signal.aborted;
     setLoading(true);
     setError('');
     try {
       const res = await apiFetch(
         `${API_BASE}/api/telemetry/history?drone_id=${encodeURIComponent(activeDroneId)}&limit=300`,
+        { signal: controller.signal },
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
+      if (!current()) return;
       const next = normalizeFrames(json.data);
       setFrames(next);
       setIndex(Math.max(next.length - 1, 0));
       setPlaying(false);
     } catch {
-      setError('Could not load history');
+      if (current()) setError('Could not load history');
     } finally {
-      setLoading(false);
+      if (current()) {
+        setLoading(false);
+        requestRef.current = null;
+      }
     }
   }, [activeDroneId]);
 
