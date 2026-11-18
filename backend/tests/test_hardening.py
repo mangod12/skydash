@@ -58,6 +58,20 @@ class TestHardening(unittest.TestCase):
                 if status == 429:
                     self.assertEqual(response.headers.get("retry-after"), "10")
 
+    def test_api_key_requires_one_bearer_prefix_and_exact_token(self):
+        key = "fixture-api-key"
+        with patch.object(main, "AUTH_ENABLED", False), patch.object(main, "API_KEY", key):
+            for header in (key, "Bearer Bearer " + key, "Bearer " + key + "Bearer ",
+                           "Basic " + key, "bearer " + key, "Bearer " + key + " ", "Bearer "):
+                with self.subTest(header=header):
+                    response = self.client.get("/api/entities", headers={"Authorization": header})
+                    self.assertEqual(response.status_code, 401)
+            self.assertEqual(self.client.get("/api/entities").status_code, 401)
+            self.assertEqual(self.client.get("/api/entities", headers={
+                "Authorization": "Bearer " + key,
+            }).status_code, 200)
+            self.assertEqual(self.client.get("/health").status_code, 200)
+
     def test_hsts_only_behind_https(self):
         h = self.client.get("/health", headers={"x-forwarded-proto": "https"}).headers
         self.assertIn("max-age", h["strict-transport-security"])

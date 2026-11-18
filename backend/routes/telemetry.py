@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import logging
 import math
+import secrets
 import time
 from typing import Dict, Optional
 
@@ -190,7 +191,7 @@ async def ws_telemetry(websocket: WebSocket):
             await websocket.close(code=4001, reason="Unauthorized")
             return
     elif API_KEY:
-        if ws_token != API_KEY:
+        if not secrets.compare_digest(ws_token.encode(), API_KEY.encode()):
             await websocket.close(code=4001, reason="Unauthorized")
             return
     await websocket.accept()
