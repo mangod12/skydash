@@ -142,9 +142,13 @@ class EntityStore:
         """Wipe entities, relationships and events, then restore the demo seed."""
         conn = db.get_connection()
         with db.get_lock(), conn:
-            for table in ("events", "relationships", "entities"):
-                conn.execute(f"DELETE FROM {table}")
-            self._seed(conn)
+            self._reset_demo(conn)
+
+    def _reset_demo(self, conn):
+        """Reset within the caller's locked transaction; never commit here."""
+        for table in ("events", "relationships", "entities"):
+            conn.execute(f"DELETE FROM {table}")
+        self._seed(conn)
 
     def _remove_legacy_demo_rows(self):
         legacy_rows = db.get_connection().execute(

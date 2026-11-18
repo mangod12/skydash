@@ -23,8 +23,12 @@ class MissionStore:
         """Delete every mission and its linked entities, notes and detections."""
         conn = db.get_connection()
         with db.get_lock(), conn:
-            for table in ("mission_detections", "mission_notes", "mission_entities", "missions"):
-                conn.execute(f"DELETE FROM {table}")
+            self._clear_all(conn)
+
+    def _clear_all(self, conn):
+        """Clear within the caller's locked transaction; never commit here."""
+        for table in ("mission_detections", "mission_notes", "mission_entities", "missions"):
+            conn.execute(f"DELETE FROM {table}")
 
     def __init__(self):
         self._init_tables()

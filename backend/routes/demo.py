@@ -2,6 +2,8 @@
 
 import logging
 
+import database as db
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, StrictBool
 from starlette.concurrency import run_in_threadpool
@@ -17,9 +19,11 @@ class DemoResetRequest(BaseModel):
 
 
 def _reset_stores():
-    mission_store.clear_all()
-    entity_store.reset_demo()
-    return entity_store.count()
+    conn = db.get_connection()
+    with db.get_lock(), conn:
+        mission_store._clear_all(conn)
+        entity_store._reset_demo(conn)
+        return entity_store.count()
 
 
 @router.post("/api/demo/reset")

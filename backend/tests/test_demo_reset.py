@@ -30,10 +30,10 @@ class TestDemoReset(unittest.TestCase):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_slow_database_reset_does_not_block_other_requests(self):
-        for target, method in ((demo.mission_store, "clear_all"), (demo.entity_store, "reset_demo")):
+        for target, method in ((demo.mission_store, "_clear_all"), (demo.entity_store, "_reset_demo")):
             entered, release, finished = threading.Event(), threading.Event(), threading.Event()
 
-            def slow():
+            def slow(*args):
                 entered.set()
                 try:
                     release.wait(2)
@@ -136,6 +136,36 @@ class TestDemoReset(unittest.TestCase):
         entity_store.reset_demo()
         self.assertEqual(entity_store.count(), 8)
         self.assertIsNone(entity_store.get_entity(extra))
+
+    def test_demo_endpoint_seed_failure_preserves_all_stores_and_runtime(self):
+        import sqlite3
+        entity = entity_store.create_entity({"name": "Preserve contact"})["id"]
+        mission = mission_store.create_mission({"name": "Preserve mission"})["id"]
+        mission_store.add_entity_to_mission(mission, entity)
+        mission_store.add_note(mission, "Preserve note")
+        mission_store.add_detection(mission, {"source_name": "fixture", "summary": {"count": 1}})
+        conn = database.get_connection()
+        tables = ("entities", "relationships", "events", "missions", "mission_entities", "mission_notes", "mission_detections")
+        before = {table: [tuple(row) for row in conn.execute(f"SELECT * FROM {table}")] for table in tables}
+        conn.execute("""CREATE TRIGGER reject_api_seed BEFORE INSERT ON entities
+                        WHEN NEW.id = 'ent-004'
+                        BEGIN SELECT RAISE(ABORT, 'synthetic seed failure'); END""")
+        conn.commit()
+        with patch.object(demo.fleet, "reset") as reset_fleet, \
+                patch.object(demo, "telemetry_history") as history:
+            client = TestClient(main.app, raise_server_exceptions=False)
+            response = client.post("/api/demo/reset", json={"confirm": True})
+            self.assertEqual(response.status_code, 500)
+            reset_fleet.assert_not_called()
+            history.clear.assert_not_called()
+        self.assertFalse(conn.in_transaction)
+        conn.execute("DROP TRIGGER reject_api_seed")
+        conn.commit()
+        after = {table: [tuple(row) for row in conn.execute(f"SELECT * FROM {table}")] for table in tables}
+        self.assertEqual(after, before)
+        self.assertEqual(self.client.post("/api/demo/reset", json={"confirm": True}).status_code, 200)
+        self.assertEqual(mission_store.count(), 0)
+        self.assertEqual(entity_store.count(), 8)
 
     def test_commander_only(self):
         self.assertEqual(required_role("POST", "/api/demo/reset"), "commander")
