@@ -159,6 +159,10 @@ class OpenSkyConnector:
 # ─── Shodan IoT Connector ────────────────────────────────────
 
 
+class ShodanUnavailable(RuntimeError):
+    """A failed upstream search must not look like a successful empty result."""
+
+
 class ShodanConnector:
     """Shodan IoT device search (requires API key for live data)."""
 
@@ -177,6 +181,10 @@ class ShodanConnector:
 
         Returns:
             List of device dicts. Falls back to mock data without API key.
+
+        Raises:
+            ShodanUnavailable: A configured live search failed or returned an
+                invalid response. A genuine empty match list remains successful.
         """
         if not self.api_key:
             return self._mock_results(query, limit)
@@ -188,15 +196,17 @@ class ShodanConnector:
                 timeout=10,
             )
             if resp.status_code == 200:
-                results = resp.json().get("matches", [])[:limit]
-                return self._normalize(results)
-            log.warning(f"Shodan API returned {resp.status_code}")
-            return []
+                data = resp.json()
+                if not isinstance(data, dict) or not isinstance(data.get("matches"), list):
+                    raise ValueError("Invalid Shodan response envelope")
+                return self._normalize(data["matches"][:limit])
+            log.warning("Shodan API returned HTTP %s", resp.status_code)
+            raise ValueError("Shodan returned an unsuccessful status")
         except Exception as e:
             # Request exceptions can include the full URL, including the API key
             # passed in query parameters. Keep diagnostics without logging it.
             log.warning("Shodan fetch failed (%s)", type(e).__name__)
-            return []
+            raise ShodanUnavailable("Shodan feed unavailable") from None
 
     def _normalize(self, matches: List[Dict]) -> List[Dict]:
         """Normalize live Shodan API results to a flat dict."""

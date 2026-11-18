@@ -200,6 +200,43 @@ class TestConnectorRoutes(unittest.TestCase):
         self.assertEqual(body["metadata"]["source"], "Mock")
         self.assertLessEqual(body["metadata"]["count"], 3)
 
+    def test_failed_shodan_search_never_reports_successful_preview_or_import(self):
+        from connectors import ShodanConnector
+        from unittest.mock import Mock
+
+        live = ShodanConnector(api_key="test-key")
+        cases = [(401, {}), (429, {}), (503, {}), (200, {"error": "unavailable"}),
+                 (200, {"matches": None}), (200, {"matches": "invalid"})]
+        for status, payload in cases:
+            upstream = Mock(status_code=status)
+            upstream.json.return_value = payload
+            for method, path in (("get", "/api/connectors/shodan"),
+                                 ("get", "/api/connectors/shodan/entities"),
+                                 ("post", "/api/connectors/shodan/ingest?dry_run=true"),
+                                 ("post", "/api/connectors/shodan/ingest")):
+                with self.subTest(status=status, payload=payload, path=path), \
+                        patch.object(connector_routes, "shodan", live), \
+                        patch("connectors.requests.get", return_value=upstream), \
+                        patch.object(entity_store, "upsert_entity") as upsert:
+                    body = getattr(self.client, method)(path).json()
+                    self.assertFalse(body["success"])
+                    self.assertNotIn("data", body)
+                    self.assertNotIn("metadata", body)
+                    upsert.assert_not_called()
+
+    def test_valid_empty_live_shodan_search_is_successful(self):
+        from connectors import ShodanConnector
+        from unittest.mock import Mock
+
+        upstream = Mock(status_code=200)
+        upstream.json.return_value = {"matches": []}
+        with patch.object(connector_routes, "shodan", ShodanConnector(api_key="test-key")), \
+                patch("connectors.requests.get", return_value=upstream):
+            body = self.client.get("/api/connectors/shodan").json()
+        self.assertTrue(body["success"])
+        self.assertEqual(body["data"], [])
+        self.assertEqual(body["metadata"]["count"], 0)
+
     def test_shodan_limit_is_validated(self):
         self.assertEqual(self.client.get("/api/connectors/shodan", params={"limit": 0}).status_code, 422)
         self.assertEqual(self.client.get("/api/connectors/shodan", params={"limit": 51}).status_code, 422)
