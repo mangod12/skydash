@@ -155,15 +155,16 @@ async def get_telemetry_stats():
             },
         }
 
-    def average(field, digits):
-        values = [drone[field] for drone in latest if _finite_number(drone.get(field))]
+    def average(field, digits, percentage=False):
+        values = [drone[field] for drone in latest if _finite_number(drone.get(field))
+                  and (not percentage or 0 <= drone[field] <= 100)]
         return round(sum(value / len(values) for value in values), digits) if values else None
 
     stats = {
         "active_drones": drone_count,
         "avg_altitude": average("altitude", 2),
-        "avg_battery": average("battery_percentage", 1),
-        "avg_signal": average("signal_strength", 1),
+        "avg_battery": average("battery_percentage", 1, percentage=True),
+        "avg_signal": average("signal_strength", 1, percentage=True),
         "total_samples": len(history_list),
         "recording_duration_s": round(
             max(0, history_list[-1]["timestamp"] - history_list[0]["timestamp"]), 1

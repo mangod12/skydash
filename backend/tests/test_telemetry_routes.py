@@ -124,6 +124,28 @@ class TestTelemetryRoutes(unittest.TestCase):
         self.assertIsNone(data["avg_signal"])
         self.assertEqual(data["total_samples"], 1)
 
+    def test_stats_exclude_out_of_range_percentages_and_preserve_zero(self):
+        telemetry_history.clear()
+        telemetry_history.append({"timestamp": 2, "drones": [
+            {"drone_id": "D1", "battery_percentage": 0, "signal_strength": 100, "altitude": -10},
+            {"drone_id": "D2", "battery_percentage": -1, "signal_strength": 101, "altitude": 10},
+            {"drone_id": "D3", "battery_percentage": 101, "signal_strength": -1},
+        ]})
+        data = self.client.get("/api/telemetry/stats").json()["data"]
+        self.assertEqual(data["avg_battery"], 0)
+        self.assertEqual(data["avg_signal"], 100)
+        self.assertEqual(data["avg_altitude"], 0)
+        self.assertEqual(data["active_drones"], 3)
+
+    def test_stats_report_unknown_when_all_percentages_are_out_of_range(self):
+        telemetry_history.clear()
+        telemetry_history.append({"timestamp": 2, "drones": [
+            {"drone_id": "D1", "battery_percentage": -1, "signal_strength": 101},
+        ]})
+        data = self.client.get("/api/telemetry/stats").json()["data"]
+        self.assertIsNone(data["avg_battery"])
+        self.assertIsNone(data["avg_signal"])
+
     def test_stats_ignore_invalid_samples_and_do_not_report_negative_duration(self):
         telemetry_history.clear()
         telemetry_history.append(None)
