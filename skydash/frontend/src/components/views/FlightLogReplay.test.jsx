@@ -96,6 +96,12 @@ describe('flight-log import, replay, debrief and archive workflow', () => {
     fireEvent.click(screen.getByText('Refresh server archive')); await screen.findByRole('alert');
     expect(screen.getByRole('alert').textContent).toContain('does not have the flight-log archive API'); expect(screen.getByText('Save to server').disabled).toBe(true);
   });
+  it('clears the comparison when a different primary source is imported', async () => {
+    render(<FlightLogReplay />); await sample(); fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByLabelText('Comparison time');
+    const changed = SAMPLE_LOG.replace('28.61390', '28.61391');
+    fireEvent.change(screen.getByLabelText('Choose flight CSV'), { target: { files: [{ name: 'different.csv', size: changed.length, arrayBuffer: async () => new TextEncoder().encode(changed).buffer }] } });
+    await screen.findByText(/Source: different.csv/); expect(screen.queryByLabelText('Comparison time')).toBeNull();
+  });
   it('reports download errors and returns to the lab', async () => {
     const onBack = vi.fn(); render(<FlightLogReplay onBack={onBack} />); await sample();
     URL.createObjectURL.mockImplementationOnce(() => { throw Error('blocked'); }); fireEvent.click(screen.getByText('Download source CSV'));

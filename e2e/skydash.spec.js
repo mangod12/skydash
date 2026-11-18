@@ -226,6 +226,29 @@ test.describe('SkyDash E2E Tests', () => {
     } finally { if (savedId) await request.delete(`${API}/api/flight-logs/${savedId}`); }
   });
 
+  test('two-flight comparison pairs local sources through gaps and exports a reproducible debrief', async ({ page }) => {
+    await page.keyboard.press('l'); await page.getByRole('button', { name: 'FLIGHT LOG REPLAY', exact: true }).click();
+    const panel = page.getByRole('region', { name: 'Flight log replay', exact: true });
+    await panel.getByRole('button', { name: 'Load synthetic sample', exact: true }).click();
+    const comparison = panel.getByRole('article', { name: 'Two-flight comparison', exact: true });
+    const baseline = 'time_s,latitude,longitude,altitude_m,ground_speed_m_s,battery_pct\n0,28.6139,77.2090,5,0,98\n2,28.6140,77.2091,15,4,97\n4,28.6141,77.2092,25,5,96\n6,28.6142,77.2093,30,6,95\n8,28.6143,77.2094,28,4,94\n10,28.6144,77.2095,20,0,93\n';
+    await comparison.getByLabel('Choose baseline CSV').setInputFiles({ name: 'baseline-e2e.csv', mimeType: 'text/csv', buffer: Buffer.from(baseline) });
+    await expect(comparison.getByText(/Baseline B loaded locally/)).toBeVisible();
+    await expect(comparison.getByLabel('Instantaneous observation deltas')).toContainText('+5.0m');
+    await comparison.getByLabel('Comparison time', { exact: true }).fill('8');
+    await expect(comparison.getByText(/DATA GAP/)).toBeVisible(); await expect(comparison.getByLabel('Instantaneous observation deltas')).toContainText('altitude unknown');
+    await expect(comparison.getByText('A 4s', { exact: true })).toBeVisible(); await expect(comparison.getByText('B 8s', { exact: true })).toBeVisible();
+    await comparison.getByLabel('Comparison time', { exact: true }).fill('12');
+    await expect(comparison.getByText(/OUTSIDE SOURCE/)).toBeVisible(); await expect(comparison.getByText('B 10s', { exact: true })).toHaveCount(0);
+    await comparison.getByLabel('Comparison notes', { exact: true }).fill('Synthetic comparison. No ranking or causal claim.');
+    const pending = page.waitForEvent('download'); await comparison.getByRole('button', { name: 'Download comparison report', exact: true }).click();
+    const stream = await (await pending).createReadStream(); const parts = []; for await (const part of stream) parts.push(part);
+    const report = Buffer.concat(parts).toString('utf8'); expect(report).toContain('PRIMARY A'); expect(report).toContain('BASELINE B'); expect(report).toContain('baseline-e2e.csv'); expect(report).toContain('Synthetic comparison.'); expect(report).toContain('not UTC'); expect(report).toContain('A 16.00s | B 10.00s | A-B 6.00s');
+    await comparison.getByRole('button', { name: 'Reset comparison', exact: true }).click(); await expect(comparison.getByLabel('Comparison time', { exact: true })).toHaveValue('0');
+    await comparison.getByRole('button', { name: 'Clear comparison', exact: true }).click(); await expect(comparison.getByLabel('Comparison time', { exact: true })).toHaveCount(0);
+    await expect(panel.getByLabel('Current recorded observation')).toContainText('Sample 1/6');
+  });
+
   // ─── TELEMETRY DATA FLOW ─────────────────────────────────
 
   test('telemetry values update in real-time', async ({ page }) => {
