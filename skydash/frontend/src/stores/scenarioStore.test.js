@@ -93,3 +93,16 @@ describe('scenarioStore', () => {
     expect(frame.preset.id).toBe('wide-area');
   });
 });
+
+  it('loads a validated saved configuration without starting playback or retaining aliases', async () => {
+    const { captureExerciseReview } = await import('../utils/exerciseReview');
+    const store = useScenarioStore.getState(); store.resetLab(); store.start(); store.tick(60); store.injectEvent('signal-loss'); store.pause();
+    const review = captureExerciseReview(useScenarioStore.getState(), { id: 'review', title: 'Test review' });
+    store.resetLab(); expect(store.loadReview(review)).toBe(true);
+    expect(useScenarioStore.getState().status).toBe('paused');
+    expect(useScenarioStore.getState().elapsedSeconds).toBe(60);
+    review.configuration.injectedEvents[0].injectedAt = 0;
+    expect(useScenarioStore.getState().injectedEvents[0].injectedAt).toBe(60);
+    expect(store.loadReview({})).toBe(false);
+    expect(useScenarioStore.getState().elapsedSeconds).toBe(60);
+  });
