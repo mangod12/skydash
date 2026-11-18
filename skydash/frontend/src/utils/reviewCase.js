@@ -1,3 +1,4 @@
+import { sourceEvidenceReport } from './sourceEvidence';
 import { LOG_VERSION, MAX_LOG_BYTES, parseFlightCSV, flightCSVHash, flightAfterAction } from './flightLog';
 import { debriefSidecar, readDebriefSidecar, instructorReport } from './instructorDebrief';
 import { ENVELOPE_VERSION, validateEnvelope, envelopeReport } from './trainingEnvelope';
@@ -40,5 +41,5 @@ export async function readReviewCase(contents) {
 }
 export function reviewCaseReport(opened) {
   const { log, data } = opened;
-  return ['SKYDASH / PORTABLE REVIEW CASE', CASE_SCOPE, '', `Case format: ${REVIEW_CASE_VERSION}`, 'All observations and review results below are recomputed locally, not accepted as imported report text.', '', flightAfterAction(log), '', instructorReport(log, data.debrief.markers, data.debrief.notes), '', data.envelope ? envelopeReport(log, data.envelope.profile, data.envelope.notes) : 'No evaluated envelope profile included.', '', 'EXCLUDED: comparison baseline, comparison notes, replay cursor, unadded marker draft, unevaluated criteria, aircraft commands and backend record identity. Reports are not certificates.'].join('\n');
+  return ['SKYDASH / PORTABLE REVIEW CASE', CASE_SCOPE, '', `Case format: ${REVIEW_CASE_VERSION}`, 'All observations and review results below are recomputed locally, not accepted as imported report text.', '', flightAfterAction(log), '', sourceEvidenceReport(log), '', instructorReport(log, data.debrief.markers, data.debrief.notes), '', data.envelope ? envelopeReport(log, data.envelope.profile, data.envelope.notes) : 'No evaluated envelope profile included.', '', 'EXCLUDED: comparison baseline, comparison notes, replay cursor, unadded marker draft, unevaluated criteria, aircraft commands and backend record identity. Reports are not certificates.'].join('\n');
 }

@@ -2,6 +2,7 @@ import FlightComparison from './FlightComparison';
 import InstructorDebrief from './InstructorDebrief';
 import TrainingEnvelope from './TrainingEnvelope';
 import ReviewCase from './ReviewCase';
+import SourceEvidence from './SourceEvidence';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { ArrowLeft, Download, Play, Pause, RotateCcw, Save, Upload } from 'lucide-react';
@@ -125,7 +126,7 @@ export default function FlightLogReplay({ onBack }) {
     <div className="mx-auto max-w-7xl space-y-4">
       <button disabled={busy} onClick={onBack} className="inline-flex items-center gap-2 text-xs text-zinc-400"><ArrowLeft size={14} /> Back to Scenario Lab</button>
       <header><p className="text-[10px] tracking-widest text-cyan-300">IMPORT / REPLAY / DEBRIEF</p><h1 className="mt-1 text-2xl font-semibold text-zinc-100">Flight Log Replay</h1><p className="mt-2 text-xs leading-relaxed text-zinc-400">{LOG_SCOPE}</p></header>
-      {log && <div className="flex flex-wrap gap-2"><button className={button} onClick={() => { setPlaying(false); document.getElementById('training-envelope')?.scrollIntoView({ behavior: 'smooth' }); }}>Training envelope</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('instructor-debrief')?.scrollIntoView({ behavior: 'smooth' }); }}>Instructor debrief</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('flight-comparison')?.scrollIntoView({ behavior: 'smooth' }); }}>Compare two flights</button></div>}
+      {log && <div className="flex flex-wrap gap-2"><button className={button} onClick={() => { setPlaying(false); document.getElementById('source-evidence')?.scrollIntoView({ behavior: 'smooth' }); }}>Source evidence</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('training-envelope')?.scrollIntoView({ behavior: 'smooth' }); }}>Training envelope</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('instructor-debrief')?.scrollIntoView({ behavior: 'smooth' }); }}>Instructor debrief</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('flight-comparison')?.scrollIntoView({ behavior: 'smooth' }); }}>Compare two flights</button></div>}
       <ReviewCase workspaceBusy={busy} log={busy ? null : log} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => setPlaying(false)} />
       <div className="grid gap-4 lg:grid-cols-3">
         <aside className="min-w-0 space-y-4">
@@ -187,6 +188,7 @@ export default function FlightLogReplay({ onBack }) {
               {!canWrite && <p className="text-xs text-amber-300">Analyst role required to save or delete shared records.</p>}
               {confirmDelete && <div className="text-xs text-amber-300">Permanently delete this server log and its fixed notes? Download both first if needed.<div className="mt-2 flex gap-2"><button disabled={busy} onClick={remove} className={button}>Confirm delete record</button><button disabled={busy} onClick={() => setConfirmDelete(false)} className={button}>Keep record</button></div></div>}
             </article>
+            <SourceEvidence key={`evidence-${log.sha256}-${reviewRevision}`} log={log} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
             <TrainingEnvelope ref={envelopeRef} initialReview={reviewSeed?.envelope || null} key={`envelope-${log.sha256}-${reviewRevision}`} log={log} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
             <InstructorDebrief ref={debriefRef} initialReview={reviewSeed?.debrief || null} key={`instructor-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
             <FlightComparison key={`comparison-${log.sha256}-${reviewRevision}`} primary={{ ...log, title: title.trim(), notes }} />
