@@ -63,12 +63,14 @@ function hasProximityCritical(entity, allEntities) {
  * @returns {{ score: number, breakdown: object }}
  */
 export function calculateRiskScore(entity, relationships, events, allEntities = []) {
-  const baseThreat = BASE_THREAT[entity.threatLevel] ?? 0;
+  const baseThreat = Object.hasOwn(BASE_THREAT, entity.threatLevel) ? BASE_THREAT[entity.threatLevel] : 0;
   const relCount = countRelationships(entity.id, relationships);
   const relBonus = Math.min(relCount * RELATIONSHIP_BONUS_PER, RELATIONSHIP_BONUS_MAX);
   const recentEvents = recentEventsFor(entity.id, events, Date.now());
   const activityBonus = Math.min(recentEvents.length * RECENT_EVENT_BONUS_PER, RECENT_EVENT_BONUS_MAX);
-  const confidenceMultiplier = (entity.confidence ?? 50) / 100;
+  const confidence = Number.isFinite(entity.confidence) && entity.confidence >= 0 && entity.confidence <= 100
+    ? entity.confidence : 50;
+  const confidenceMultiplier = confidence / 100;
   const proximityBonus = hasProximityCritical(entity, allEntities) ? PROXIMITY_BONUS : 0;
   const escalationBonus = recentEvents.filter(e => e.severity === 'critical' || e.severity === 'warning').length >= 2
     ? ESCALATION_BONUS : 0;
