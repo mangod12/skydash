@@ -103,3 +103,33 @@ describe('manual comparison anchor controls', () => {
     fill(); fireEvent.click(screen.getByText('Apply manual sample anchors')); await load(); expect(screen.getByLabelText('Applied comparison alignment').textContent).toContain('CSV starts'); expect(screen.getByLabelText('A anchor data row').value).toBe('1');
   });
 });
+
+describe('portable comparison review controls', () => {
+  const reviewFile = text => ({ name: 'comparison.json', size: text.length, arrayBuffer: async () => new TextEncoder().encode(text).buffer });
+  const contents = async () => {
+    const { createComparisonReview } = await import('../../utils/comparisonReview');
+    const baseline = { ...primary, title: 'Restored baseline', filename: 'restored.csv' };
+    return createComparisonReview(primary, baseline, 'Preserved review notes', { primaryIndex: 3, baselineIndex: 1, label: 'Manual discussion association' });
+  };
+  it('can import before a baseline exists, previews only and cancels without changing comparison', async () => {
+    render(<FlightComparison primary={primary} />); expect(screen.getByText('Download comparison review JSON').disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Import comparison review JSON'), { target: { files: [reviewFile(await contents())] } }); await screen.findByText('Preview comparison review: Restored baseline');
+    expect(screen.queryByLabelText('Comparison time')).toBeNull(); fireEvent.click(screen.getByText('Keep current comparison')); expect(screen.queryByLabelText('Comparison time')).toBeNull(); expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+  it('confirms a validated source-bound baseline, notes and anchors while leaving primary intact', async () => {
+    render(<FlightComparison primary={primary} />); await load(); fireEvent.change(screen.getByLabelText('Comparison notes'), { target: { value: 'Old notes' } });
+    fireEvent.change(screen.getByLabelText('Import comparison review JSON'), { target: { files: [reviewFile(await contents())] } }); await screen.findByText('Preview comparison review: Restored baseline');
+    expect(screen.getByLabelText('Comparison notes').value).toBe('Old notes'); expect(screen.getByText('Download comparison report').disabled).toBe(true);
+    fireEvent.click(screen.getByText('Replace comparison with imported review')); expect(screen.getByLabelText('Comparison notes').value).toBe('Preserved review notes'); expect(screen.getByText(/B \/ restored.csv/)).toBeTruthy(); expect(screen.getByLabelText('Applied comparison alignment').textContent).toContain('A row 4 at 12s; B row 2 at 2s'); expect(screen.getByLabelText('Comparison time').value).toBe('0'); expect(primary.filename).toBe('primary.csv'); expect(primary.samples[3].time_s).toBe(12);
+  });
+  it('rejects mismatched/oversize imports and preserves last good pair and notes', async () => {
+    render(<FlightComparison primary={primary} />); await load(); fireEvent.change(screen.getByLabelText('Comparison notes'), { target: { value: 'Keep notes' } }); const data = JSON.parse(await contents()); data.primary_sha256 = 'a'.repeat(64);
+    fireEvent.change(screen.getByLabelText('Import comparison review JSON'), { target: { files: [reviewFile(JSON.stringify(data))] } }); await screen.findByRole('alert'); expect(screen.getByRole('alert').textContent).toContain('Primary fingerprint mismatch'); expect(screen.getByLabelText('Comparison notes').value).toBe('Keep notes'); expect(screen.getByText(/B \/ synthetic-baseline.csv/)).toBeTruthy();
+    const arrayBuffer = vi.fn(); fireEvent.change(screen.getByLabelText('Import comparison review JSON'), { target: { files: [{ size: 2097153, arrayBuffer }] } }); await screen.findByText(/at most 2MiB/); expect(arrayBuffer).not.toHaveBeenCalled();
+  });
+  it('exports validated comparison state and blocks a dirty-anchor export', async () => {
+    render(<FlightComparison primary={primary} />); await load(); fireEvent.change(screen.getByLabelText('Comparison notes'), { target: { value: 'Export notes' } }); fireEvent.click(screen.getByText('Download comparison review JSON')); await screen.findByText(/Comparison JSON download requested/);
+    const blob = URL.createObjectURL.mock.calls[0][0]; const text = await new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsText(blob); }); const data = JSON.parse(text); expect(data.primary_sha256).toBe(primary.sha256); expect(data.notes).toBe('Export notes'); expect(data.alignment).toBeNull(); expect(data.baseline.csv_text).toContain('time_s,latitude'); expect(data).not.toHaveProperty('primary_csv');
+    fireEvent.change(screen.getByLabelText('Review anchor label'), { target: { value: 'Pending' } }); expect(screen.getByText('Download comparison review JSON').disabled).toBe(true); expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+});
