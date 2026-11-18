@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.post("/api/missions", status_code=201)
-async def create_mission(body: MissionCreate):
+def create_mission(body: MissionCreate):
     try:
         mission = mission_store.create_mission(body.model_dump())
         log.info(f"Mission created: {mission['id']} ({mission['name']})")
@@ -25,7 +25,7 @@ async def create_mission(body: MissionCreate):
 
 
 @router.get("/api/missions")
-async def list_missions(status: Optional[str] = Query(None)):
+def list_missions(status: Optional[str] = Query(None)):
     try:
         data = mission_store.list_missions(status=status)
         return {"success": True, "data": data, "metadata": {"count": len(data)}}
@@ -35,7 +35,7 @@ async def list_missions(status: Optional[str] = Query(None)):
 
 
 @router.get("/api/missions/{mission_id}")
-async def get_mission(mission_id: str):
+def get_mission(mission_id: str):
     mission = mission_store.get_mission(mission_id)
     if not mission:
         raise HTTPException(status_code=404, detail="Mission not found")
@@ -46,7 +46,7 @@ async def get_mission(mission_id: str):
 
 
 @router.put("/api/missions/{mission_id}")
-async def update_mission(mission_id: str, body: MissionUpdate):
+def update_mission(mission_id: str, body: MissionUpdate):
     mission = mission_store.update_mission(mission_id, body.model_dump(exclude_unset=True))
     if not mission:
         raise HTTPException(status_code=404, detail="Mission not found")
@@ -54,14 +54,14 @@ async def update_mission(mission_id: str, body: MissionUpdate):
 
 
 @router.delete("/api/missions/{mission_id}")
-async def delete_mission(mission_id: str):
+def delete_mission(mission_id: str):
     if not mission_store.delete_mission(mission_id):
         raise HTTPException(status_code=404, detail="Mission not found")
     return {"success": True, "data": {"deleted": mission_id}}
 
 
 @router.post("/api/missions/{mission_id}/entities")
-async def add_entity_to_mission(mission_id: str, body: MissionEntityAdd):
+def add_entity_to_mission(mission_id: str, body: MissionEntityAdd):
     if not mission_store.get_mission(mission_id):
         raise HTTPException(status_code=404, detail="Mission not found")
     if not entity_store.get_entity(body.entity_id):
@@ -77,7 +77,7 @@ async def add_entity_to_mission(mission_id: str, body: MissionEntityAdd):
 
 
 @router.delete("/api/missions/{mission_id}/entities/{entity_id}")
-async def remove_entity_from_mission(mission_id: str, entity_id: str):
+def remove_entity_from_mission(mission_id: str, entity_id: str):
     if not mission_store.remove_entity_from_mission(mission_id, entity_id):
         raise HTTPException(status_code=404, detail="Link not found")
     return {
@@ -87,7 +87,7 @@ async def remove_entity_from_mission(mission_id: str, entity_id: str):
 
 
 @router.post("/api/missions/{mission_id}/notes", status_code=201)
-async def add_mission_note(mission_id: str, body: MissionNoteAdd):
+def add_mission_note(mission_id: str, body: MissionNoteAdd):
     note = mission_store.add_note(mission_id, body.content)
     if not note:
         raise HTTPException(status_code=404, detail="Mission not found")
@@ -95,7 +95,7 @@ async def add_mission_note(mission_id: str, body: MissionNoteAdd):
 
 
 @router.get("/api/missions/{mission_id}/notes")
-async def get_mission_notes(mission_id: str):
+def get_mission_notes(mission_id: str):
     if not mission_store.get_mission(mission_id):
         raise HTTPException(status_code=404, detail="Mission not found")
     notes = mission_store.get_notes(mission_id)
@@ -103,7 +103,7 @@ async def get_mission_notes(mission_id: str):
 
 
 @router.delete("/api/missions/{mission_id}/notes/{note_id}")
-async def delete_mission_note(mission_id: str, note_id: str):
+def delete_mission_note(mission_id: str, note_id: str):
     if not mission_store.delete_note(mission_id, note_id):
         raise HTTPException(status_code=404, detail="Note not found")
     return {"success": True, "data": {"deleted": note_id}}
