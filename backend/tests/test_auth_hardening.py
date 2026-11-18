@@ -99,6 +99,24 @@ class TestAuthHardening(unittest.TestCase):
         self.assertTrue(self.users._verify_password(self.good_pw, migrated))
         self.assertFalse(conn.in_transaction)
 
+    def test_malformed_stored_hash_rejects_login_without_breaking_other_accounts(self):
+        uid = self.users.create_user("broken-hash", self.good_pw)
+        self.users.create_user("valid-hash", self.good_pw)
+        conn = database.get_connection()
+        for stored in (42, b"binary-hash", "", "salt$not-a-digest", "x" * 10000):
+            with self.subTest(stored_type=type(stored).__name__):
+                conn.execute("UPDATE users SET password_hash=? WHERE id=?", (stored, uid))
+                conn.commit()
+                response = self.client.post("/api/auth/login", json={
+                    "username": "broken-hash", "password": self.good_pw,
+                })
+                self.assertEqual(response.status_code, 401)
+                auth_routes._login_failures.clear()
+                response = self.client.post("/api/auth/login", json={
+                    "username": "valid-hash", "password": self.good_pw,
+                })
+                self.assertEqual(response.status_code, 200)
+
     def test_registration_race_returns_conflict(self):
         self.users.create_user("alice", self.good_pw)
         # Simulate the name being available at precheck, but taken at insert.
