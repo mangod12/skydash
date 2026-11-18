@@ -10,6 +10,7 @@ from typing import Dict, Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from auth import redeem_ws_ticket, verify_token
 from deps import (
@@ -191,7 +192,7 @@ async def ws_telemetry(websocket: WebSocket):
     if ticket and AUTH_ENABLED:
         ws_token = redeem_ws_ticket(ticket) or ""
     if AUTH_ENABLED:
-        if not ws_token or not verify_token(ws_token):
+        if not ws_token or not await run_in_threadpool(verify_token, ws_token):
             await websocket.close(code=4001, reason="Unauthorized")
             return
     elif API_KEY:
@@ -206,7 +207,7 @@ async def ws_telemetry(websocket: WebSocket):
             # A token revoked (logout), expired or disabled mid-stream must end the stream.
             if AUTH_ENABLED and time.monotonic() - last_check >= WS_RECHECK_SECONDS:
                 last_check = time.monotonic()
-                if not verify_token(ws_token):
+                if not await run_in_threadpool(verify_token, ws_token):
                     await websocket.close(code=4001, reason="Session ended")
                     return
             payload = _json_safe(fleet.get_all_telemetry())

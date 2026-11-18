@@ -107,3 +107,40 @@ class TestWsTicket(TestWsRecheck):
 
     def test_ticket_needs_auth(self):
         self.assertEqual(self.client.post("/api/auth/ws-ticket").status_code, 401)
+
+
+class TestWsVerificationEventLoop(unittest.TestCase):
+    def test_initial_and_periodic_verification_leave_event_loop_responsive(self):
+        import asyncio
+        import threading
+        from unittest.mock import AsyncMock
+
+        for held_call in (1, 2):
+            entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+            calls = []
+            def verify(*args):
+                calls.append(args)
+                if len(calls) == held_call:
+                    entered.set()
+                    try:
+                        release.wait(2)
+                        return None
+                    finally:
+                        finished.set()
+                return {'sub': 'fixture', 'role': 'viewer'}
+            async def exercise():
+                socket = AsyncMock()
+                socket.query_params = {'token': 'fixture'}
+                pending = asyncio.create_task(telemetry.ws_telemetry(socket))
+                try:
+                    self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                    self.assertFalse(finished.is_set(), 'Socket verification blocked event loop')
+                finally:
+                    release.set()
+                    await pending
+                socket.close.assert_awaited_once()
+                self.assertEqual(socket.close.call_args.kwargs['code'], 4001)
+            with self.subTest(held_call=held_call), patch.object(telemetry, 'AUTH_ENABLED', True), \
+                    patch.object(telemetry, 'WS_RECHECK_SECONDS', 0), \
+                    patch.object(telemetry, 'verify_token', side_effect=verify):
+                asyncio.run(exercise())
