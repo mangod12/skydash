@@ -40,6 +40,7 @@ export const useTelemetryStore = create((set, get) => ({
   alerts: [],
   latency: 0,
   lastUpdate: null,
+  dataReceivedAt: null,
   activeDroneId: null,
 
   updateTelemetry: (data, latency) => {
@@ -75,6 +76,7 @@ export const useTelemetryStore = create((set, get) => ({
       alerts: activeAlerts,
       latency,
       lastUpdate: Date.now(),
+      dataReceivedAt: Date.now(),
       activeDroneId: data.drone_id || state.activeDroneId,
     });
   },
@@ -87,7 +89,7 @@ export const useTelemetryStore = create((set, get) => ({
     set({
     fleet: fleetData, isConnected: true, hasEverConnected: true, lastUpdate: Date.now(),
     // An authoritative empty fleet is not a fresh reading of the last drone.
-    ...(fleetData.length === 0 ? { data: null, activeDroneId: null, history: [], alerts: [] } : {}),
+    ...(fleetData.length === 0 ? { data: null, dataReceivedAt: null, activeDroneId: null, history: [], alerts: [] } : {}),
     });
   },
 

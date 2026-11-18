@@ -67,6 +67,45 @@ test.describe('SkyDash E2E Tests', () => {
     await page.screenshot({ path: 'e2e/screenshots/01-dashboard.png', fullPage: true });
   });
 
+  test('mission readiness opens from missions and exports scoped evidence', async ({ page, request }) => {
+    const name = `E2E Readiness ${Date.now()}`;
+    const created = await request.post(`${API}/api/missions`, {
+      data: { name, description: 'Training readiness smoke check' },
+    });
+    expect(created.ok()).toBeTruthy();
+    const mission = (await created.json()).data;
+    try {
+      await page.route('**/api/connectors/status', route => route.fulfill({ json: {
+        success: true, data: { opensky: { available: true }, shodan: { available: false, mode: 'mock' } },
+      } }));
+      await page.keyboard.press('o');
+      await page.getByRole('button').filter({ hasText: name }).click();
+      await page.getByRole('tab', { name: 'READINESS', exact: true }).click();
+      const panel = page.getByRole('region', { name: 'Mission readiness check' });
+      await expect(panel.getByText('Mission Readiness Check', { exact: true })).toBeVisible();
+      await expect(panel.getByText(/This is not clearance to fly/)).toBeVisible();
+      await expect(panel.getByText(/OpenSky supported; Shodan mock/)).toBeVisible();
+      await expect(panel.getByText('0/0 linked entities available in the current intelligence data.')).toBeVisible();
+      const pending = page.waitForEvent('download');
+      await panel.getByRole('button', { name: 'Save timestamped report' }).click();
+      const download = await pending;
+      expect(download.suggestedFilename()).toMatch(/^skydash-readiness-\d+\.txt$/);
+      const stream = await download.createReadStream();
+      const parts = [];
+      for await (const part of stream) parts.push(part);
+      const report = Buffer.concat(parts).toString('utf8');
+      expect(report).toContain(`Mission: ${name} (${mission.id})`);
+      expect(report).toContain('not clearance to fly');
+      expect(report).toContain('[WARN] Linked evidence');
+      expect(report).toContain('Shodan mock');
+      expect(report).toContain('Snapshot only');
+      await expect(panel.getByText(/Report download requested at/)).toBeVisible();
+      await page.screenshot({ path: 'e2e/screenshots/readiness-workflow.png', fullPage: true });
+    } finally {
+      await request.delete(`${API}/api/missions/${mission.id}`);
+    }
+  });
+
   // ─── TELEMETRY DATA FLOW ─────────────────────────────────
 
   test('telemetry values update in real-time', async ({ page }) => {

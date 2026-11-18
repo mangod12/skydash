@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Target, FileText, MapPin, Clock, Plus, X, ChevronRight, Trash2, ScrollText, ScanSearch,
+  Target, FileText, MapPin, Clock, Plus, X, ChevronRight, Trash2, ScrollText, ScanSearch, ClipboardCheck,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useMissionStore } from '../../stores/missionStore';
@@ -11,8 +11,10 @@ import { useMapStore } from '../../stores/mapStore';
 import EntityCard from '../intel/EntityCard';
 import MissionBriefingTab from './MissionBriefingTab';
 import DetectionDebriefTab from './DetectionDebriefTab';
+import MissionReadinessTab from './MissionReadinessTab';
 
 const TABS = [
+  { id: 'readiness', label: 'READINESS', icon: ClipboardCheck },
   { id: 'entities', label: 'ENTITIES', icon: Target },
   { id: 'notes', label: 'NOTES', icon: FileText },
   { id: 'debrief', label: 'DEBRIEF', icon: ScanSearch },
@@ -45,7 +47,7 @@ function MissionHeader({ mission }) {
 
 function TabBar({ tab, onTab }) {
   return (
-    <div className="flex border-b border-white/[0.06] shrink-0" role="tablist" aria-label="Mission detail sections">
+    <div className="flex flex-wrap border-b border-white/[0.06] shrink-0" role="tablist" aria-label="Mission detail sections">
       {TABS.map((t) => (
         <button
           key={t.id}
@@ -198,6 +200,7 @@ export default function MissionDetail({ mission, tab, onTab }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
+            {tab === 'readiness' && <MissionReadinessTab key={mission.id} mission={mission} />}
             {tab === 'entities' && <EntitiesTab mission={mission} />}
             {tab === 'notes' && <NotesTab mission={mission} />}
             {tab === 'debrief' && <DetectionDebriefTab mission={mission} />}
