@@ -71,11 +71,13 @@ class UserStore:
 
     def _verify_password(self, password, stored_hash):
         """Verify password against PBKDF2 hash. Also accepts legacy SHA-256."""
+        if not isinstance(stored_hash, str) or not stored_hash:
+            return False
         if '$' in stored_hash:
             salt = stored_hash.split('$')[0]
-            return self._hash_password(password, salt) == stored_hash
+            return secrets.compare_digest(self._hash_password(password, salt).encode(), stored_hash.encode())
         # Legacy: plain SHA-256 (migrate on next login)
-        return hashlib.sha256(password.encode()).hexdigest() == stored_hash
+        return secrets.compare_digest(hashlib.sha256(password.encode()).hexdigest().encode(), stored_hash.encode())
 
     def create_user(self, username, password, role="analyst"):
         uid = secrets.token_hex(4)
