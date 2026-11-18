@@ -3,6 +3,7 @@ import L from 'leaflet';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMapStore } from '../../stores/mapStore';
 import { shortLabel } from '../../utils/sanitize';
+import { distanceBetween, isValidCoordinate } from '../../utils/coordinates';
 
 const TYPE_ABBR = {
   person: 'PER', vehicle: 'VEH', building: 'FAC',
@@ -16,16 +17,6 @@ const THREAT_BADGE = {
   high: { bg: '#7f1d1d', text: '#fca5a5' },
   critical: { bg: '#7f1d1d', text: '#fca5a5' },
 };
-
-function haversineKm(lat1, lng1, lat2, lng2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLng = (lng2 - lng1) * (Math.PI / 180);
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 function formatDist(km) {
   if (km < 1) return `${Math.round(km * 1000)}m`;
@@ -63,14 +54,15 @@ export default function TacticalLabels() {
   const entities = useIntelStore((s) => s.entities);
   const dronePos = useMapStore((s) => s.dronePosition);
 
-  const labeled = entities.filter((e) => e.coordinates);
+  const labeled = entities.filter((e) => e && Array.isArray(e.coordinates)
+    && isValidCoordinate(e.coordinates[0], e.coordinates[1]));
 
   return (
     <>
       {labeled.map((entity) => {
         const [lat, lng] = entity.coordinates;
-        const dist = dronePos
-          ? formatDist(haversineKm(dronePos.lat, dronePos.lng, lat, lng))
+        const dist = dronePos && isValidCoordinate(dronePos.lat, dronePos.lng)
+          ? formatDist(distanceBetween(dronePos.lat, dronePos.lng, lat, lng) / 1000)
           : '--';
 
         return (
