@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.get("/api/entities")
-async def list_entities(
+def list_entities(
     type: Optional[str] = Query(None),
     threat: Optional[str] = Query(None),
 ):
@@ -28,7 +28,7 @@ async def list_entities(
 
 
 @router.get("/api/entities/graph")
-async def get_intel_graph():
+def get_intel_graph():
     try:
         graph = entity_store.get_graph()
         return {
@@ -45,7 +45,7 @@ async def get_intel_graph():
 
 
 @router.get("/api/entities/{entity_id}")
-async def get_entity(entity_id: str):
+def get_entity(entity_id: str):
     entity = entity_store.get_entity(entity_id)
     if not entity:
         raise HTTPException(status_code=404, detail="Entity not found")
@@ -53,7 +53,7 @@ async def get_entity(entity_id: str):
 
 
 @router.post("/api/entities", status_code=201)
-async def create_entity(body: EntityCreate):
+def create_entity(body: EntityCreate):
     try:
         entity = entity_store.create_entity(body.model_dump())
         log.info(f"Entity created: {entity['id']} ({entity['name']})")
@@ -66,7 +66,7 @@ async def create_entity(body: EntityCreate):
 
 
 @router.put("/api/entities/{entity_id}")
-async def update_entity(entity_id: str, body: EntityUpdate):
+def update_entity(entity_id: str, body: EntityUpdate):
     entity = entity_store.update_entity(entity_id, body.model_dump(exclude_unset=True))
     if not entity:
         raise HTTPException(status_code=404, detail="Entity not found")
@@ -74,14 +74,14 @@ async def update_entity(entity_id: str, body: EntityUpdate):
 
 
 @router.delete("/api/entities/{entity_id}")
-async def delete_entity(entity_id: str):
+def delete_entity(entity_id: str):
     if not entity_store.delete_entity(entity_id):
         raise HTTPException(status_code=404, detail="Entity not found")
     return {"success": True, "data": {"deleted": entity_id}}
 
 
 @router.post("/api/entities/{entity_id}/relate")
-async def create_relationship(entity_id: str, body: RelationshipCreate):
+def create_relationship(entity_id: str, body: RelationshipCreate):
     try:
         rel = entity_store.add_relationship(
             entity_id, body.to_entity, body.type, body.confidence
@@ -95,7 +95,7 @@ async def create_relationship(entity_id: str, body: RelationshipCreate):
 
 
 @router.get("/api/entities/{entity_id}/graph")
-async def get_entity_graph(entity_id: str):
+def get_entity_graph(entity_id: str):
     try:
         graph = entity_store.get_entity_graph(entity_id)
         return {"success": True, "data": graph}
@@ -108,7 +108,7 @@ async def get_entity_graph(entity_id: str):
 
 
 @router.get("/api/timeline")
-async def get_timeline(
+def get_timeline(
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0, le=9223372036854775807),
 ):
@@ -125,7 +125,7 @@ async def get_timeline(
 
 
 @router.post("/api/events", status_code=201)
-async def create_event(body: EventCreate):
+def create_event(body: EventCreate):
     if body.entityId is not None and not entity_store.get_entity(body.entityId):
         raise HTTPException(status_code=404, detail="Entity not found")
     try:
