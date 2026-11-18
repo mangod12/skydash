@@ -40,7 +40,17 @@ export const useMissionStore = create((set, get) => ({
       }
       if (json.success) {
         set((s) => {
-          const missions = json.data;
+          // List responses contain mission summaries, not the child collections.
+          // Keep loaded details even when their request finishes before this list.
+          const previous = new Map(s.missions.map(mission => [mission.id, mission]));
+          const missions = json.data.map(mission => {
+            const cached = previous.get(mission.id);
+            const children = {};
+            for (const field of ['entityIds', 'notes', 'detections']) {
+              if (Array.isArray(cached?.[field])) children[field] = cached[field];
+            }
+            return { ...children, ...mission };
+          });
           const activeMissionStillExists = missions.some((mission) => mission.id === s.activeMissionId);
           const nextActiveMission = activeMissionStillExists
             ? s.activeMissionId
