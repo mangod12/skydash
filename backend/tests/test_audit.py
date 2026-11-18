@@ -1,3 +1,5 @@
+import asyncio
+import threading
 import os
 import secrets
 import shutil
@@ -5,6 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from httpx import ASGITransport, AsyncClient
 from fastapi.testclient import TestClient
 
 import audit
@@ -42,6 +45,31 @@ class TestAuditLog(unittest.TestCase):
             p.stop()
         database.reset()
         shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_slow_audit_reads_do_not_block_other_api_requests(self):
+        for path in ("/api/audit", "/api/audit/export"):
+            entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+            def slow(*args, **kwargs):
+                entered.set()
+                try:
+                    release.wait(3)
+                    return []
+                finally:
+                    finished.set()
+            async def exercise():
+                async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as client:
+                    pending = asyncio.create_task(client.get(path, headers=self.h["commander"]))
+                    try:
+                        self.assertTrue(await asyncio.to_thread(entered.wait, 2))
+                        response = await client.get("/api/connectors/status", headers=self.h["commander"])
+                        self.assertEqual(response.status_code, 200)
+                        self.assertFalse(finished.is_set(), "Audit read blocked the API event loop")
+                    finally:
+                        release.set()
+                        response = await pending
+                    self.assertEqual(response.status_code, 200)
+            with self.subTest(path=path), patch.object(audit, "query", side_effect=slow):
+                asyncio.run(exercise())
 
     def test_should_audit(self):
         self.assertTrue(audit.should_audit("POST", "/api/entities"))
