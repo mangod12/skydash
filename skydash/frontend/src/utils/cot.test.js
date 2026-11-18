@@ -56,3 +56,17 @@ describe('cot', () => {
     expect(() => parseCoT('<events><event></events>')).toThrow('Invalid CoT XML');
   });
 });
+
+describe('CoT coordinate text integrity', () => {
+  const xml = (lat, lon) => `<event uid="test" type="a-f-G"><point lat="${lat}" lon="${lon}"/></event>`;
+  it.each(['12junk', '12.5N', '0x10', '1,2', '', '   ', 'NaN', 'Infinity'])('skips invalid latitude or longitude text %j', value => {
+    for (const document of [xml(value, '0'), xml('0', value)]) {
+      expect(parseCoT(document)).toEqual({ entities: [], skipped: 1 });
+    }
+  });
+  it.each([['0', '-0', [0, -0]], [' +12.5 ', '7.75e1', [12.5, 77.5]], ['-90', '180', [-90, 180]]])('preserves complete numeric coordinate text %s,%s', (lat, lon, expected) => {
+    const result = parseCoT(xml(lat, lon));
+    expect(result.skipped).toBe(0);
+    expect(result.entities[0].coordinates).toEqual(expected);
+  });
+});
