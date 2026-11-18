@@ -70,6 +70,9 @@ export const useMissionStore = create((set, get) => ({
         throw new Error('Failed to create mission');
       }
       if (json.success) {
+        // A list snapshot started before this confirmed write is obsolete.
+        missionRefreshGeneration += 1;
+        set({ loading: false });
         set((s) => ({ missions: [json.data, ...s.missions] }));
         return json.data;
       }
@@ -97,6 +100,8 @@ export const useMissionStore = create((set, get) => ({
         throw new Error('Failed to update mission');
       }
       if (json.success) {
+        missionRefreshGeneration += 1;
+        set({ loading: false });
         set((s) => ({
           missions: s.missions.map((m) => (m.id === id ? { ...m, ...json.data } : m)),
         }));
@@ -122,6 +127,8 @@ export const useMissionStore = create((set, get) => ({
         throw new Error('Failed to delete mission');
       }
       if (json.success) {
+        missionRefreshGeneration += 1;
+        set({ loading: false });
         missionUpdateGenerations.delete(id);
         missionDetailGenerations.delete(id);
         set((s) => ({
