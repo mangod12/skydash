@@ -31,7 +31,7 @@ def _csv_value(value):
 
 
 @router.post("/api/export/geojson")
-async def export_geojson():
+def export_geojson():
     """Export all geo-located entities as a GeoJSON FeatureCollection."""
     try:
         features = []
@@ -155,7 +155,7 @@ async def export_telemetry_csv(
 
 
 @router.get("/api/export/entities/csv")
-async def export_entities_csv():
+def export_entities_csv():
     """Export all entities as a downloadable CSV file."""
     try:
         output = io.StringIO()
