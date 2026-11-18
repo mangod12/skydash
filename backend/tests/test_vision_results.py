@@ -6,7 +6,47 @@ from types import SimpleNamespace
 
 import pytest
 
-from vision import RTDETRDetector
+from vision import RTDETRDetector, _confidence_from_env, _upload_limit_from_env
+
+
+@pytest.mark.parametrize('value', ['', 'bad', 'nan', 'inf', '-inf', '-0.1', '1.01', '1e999'])
+def test_invalid_confidence_setting_uses_finite_default(monkeypatch, value):
+    monkeypatch.setenv('SKYDASH_RTDETR_CONFIDENCE', value)
+    assert _confidence_from_env() == 0.35
+
+
+@pytest.mark.parametrize('value,expected', [('0', 0), ('1', 1), ('0.75', 0.75), (' 0.5 ', 0.5)])
+def test_valid_confidence_settings_preserve_boundaries(monkeypatch, value, expected):
+    monkeypatch.setenv('SKYDASH_RTDETR_CONFIDENCE', value)
+    assert _confidence_from_env() == expected
+
+
+@pytest.mark.parametrize('value', ['', 'bad', 'nan', 'inf', '-1', '0', '1.5'])
+def test_invalid_upload_limit_setting_keeps_bounded_default(monkeypatch, value):
+    monkeypatch.setenv('SKYDASH_RTDETR_MAX_UPLOAD_BYTES', value)
+    assert _upload_limit_from_env() == 8 * 1024 * 1024
+
+
+@pytest.mark.parametrize('value,expected', [('1', 1), ('4096', 4096), (' 8192 ', 8192)])
+def test_valid_upload_limit_settings(monkeypatch, value, expected):
+    monkeypatch.setenv('SKYDASH_RTDETR_MAX_UPLOAD_BYTES', value)
+    assert _upload_limit_from_env() == expected
+
+
+def test_invalid_optional_vision_settings_do_not_prevent_app_import():
+    import subprocess
+    import sys
+    import tempfile
+    with tempfile.TemporaryDirectory() as temporary:
+        result = subprocess.run([sys.executable, '-c',
+            'import main, vision; assert vision.detector.confidence == 0.35; '
+            'assert vision.MAX_UPLOAD_BYTES == 8388608'],
+            env={**os.environ, 'SKYDASH_DB_PATH': os.path.join(temporary, 'test.db'),
+                 'SKYDASH_DISABLE_DEMO_USERS': '1', 'SKYDASH_RTDETR_CONFIDENCE': 'bad',
+                 'SKYDASH_RTDETR_MAX_UPLOAD_BYTES': 'bad'},
+            capture_output=True, text=True, timeout=15)
+    assert result.returncode == 0, result.stderr
+
 
 
 class TensorValue:
