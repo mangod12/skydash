@@ -6,6 +6,7 @@ import SourceEvidence from './SourceEvidence';
 import SourceRowLedger from './SourceRowLedger';
 import ReviewWindow from './ReviewWindow';
 import ReferenceCircle from './ReferenceCircle';
+import { windowPlaybackRange,advanceWindowPlayback } from '../../utils/windowPlayback';
 import RecordedChannelChart from './RecordedChannelChart';
 import CSVColumnMapping from './CSVColumnMapping';
 import LocalReviewLibrary from './LocalReviewLibrary';
@@ -51,6 +52,7 @@ export default function FlightLogReplay({ onBack }) {
   const [notes, setNotes] = useState('');
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [playbackWindow,setPlaybackWindow]=useState(null);
   const [basemapEnabled, setBasemapEnabled] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [archive, setArchive] = useState([]);
@@ -65,14 +67,15 @@ export default function FlightLogReplay({ onBack }) {
   const next = log?.samples[index + 1];
   const inGap = next && next.time_s - current.time_s > 5 && time > current.time_s;
   const atEnd = Boolean(summary && time >= summary.durationS);
-  const replaying = playing && !atEnd;
+  const replaying = playing && (playbackWindow ? playbackWindow.repeat || time < playbackWindow.end : !atEnd);
   useEffect(() => {
     if (!replaying || !summary) return undefined;
     let previous = performance.now();
-    const timer = setInterval(() => { const now = performance.now(); const delta = (now - previous) / 1000; previous = now; setTime(value => Math.min(summary.durationS, value + delta * speed)); }, 100);
+    const timer = setInterval(() => { const now = performance.now(); const delta = (now - previous) / 1000; previous = now; setTime(value => playbackWindow ? advanceWindowPlayback(value,delta*speed,playbackWindow) : Math.min(summary.durationS, value + delta * speed)); }, 100);
     return () => clearInterval(timer);
-  }, [replaying, speed, summary]);
-  const select = data => { setBasemapEnabled(false); if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setConfirmDelete(false); };
+  }, [replaying, speed, summary, playbackWindow]);
+  const playWindow=(first,last,label,repeat)=>{if(busy||!log)return;try{const range=windowPlaybackRange(log,first,last,label,repeat);setPlaybackWindow(range);setTime(range.start);setPlaying(true);setError('');setMessage('Selected-window primary playback started at original source time. No gap skipping or source edits. Comparison playback and reviews unchanged.');}catch(failure){setError(failure.message||'Selected-window playback could not start.');}};
+  const select = data => { setBasemapEnabled(false); if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setPlaybackWindow(null); setConfirmDelete(false); };
   const caseSnapshot = () => {
     if (busy || !log || !debriefRef.current || !envelopeRef.current) throw new Error('Wait for source loading to finish before exporting a case.');
     return { log, review: { title: title.trim(), notes }, debrief: debriefRef.current.snapshot(), envelope: envelopeRef.current.snapshot() };
@@ -88,7 +91,7 @@ export default function FlightLogReplay({ onBack }) {
   };
   const run = async operation => {
     if (busy) return;
-    setBusy(true); setPlaying(false); setError(''); setMessage('');
+    setBusy(true); setPlaying(false); setPlaybackWindow(null); setError(''); setMessage('');
     try { await operation(); } catch (failure) { setError(failure.message || 'Operation failed.'); }
     finally { setBusy(false); }
   };
@@ -138,10 +141,10 @@ export default function FlightLogReplay({ onBack }) {
     <div className="mx-auto max-w-7xl space-y-4">
       <button disabled={busy} onClick={onBack} className="inline-flex items-center gap-2 text-xs text-zinc-400"><ArrowLeft size={14} /> Back to Scenario Lab</button>
       <header><p className="text-[10px] tracking-widest text-cyan-300">IMPORT / REPLAY / DEBRIEF</p><h1 className="mt-1 text-2xl font-semibold text-zinc-100">Flight Log Replay</h1><p className="mt-2 text-xs leading-relaxed text-zinc-400">{LOG_SCOPE}</p></header>
-      {log && <div className="flex flex-wrap gap-2"><button className={button} onClick={() => { setPlaying(false); document.getElementById('source-row-ledger')?.scrollIntoView({ behavior: 'smooth' }); }}>Source row ledger</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('recorded-channel-chart')?.scrollIntoView({ behavior: 'smooth' }); }}>Channel evidence plot</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('reference-circle-review')?.scrollIntoView({ behavior: 'smooth' }); }}>Reference circle review</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('source-evidence')?.scrollIntoView({ behavior: 'smooth' }); }}>Source evidence</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('training-envelope')?.scrollIntoView({ behavior: 'smooth' }); }}>Training envelope</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('instructor-debrief')?.scrollIntoView({ behavior: 'smooth' }); }}>Instructor debrief</button><button className={button} onClick={() => { setPlaying(false); document.getElementById('flight-comparison')?.scrollIntoView({ behavior: 'smooth' }); }}>Compare two flights</button></div>}
-      <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><CSVColumnMapping workspaceBusy={busy} onOpen={openMapped} onPause={() => setPlaying(false)} /></div></details>
-      <details className="rounded-xl border border-fuchsia-500/20 p-3"><summary className="cursor-pointer text-xs text-fuchsia-200">Device-local review library (explicit storage, not a backup)</summary><div className="mt-3"><LocalReviewLibrary hasSource={Boolean(log)} workspaceBusy={busy} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => setPlaying(false)} /></div></details>
-      <ReviewCase workspaceBusy={busy} log={busy ? null : log} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => setPlaying(false)} />
+      {log && <div className="flex flex-wrap gap-2"><button className={button} onClick={() => { setPlaying(false); setPlaybackWindow(null); document.getElementById('source-row-ledger')?.scrollIntoView({ behavior: 'smooth' }); }}>Source row ledger</button><button className={button} onClick={() => { setPlaying(false); setPlaybackWindow(null); document.getElementById('recorded-channel-chart')?.scrollIntoView({ behavior: 'smooth' }); }}>Channel evidence plot</button><button className={button} onClick={() => { setPlaying(false); setPlaybackWindow(null); document.getElementById('reference-circle-review')?.scrollIntoView({ behavior: 'smooth' }); }}>Reference circle review</button><button className={button} onClick={() => { setPlaying(false); setPlaybackWindow(null); document.getElementById('source-evidence')?.scrollIntoView({ behavior: 'smooth' }); }}>Source evidence</button><button className={button} onClick={() => { setPlaying(false); setPlaybackWindow(null); document.getElementById('training-envelope')?.scrollIntoView({ behavior: 'smooth' }); }}>Training envelope</button><button className={button} onClick={() => { setPlaying(false); setPlaybackWindow(null); document.getElementById('instructor-debrief')?.scrollIntoView({ behavior: 'smooth' }); }}>Instructor debrief</button><button className={button} onClick={() => { setPlaying(false); setPlaybackWindow(null); document.getElementById('flight-comparison')?.scrollIntoView({ behavior: 'smooth' }); }}>Compare two flights</button></div>}
+      <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><CSVColumnMapping workspaceBusy={busy} onOpen={openMapped} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
+      <details className="rounded-xl border border-fuchsia-500/20 p-3"><summary className="cursor-pointer text-xs text-fuchsia-200">Device-local review library (explicit storage, not a backup)</summary><div className="mt-3"><LocalReviewLibrary hasSource={Boolean(log)} workspaceBusy={busy} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
+      <ReviewCase workspaceBusy={busy} log={busy ? null : log} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} />
       <div className="grid gap-4 lg:grid-cols-3">
         <aside className="min-w-0 space-y-4">
           <div className="rounded-xl border border-white/10 p-4 space-y-3">
@@ -169,12 +172,13 @@ export default function FlightLogReplay({ onBack }) {
             <article className="rounded-xl border border-white/10 p-4 space-y-3" aria-label="Recorded replay controls">
               <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold text-zinc-200">2. Replay observations</h2><span className="text-[10px] text-amber-300">RECORDED / NOT LIVE {log.id ? '/ SERVER SAVED' : '/ SESSION ONLY'}</span></div>
               <p className="text-xs text-zinc-400 break-all">Source: {log.filename} / {LOG_VERSION}</p>
-              <label className="block text-xs text-zinc-400">Replay position: {time.toFixed(1)}s / {summary.durationS}s<input aria-label="Replay position" type="range" min="0" max={summary.durationS} step="0.1" value={time} onChange={event => { setPlaying(false); setTime(Number(event.target.value)); }} className="mt-2 w-full accent-cyan-400" /></label>
+              <label className="block text-xs text-zinc-400">Replay position: {time.toFixed(1)}s / {summary.durationS}s<input aria-label="Replay position" type="range" min="0" max={summary.durationS} step="0.1" value={time} onChange={event => { setPlaying(false); setPlaybackWindow(null); setTime(Number(event.target.value)); }} className="mt-2 w-full accent-cyan-400" /></label>
               <div className="flex flex-wrap gap-2 items-center">
-                <button disabled={busy || atEnd} onClick={() => setPlaying(value => !value)} className={button}>{replaying ? <Pause size={14} /> : <Play size={14} />}{replaying ? 'Pause replay' : 'Play replay'}</button>
-                <button onClick={() => { setPlaying(false); setTime(0); }} className={button}><RotateCcw size={14} /> Reset replay</button>
+                <button disabled={busy || atEnd} onClick={() => { setPlaybackWindow(null); setPlaying(!replaying); }} className={button}>{replaying ? <Pause size={14} /> : <Play size={14} />}{replaying ? 'Pause replay' : 'Play replay'}</button>
+                <button onClick={() => { setPlaying(false); setPlaybackWindow(null); setTime(0); }} className={button}><RotateCcw size={14} /> Reset replay</button>
                 <label className="text-xs text-zinc-400">Playback speed<select aria-label="Playback speed" value={speed} onChange={event => setSpeed(Number(event.target.value))} className="ml-2 rounded bg-zinc-900 p-2">{[1, 2, 4, 8].map(value => <option key={value} value={value}>{value}x</option>)}</select></label>
               </div>
+              {playbackWindow&&<div aria-label="Active selected-window playback" className="rounded border border-cyan-500/30 p-3 space-y-2 text-xs text-cyan-200"><p className="break-words">{playbackWindow.repeat?'REPEATING SELECTED WINDOW':'ONE-PASS SELECTED WINDOW'}: {playbackWindow.label}. Original rows {playbackWindow.first+1} through {playbackWindow.last+1}, original {playbackWindow.start}s to {playbackWindow.end}s. {replaying?'Playing recorded clock.':'Stopped at selected final timestamp.'} Gaps are held, not skipped. Final endpoint shown for at least one timer tick before repeat. Browser timer cadence is approximate, not telemetry or a new source.</p><button className={button} onClick={()=>{setPlaying(false);setPlaybackWindow(null);setMessage('Selected-window playback stopped. Cursor kept at current original time. Full-source replay controls restored.');}}>Stop selected-window playback</button><p>Stop, scrub, reset, global play/pause, actions that pause or seek primary replay cancel the bound. Starting a window always restarts at its original first timestamp. Comparison clock and source/review data unchanged. Session-only, not saved in portable artifacts/library.</p></div>}
               <p className="text-xs text-zinc-400" aria-label="Current recorded observation">Sample {index + 1}/{summary.count} at {current.time_s}s / {current.latitude.toFixed(5)}, {current.longitude.toFixed(5)} / altitude {reading(current.altitude_m, 'm')} / speed {reading(current.ground_speed_m_s, 'm/s')} / battery {reading(current.battery_pct, '%')}</p>
               <p className={`text-xs ${inGap ? 'text-amber-300' : 'text-zinc-500'}`}>{inGap ? 'DATA GAP. ' : ''}Holding observation from {current.time_s}s; age {(time - current.time_s).toFixed(1)}s. {next ? `Next sample at ${next.time_s}s.` : 'Final sample reached.'}</p>
               <RecordedBasemapControl enabled={basemapEnabled} onChange={setBasemapEnabled} label="primary replay" />
@@ -203,13 +207,13 @@ export default function FlightLogReplay({ onBack }) {
               {!canWrite && <p className="text-xs text-amber-300">Analyst role required to save or delete shared records.</p>}
               {confirmDelete && <div className="text-xs text-amber-300">Permanently delete this server log and its fixed notes? Download both first if needed.<div className="mt-2 flex gap-2"><button disabled={busy} onClick={remove} className={button}>Confirm delete record</button><button disabled={busy} onClick={() => setConfirmDelete(false)} className={button}>Keep record</button></div></div>}
             </article>
-            <RecordedChannelChart key={`chart-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); }} />
-            <ReviewWindow key={`window-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
-            <ReferenceCircle key={`circle-${log.sha256}-${reviewRevision}`} log={log} time={time} disabled={busy} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); }} />
-            <SourceRowLedger key={`ledger-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); }} />
-            <SourceEvidence key={`evidence-${log.sha256}-${reviewRevision}`} log={log} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
-            <TrainingEnvelope ref={envelopeRef} initialReview={reviewSeed?.envelope || null} key={`envelope-${log.sha256}-${reviewRevision}`} log={log} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
-            <InstructorDebrief ref={debriefRef} initialReview={reviewSeed?.debrief || null} key={`instructor-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
+            <RecordedChannelChart key={`chart-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} />
+            <ReviewWindow key={`window-${log.sha256}-${reviewRevision}`} onPlayWindow={playWindow} playbackDisabled={busy} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
+            <ReferenceCircle key={`circle-${log.sha256}-${reviewRevision}`} log={log} time={time} disabled={busy} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} />
+            <SourceRowLedger key={`ledger-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} />
+            <SourceEvidence key={`evidence-${log.sha256}-${reviewRevision}`} log={log} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
+            <TrainingEnvelope ref={envelopeRef} initialReview={reviewSeed?.envelope || null} key={`envelope-${log.sha256}-${reviewRevision}`} log={log} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
+            <InstructorDebrief ref={debriefRef} initialReview={reviewSeed?.debrief || null} key={`instructor-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
             <FlightComparison key={`comparison-${log.sha256}-${reviewRevision}`} primary={{ ...log, title: title.trim(), notes }} />
           </> : <div className="rounded-xl border border-dashed border-white/10 p-8 text-sm text-zinc-500">Choose a CSV, load the synthetic sample, or reopen a server record to replay and debrief. This view does not change the live fleet or Scenario Lab scores.</div>}
         </div>
