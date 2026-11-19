@@ -24,7 +24,7 @@ describe('two-flight local comparison workflow', () => {
     expect(screen.getByText(/DATA GAP/)).toBeTruthy(); expect(screen.getByLabelText('Instantaneous observation deltas').textContent).toContain('altitude unknown');
     expect(screen.getByText('A 4s')).toBeTruthy(); expect(screen.getByText('B 8s')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Comparison time'), { target: { value: '12' } });
-    expect(screen.getByText(/OUTSIDE SOURCE/)).toBeTruthy(); expect(screen.queryByText('B 10s')).toBeNull(); expect(screen.getByText('A 12s')).toBeTruthy();
+    expect(within(screen.getByLabelText('Paired recorded observations')).getByText(/OUTSIDE SOURCE/)).toBeTruthy(); expect(screen.queryByText('B 10s')).toBeNull(); expect(screen.getByText('A 12s')).toBeTruthy();
     fireEvent.click(screen.getByText('Reset comparison')); expect(screen.getByLabelText('Comparison time').value).toBe('0');
   });
   it('imports an actual second file and warns if the source is identical', async () => {
@@ -86,7 +86,7 @@ describe('manual comparison anchor controls', () => {
     expect(screen.getByLabelText('Applied comparison alignment').textContent).toContain('A row 4 at 12s; B row 3 at 4s');
     expect(screen.getByText('A 12s')).toBeTruthy(); expect(screen.getByText('B 4s')).toBeTruthy(); expect(screen.getByLabelText('Comparison time').min).toBe('-12'); expect(screen.getByLabelText('Comparison time').max).toBe('6');
     expect(screen.getByLabelText('Comparison notes').value).toBe('Keep context'); expect(screen.getByText('Download comparison report').disabled).toBe(false);
-    fireEvent.change(screen.getByLabelText('Comparison time'), { target: { value: '-6' } }); expect(screen.getByText(/OUTSIDE SOURCE/)).toBeTruthy(); expect(screen.getByText(/DATA GAP/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Comparison time'), { target: { value: '-6' } }); expect(within(screen.getByLabelText('Paired recorded observations')).getByText(/OUTSIDE SOURCE/)).toBeTruthy(); expect(screen.getByText(/DATA GAP/)).toBeTruthy();
     fireEvent.click(screen.getByText('Reset comparison')); expect(screen.getByLabelText('Comparison time').value).toBe('0'); expect(screen.getByText('A 12s')).toBeTruthy(); expect(globalThis.fetch).not.toHaveBeenCalled();
   });
   it('keeps the applied alignment on invalid row/label and discards uncommitted edits', async () => {
