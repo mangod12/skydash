@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { MapContainer, Polyline, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { Download, Play, Pause, RotateCcw } from 'lucide-react';
+import SampleWindowComparison from './SampleWindowComparison';
 import ComparisonSampleLedger from './ComparisonSampleLedger';
 import RecordedBasemapLayer, { RecordedBasemapControl } from './RecordedBasemap';
 import { LOG_VERSION, LOG_HEADER, MAX_LOG_BYTES, parseFlightCSV, flightCSVHash } from '../../utils/flightLog';
@@ -23,6 +24,7 @@ function Observation({ observation, label, color }) {
 }
 export default function FlightComparison({ primary }) {
   const [baseline, setBaseline] = useState(null);
+  const [baselineRevision, setBaselineRevision] = useState(0);
   const [notes, setNotes] = useState('');
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -59,7 +61,7 @@ export default function FlightComparison({ primary }) {
     try {
       const csv_text = await read();
       const samples = parseFlightCSV(csv_text), sha256 = await flightCSVHash(csv_text);
-      setBasemapEnabled(false); setBaseline({ title: filename.replace(/\.csv$/i, '').slice(0, 120), filename: filename.slice(0, 120), csv_text, samples, sha256, model_version: LOG_VERSION });
+      setBaselineRevision(value => value + 1); setBasemapEnabled(false); setBaseline({ title: filename.replace(/\.csv$/i, '').slice(0, 120), filename: filename.slice(0, 120), csv_text, samples, sha256, model_version: LOG_VERSION });
       setTime(0); setNotes(''); setPendingReview(null); resetAlignment(); setMessage('Baseline B loaded locally. No CSV or notes uploaded. Comparison reset to 0s; prior comparison notes replaced.');
     } catch (failure) { setError(failure.message || 'Baseline could not be read.'); }
     finally { setBusy(false); }
@@ -91,7 +93,7 @@ export default function FlightComparison({ primary }) {
   };
   const confirmReview = () => {
     if (!pendingReview || busy) return;
-    const item = pendingReview; setBasemapEnabled(false); setBaseline(item.baseline); setNotes(item.notes); setAlignment(item.alignment); setAnchorA(String((item.alignment?.primaryIndex || 0) + 1)); setAnchorB(String((item.alignment?.baselineIndex || 0) + 1)); setAnchorLabel(item.alignment?.label || ''); setAnchorDirty(false); setPendingReview(null); setTime(0); setPlaying(false); setError(''); setMessage('Comparison review reopened at review clock zero. Evidence recomputed from exact primary and embedded baseline CSVs. Primary source/reviews and backend records unchanged.');
+    const item = pendingReview; setBaselineRevision(value => value + 1); setBasemapEnabled(false); setBaseline(item.baseline); setNotes(item.notes); setAlignment(item.alignment); setAnchorA(String((item.alignment?.primaryIndex || 0) + 1)); setAnchorB(String((item.alignment?.baselineIndex || 0) + 1)); setAnchorLabel(item.alignment?.label || ''); setAnchorDirty(false); setPendingReview(null); setTime(0); setPlaying(false); setError(''); setMessage('Comparison review reopened at review clock zero. Evidence recomputed from exact primary and embedded baseline CSVs. Primary source/reviews and backend records unchanged.');
   };
   const download = kind => {
     let url;
@@ -102,7 +104,7 @@ export default function FlightComparison({ primary }) {
       document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); setError(''); setMessage('Download requested. Keep the comparison report and both source CSVs; they contain location data.');
     } catch { if (url) URL.revokeObjectURL(url); setError('Comparison download could not start. Sources and notes are unchanged.'); }
   };
-  const clear = () => { setBasemapEnabled(false); setBaseline(null); setPendingReview(null); resetAlignment(); setNotes(''); setTime(0); setPlaying(false); setError(''); setMessage('Comparison cleared. Primary A is unchanged.'); };
+  const clear = () => { setBaselineRevision(value => value + 1); setBasemapEnabled(false); setBaseline(null); setPendingReview(null); resetAlignment(); setNotes(''); setTime(0); setPlaying(false); setError(''); setMessage('Comparison cleared. Primary A is unchanged.'); };
   return <article id="flight-comparison" aria-label="Two-flight comparison" className="rounded-xl border border-violet-500/25 p-4 space-y-3">
     <header><p className="text-[10px] tracking-widest text-violet-300">TRAINING / COMPARE RECORDED SORTIES</p><h2 className="mt-1 text-lg font-semibold text-zinc-100">4. Two-flight comparison</h2><p className="mt-2 text-xs leading-relaxed text-zinc-400">{COMPARISON_SCOPE}</p></header>
     <p className="text-xs text-zinc-400 break-all">Primary A: {primary.title} / {primary.filename}. Import a second CSV as baseline B. Uses the same numeric schema and limits as the primary. Loading another baseline replaces comparison notes. Changing primary clears the comparison. No server archive is needed.</p>
@@ -131,7 +133,8 @@ export default function FlightComparison({ primary }) {
       <div className="flex flex-wrap gap-2 items-center"><button disabled={busy || anchorDirty || Boolean(pendingReview) || time >= end} onClick={() => setPlaying(value => !value)} className={button}>{replaying ? <Pause size={14} /> : <Play size={14} />}{replaying ? 'Pause comparison' : 'Play comparison'}</button><button onClick={() => { setPlaying(false); setTime(0); }} className={button}><RotateCcw size={14} /> Reset comparison</button><label className="text-xs text-zinc-400">Comparison speed<select aria-label="Comparison speed" value={speed} onChange={event => setSpeed(Number(event.target.value))} className="ml-2 rounded bg-zinc-900 p-2">{[1, 2, 4, 8].map(value => <option key={value} value={value}>{value}x</option>)}</select></label></div>
       <div aria-label="Paired recorded observations" className="grid gap-2 sm:grid-cols-2"><Observation observation={comparison.primaryObservation} label="PRIMARY A" color="text-cyan-300" /><Observation observation={comparison.baselineObservation} label="BASELINE B" color="text-violet-300" /></div>
       <p aria-label="Instantaneous observation deltas" className="text-xs text-zinc-400">Held-observation A minus B: altitude {show(comparison.currentDeltas.altitude, 'm', true)}, speed {show(comparison.currentDeltas.speed, 'm/s', true)}, battery {show(comparison.currentDeltas.battery, '%', true)}. Unequal sample ages are shown above; no interpolation or physical-time synchronization.</p>
-      <ComparisonSampleLedger key={JSON.stringify([primary.sha256, baseline.sha256, alignment])} primary={primary} baseline={baseline} alignment={alignment} disabled={busy || anchorDirty || Boolean(pendingReview)} onSeek={value => { setPlaying(false); setTime(value); }} />
+      <SampleWindowComparison key={`selected-pair-${primary.sha256}-${baseline.sha256}-${baselineRevision}`} primary={primary} baseline={baseline} disabled={busy || anchorDirty || Boolean(pendingReview)} />
+      <ComparisonSampleLedger key={JSON.stringify([primary.sha256, baseline.sha256, baselineRevision, alignment])} primary={primary} baseline={baseline} alignment={alignment} disabled={busy || anchorDirty || Boolean(pendingReview)} onSeek={value => { setPlaying(false); setTime(value); }} />
       <RecordedBasemapControl enabled={basemapEnabled} onChange={setBasemapEnabled} label="two-flight comparison" />
       <div className="h-80 overflow-hidden rounded-lg border border-white/10" aria-label="Compared recorded tracks"><MapContainer center={point(primary.samples[0])} zoom={15} className="h-full w-full" style={{ background: '#09090b' }}><RecordedBasemapLayer enabled={basemapEnabled} /><FitComparison a={primary.samples} b={baseline.samples} />{[['primary', '#22d3ee', 'A'], ['baseline', '#a78bfa', 'B']].map(([key, color, label]) => <Fragment key={key}>{comparison[key].segments.map((segment, index) => <Polyline key={index} positions={segment.map(point)} pathOptions={{ color, weight: 3, dashArray: key === 'baseline' ? '6 4' : undefined }} />)}{comparison[`${key}Observation`].sample && <CircleMarker center={point(comparison[`${key}Observation`].sample)} radius={key === 'primary' ? 8 : 5} pathOptions={{ color: comparison[`${key}Observation`].state === 'gap' ? '#fbbf24' : color, fillOpacity: 1 }}><Tooltip permanent direction={key === 'primary' ? 'top' : 'bottom'}>{label} {comparison[`${key}Observation`].sample.time_s}s</Tooltip></CircleMarker>}</Fragment>)}</MapContainer></div>
       <p className="text-[10px] text-zinc-500">Cyan A and purple B show complete recorded tracks, broken at intervals over 5s. Markers hold observations; amber means gap. Optional basemap providers receive tile requests only after enabling this map background. Track lines/markers remain available with tiles off. No aircraft commands, location normalization or aviation data.</p>
