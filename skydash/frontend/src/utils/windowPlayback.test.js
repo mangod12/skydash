@@ -1,0 +1,15 @@
+import { describe,expect,it } from 'vitest';
+import { LOG_VERSION,SAMPLE_LOG,parseFlightCSV,sampleIndexAt } from './flightLog';
+import { windowPlaybackRange,advanceWindowPlayback } from './windowPlayback';
+const log={model_version:LOG_VERSION,samples:parseFlightCSV(SAMPLE_LOG)};
+describe('selected original-window playback clock',()=>{
+ it('derives exact original start/end times without resetting source origin or mutating samples',()=>{const before=JSON.stringify(log);expect(windowPlaybackRange(log,2,4,'Discussion')).toEqual({first:2,last:4,label:'Discussion',start:4,end:14,repeat:false});expect(JSON.stringify(log)).toBe(before);});
+ it('stops once at exact final selected timestamp even when tick overshoots or tab was delayed',()=>{const range=windowPlaybackRange(log,2,3,'Gap discussion');expect(advanceWindowPlayback(4,100,range)).toBe(12);expect(advanceWindowPlayback(12,100,range)).toBe(12);});
+ it('explicit repeat exposes exact final endpoint for one tick before returning to original first timestamp',()=>{const range=windowPlaybackRange(log,1,2,'Repeat',true);expect(advanceWindowPlayback(2,1,range)).toBe(3);expect(advanceWindowPlayback(3,100,range)).toBe(4);expect(advanceWindowPlayback(4,100,range)).toBe(2);});
+ it('keeps original gaps and held earlier observations throughout selected span, not skipping to next sample',()=>{const range=windowPlaybackRange(log,2,3,'Gap',true);let time=4;for(let i=0;i<7;i++){time=advanceWindowPlayback(time,1,range);expect(sampleIndexAt(log.samples,time)).toBe(2);}expect(time).toBe(11);time=advanceWindowPlayback(time,1,range);expect(time).toBe(12);expect(sampleIndexAt(log.samples,time)).toBe(3);expect(advanceWindowPlayback(time,1,range)).toBe(4);});
+ it('handles fractional timestamps/zero tick delta and applies supplied replay-scaled elapsed time only',()=>{const range={start:0.123,end:0.987,repeat:false};expect(advanceWindowPlayback(0.123,0,range)).toBe(0.123);expect(advanceWindowPlayback(0.123,0.1*8,range)).toBe(0.923);expect(advanceWindowPlayback(0.923,0.1*8,range)).toBe(0.987);});
+ it('clamps an out-of-range low cursor to start before advancing, no time outside selected range',()=>{expect(advanceWindowPlayback(-5,1,{start:4,end:12,repeat:false})).toBe(5);});
+ it.each([[0,0,'Single',false],[4,2,'Reversed',false],[-1,2,'Negative',false],[0,8,'Outside',false],[0,1,'',false],[0,1,'Repeat','yes']])('rejects invalid selection %j %j %j %j',(first,last,label,repeat)=>expect(()=>windowPlaybackRange(log,first,last,label,repeat)).toThrow());
+ it.each([[NaN,1],[1,-1],[Infinity,1],[1,NaN]])('rejects invalid clock values %j %j',(time,delta)=>expect(()=>advanceWindowPlayback(time,delta,{start:0,end:1,repeat:false})).toThrow());
+ it('rejects invalid range clock data and unsupported replay source',()=>{for(const range of [null,{start:1,end:1,repeat:false},{start:0,end:1},{start:0,end:Infinity,repeat:false}])expect(()=>advanceWindowPlayback(0,1,range)).toThrow();expect(()=>windowPlaybackRange({...log,model_version:'future'},0,1,'Review')).toThrow('supported');});
+});
