@@ -191,7 +191,7 @@ test.describe('SkyDash E2E Tests', () => {
       await panel.getByLabel('Choose flight CSV').setInputFiles({ name: 'synthetic-e2e.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
       await expect(panel.getByText(/Local preview loaded/)).toBeVisible();
       await panel.getByLabel('Replay position', { exact: true }).fill('8');
-      await expect(panel.getByText(/DATA GAP/)).toBeVisible();
+      await expect(panel.getByText(/DATA GAP\. Holding observation/)).toBeVisible();
       await expect(panel.getByLabel('Current recorded observation')).toContainText('Sample 3/6 at 4s');
       await panel.getByLabel('Replay position', { exact: true }).fill('12');
       await expect(panel.getByLabel('Current recorded observation')).toContainText('altitude unknown');
