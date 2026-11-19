@@ -26,7 +26,7 @@ export function toast(message, type = 'info', duration = 3000) {
   addToastFn?.({ message, type, duration, id: `${Date.now()}-${toastId}` });
 }
 
-export default function ToastContainer() {
+export default function ToastContainer({ recordedReview = false }) {
   const [toasts, setToasts] = useState([]);
 
   const addToast = useCallback((t) => {
@@ -46,7 +46,7 @@ export default function ToastContainer() {
   const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   return (
-    <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px)+0.75rem)] right-3 left-3 z-[90] flex flex-col items-end gap-2 pointer-events-none md:bottom-10 md:left-auto md:right-4">
+    <div aria-label={recordedReview ? 'Background app notifications, not recorded CSV evidence' : 'App notifications'} className={clsx('z-[90] flex flex-col items-end gap-2 pointer-events-none', recordedReview ? 'relative shrink-0 max-h-40 overflow-y-auto px-3' : 'fixed right-3 left-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px)+0.75rem)] md:bottom-10 md:left-auto md:right-4')}>
       <AnimatePresence>
         {toasts.map((t) => {
           const Icon = ICONS[t.type] || Info;
@@ -63,7 +63,7 @@ export default function ToastContainer() {
               )}
             >
               <Icon size={14} className="shrink-0" />
-              <span className="text-xs text-zinc-300 flex-1">{t.message}</span>
+              <span className="text-xs text-zinc-300 flex-1">{recordedReview && <strong className="block text-[10px] text-amber-300">BACKGROUND APP, NOT RECORDED CSV</strong>}{t.message}</span>
               <button
                 onClick={() => removeToast(t.id)}
                 className="min-h-8 min-w-8 flex items-center justify-center rounded-md text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.05] shrink-0"

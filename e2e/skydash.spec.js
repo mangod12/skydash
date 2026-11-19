@@ -384,6 +384,15 @@ test.describe('SkyDash E2E Tests', () => {
     await page.getByLabel('Allow external basemap for primary replay', { exact: true }).check(); await page.getByText('Load synthetic sample', { exact: true }).click(); await expect(page.getByLabel('Allow external basemap for primary replay', { exact: true })).not.toBeChecked(); await expect(track.locator('.leaflet-tile-pane img')).toHaveCount(0);
   });
 
+  test('recorded review scopes background app alerts without hiding them and resets context on exit', async ({ page }) => {
+    await page.getByRole('button', { name: 'Scenario Lab', exact: true }).click(); await expect(page.getByLabel('Recorded review context')).toHaveCount(0); await page.getByRole('button', { name: 'FLIGHT LOG REPLAY', exact: true }).click(); await expect(page.getByLabel('Recorded review context')).toContainText('not this CSV');
+    await page.evaluate(async () => { const { toast } = await import('/src/components/common/Toast.jsx'); toast('Synthetic background fleet warning', 'warning', 0); });
+    const notifications = page.getByLabel('Background app notifications, not recorded CSV evidence'); await expect(notifications).toContainText('BACKGROUND APP, NOT RECORDED CSV'); await expect(notifications).toContainText('Synthetic background fleet warning');
+    await page.setViewportSize({ width: 390, height: 844 }); await expect.poll(() => page.getByRole('main').evaluate(el => el.getBoundingClientRect().top)).toBeGreaterThan(150); await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.getByRole('button', { name: 'Back to Scenario Lab', exact: true }).click(); await expect(page.getByLabel('Recorded review context')).toHaveCount(0); await expect(page.getByLabel('App notifications')).toContainText('Synthetic background fleet warning'); await expect(page.getByText('BACKGROUND APP, NOT RECORDED CSV', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'FLIGHT LOG REPLAY', exact: true }).click(); await expect(page.getByLabel('Recorded review context')).toBeVisible(); await page.getByRole('button', { name: 'Dashboard', exact: true }).click(); await expect(page.getByLabel('Recorded review context')).toHaveCount(0);
+  });
+
   // ─── TELEMETRY DATA FLOW ─────────────────────────────────
 
   test('telemetry values update in real-time', async ({ page }) => {
