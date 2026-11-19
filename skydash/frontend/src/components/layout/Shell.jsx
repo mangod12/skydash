@@ -29,6 +29,7 @@ export default function Shell({ children }) {
   const [showInfo, setShowInfo] = useState(false);
   const { notificationOpen, setNotificationOpen, toggleNotifications, isMobile, setResponsive, theme, workspace, consoleOpen, setConsoleOpen } = useUIStore();
   const prevAlertCountRef = useRef(0);
+  const recordedReview = useUIStore(s => s.activeView === 'scenario' && s.recordedReviewOpen);
 
   useTelemetry();
   useAlertEngine();
@@ -94,7 +95,9 @@ export default function Shell({ children }) {
         <div className="flex-1 flex flex-col min-w-0">
           <TopBar onInfoOpen={() => setShowInfo(true)} onNotificationToggle={toggleNotifications} />
 
+          {recordedReview && <aside aria-label="Recorded review context" className="border-b border-cyan-500/25 bg-cyan-950/30 px-4 py-2 text-[11px] text-cyan-200">RECORDED CSV REVIEW. Playback and instructor notes are local review evidence, not the live fleet. Global alerts, connection indicators and fleet status belong to the background app, not this CSV. No aircraft commands are sent by this review.</aside>}
           <ConnectionLost />
+          <ToastContainer recordedReview={recordedReview} />
 
           <main className={`flex-1 min-h-0 overflow-hidden ${isMobile ? 'pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]' : ''}`}>
             {children}
@@ -119,7 +122,6 @@ export default function Shell({ children }) {
       <ScanLine />
       <NoiseOverlay />
       <MiniConsole open={consoleOpen} onClose={() => setConsoleOpen(false)} />
-      <ToastContainer />
     </>
   );
 }

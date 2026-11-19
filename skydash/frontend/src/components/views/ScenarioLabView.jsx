@@ -164,6 +164,10 @@ function MissionResult({ frame }) {
 
 export default function ScenarioLabView() {
   const [planning, setPlanning] = useState(false);
+  useEffect(() => {
+    useUIStore.getState().setRecordedReviewOpen(planning === 'flight-log');
+    return () => useUIStore.getState().setRecordedReviewOpen(false);
+  }, [planning]);
   const {
     activeScenarioId,
     selectedFleetPresetId,

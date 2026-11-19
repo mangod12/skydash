@@ -12,16 +12,19 @@ export const useUIStore = create((set, get) => ({
   missionCreateOpen: false,
   workspace: 'operator',
   consoleOpen: false,
+  recordedReviewOpen: false,
 
   setWorkspace: (ws) => set({
     workspace: ws,
+    recordedReviewOpen: false,
     sidebarOpen: ws !== 'operator',
     activeView: ws === 'analyst' ? 'intel' : 'dashboard',
     notificationOpen: ws === 'commander',
   }),
 
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-  setActiveView: (view) => set({ activeView: view }),
+  setActiveView: (view) => set({ activeView: view, recordedReviewOpen: false }),
+  setRecordedReviewOpen: (open) => set({ recordedReviewOpen: open }),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   toggleNotifications: () => set((s) => ({ notificationOpen: !s.notificationOpen })),
   setNotificationOpen: (open) => set({ notificationOpen: open }),
