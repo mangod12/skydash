@@ -1,0 +1,10 @@
+import {describe,it,expect} from 'vitest';
+import {LOG_VERSION,SAMPLE_LOG,parseFlightCSV} from './flightLog';
+import {scopedNotebookHandoff} from './notebookHandoff';
+import {readWindowNotebook} from './windowNotebook';
+const log={model_version:LOG_VERSION,sha256:'a'.repeat(64),samples:parseFlightCSV(SAMPLE_LOG)},entries=[{id:'a',first_row:2,last_row:5,label:'PRIVATE A',notes:'SECRET A'},{id:'b',first_row:4,last_row:4,label:'PRIVATE B',notes:'SECRET B'},{id:'c',first_row:1,last_row:1,label:'PRIVATE C',notes:'SECRET C'}];
+describe('scoped notebook handoff',()=>{
+ it('defaults annotations off, preserves selected IDs/bounds/applied order and round-trips existing schema',()=>{const before=JSON.stringify(entries),data=scopedNotebookHandoff(log,entries,['c','a']);expect(data.windows).toEqual([{...entries[0],label:'Saved selection 1',notes:''},{...entries[2],label:'Saved selection 3',notes:''}]);expect(JSON.stringify(data)).not.toMatch(/PRIVATE|SECRET|latitude/);expect(readWindowNotebook(JSON.stringify(data),log)).toEqual(data);expect(JSON.stringify(entries)).toBe(before);});
+ it('includes labels and notes independently only for selected copies',()=>{expect(scopedNotebookHandoff(log,entries,['b'],{includeLabels:true}).windows[0]).toEqual({...entries[1],notes:''});expect(scopedNotebookHandoff(log,entries,['b'],{includeNotes:true}).windows[0]).toEqual({...entries[1],label:'Saved selection 2'});expect(scopedNotebookHandoff(log,entries,['b'],{includeLabels:true,includeNotes:true}).windows).toEqual([entries[1]]);});
+ it('rejects empty duplicate missing identities, malformed source/copies and non-boolean annotation choices',()=>{for(const ids of [[],['a','a'],['missing'],null])expect(()=>scopedNotebookHandoff(log,entries,ids)).toThrow();expect(()=>scopedNotebookHandoff(log,entries,['a'],{includeLabels:'yes'})).toThrow();expect(()=>scopedNotebookHandoff({...log,sha256:'bad'},entries,['a'])).toThrow();expect(()=>scopedNotebookHandoff(log,[{...entries[0],last_row:999}],['a'])).toThrow();});
+});
