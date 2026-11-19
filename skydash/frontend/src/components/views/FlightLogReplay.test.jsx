@@ -126,3 +126,55 @@ it('keeps primary and comparison background permission separate, resets primary 
   const comparison = screen.getByLabelText('Allow external basemap for two-flight comparison'); expect(comparison.checked).toBe(false); fireEvent.click(comparison); expect(comparison.checked).toBe(true); expect(primary.checked).toBe(true);
   await sample(); expect(screen.getByLabelText('Allow external basemap for primary replay').checked).toBe(false); expect(globalThis.fetch).not.toHaveBeenCalled();
 });
+
+describe('review workspace presentation focus', () => {
+  const focus = value => fireEvent.change(screen.getByLabelText('Visible review panel group'), { target: { value } });
+  const wrapper = name => document.querySelector(`[data-review-panel="${name}"]`);
+  it('defaults to all and hides only wrappers without unmounting panels or refs', async () => {
+    render(<FlightLogReplay />); await sample();
+    const originals = [...document.querySelectorAll('[data-review-panel]')].map(element => element.firstChild);
+    for (const group of ['source', 'interval', 'debrief', 'all']) {
+      focus(group);
+      expect([...document.querySelectorAll('[data-review-panel]')].map(element => element.firstChild)).toEqual(originals);
+      expect(wrapper('SourceEvidence').hidden).toBe(!['all', 'source'].includes(group));
+      expect(wrapper('ReviewWindow').hidden).toBe(!['all', 'interval'].includes(group));
+      expect(wrapper('DebriefActions').hidden).toBe(!['all', 'debrief'].includes(group));
+      expect(screen.getByLabelText('Recorded replay controls')).toBeTruthy();
+      expect(screen.getByLabelText('Two-flight comparison')).toBeTruthy();
+    }
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+  it('keeps unsaved action text and original export guards through hide/show', async () => {
+    render(<FlightLogReplay />); await sample();
+    fireEvent.click(screen.getByText('New action from held source row'));
+    fireEvent.change(screen.getByLabelText('Reviewer action text'), { target: { value: 'Hidden draft remains private' } });
+    focus('source'); expect(wrapper('DebriefActions').hidden).toBe(true);
+    focus('debrief'); expect(screen.getByLabelText('Reviewer action text').value).toBe('Hidden draft remains private');
+    fireEvent.click(screen.getByText('Download follow-up packet JSON'));
+    expect(screen.getByRole('alert').textContent).toContain('Finish or cancel action edits');
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+  });
+  it('reveals a target group before exact scroll, preserves all when already visible and leaves comparison independent', async () => {
+    const scroll = vi.fn(); Element.prototype.scrollIntoView = scroll;
+    render(<FlightLogReplay />); await sample();
+    focus('debrief'); fireEvent.click(screen.getByText('Source row ledger'));
+    expect(screen.getByLabelText('Visible review panel group').value).toBe('source');
+    expect(wrapper('SourceRowLedger').hidden).toBe(false); expect(scroll).toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Compare two flights')); expect(screen.getByLabelText('Visible review panel group').value).toBe('source');
+    focus('all'); fireEvent.click(screen.getByText('Debrief actions')); expect(screen.getByLabelText('Visible review panel group').value).toBe('all');
+    delete Element.prototype.scrollIntoView;
+  });
+  it('pauses primary playback and cancels a bounded repeat without changing cursor or reviews', async () => {
+    render(<FlightLogReplay />); await sample(); selectPlaybackWindow(2, 3);
+    fireEvent.click(screen.getByText('Repeat reviewed window')); expect(screen.getByLabelText('Active selected-window playback')).toBeTruthy();
+    focus('source'); expect(screen.queryByLabelText('Active selected-window playback')).toBeNull();
+    expect(screen.getByText('Play replay')).toBeTruthy(); expect(screen.getByLabelText('Replay position').value).toBe('2');
+    focus('interval'); expect(screen.getByLabelText('Window label').value).toBe('Instructor playback'); expect(screen.getByText('Repeat reviewed window').disabled).toBe(false);
+  });
+  it('resets focus on source selection but leaves ordinary follow-up edits and failed imports alone', async () => {
+    render(<FlightLogReplay />); await sample(); focus('debrief');
+    fireEvent.change(screen.getByLabelText('Choose flight CSV'), { target: { files: [{ name: 'invalid.csv', size: 3, arrayBuffer: async () => new TextEncoder().encode('bad').buffer }] } });
+    await screen.findByRole('alert'); expect(screen.getByLabelText('Visible review panel group').value).toBe('debrief');
+    await sample(); expect(screen.getByLabelText('Visible review panel group').value).toBe('all');
+  });
+});
