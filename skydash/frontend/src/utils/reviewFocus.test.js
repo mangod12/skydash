@@ -3,7 +3,7 @@ import { REVIEW_FOCUS_GROUPS, REVIEW_SECTIONS, reviewPanelVisible } from './revi
 describe('review presentation groups', () => {
   it('maps every evidence, interval and follow-up section without duplicated destinations', () => {
     expect(new Set(REVIEW_SECTIONS.map(item => item.id)).size).toBe(REVIEW_SECTIONS.length);
-    expect(REVIEW_SECTIONS).toHaveLength(13);
+    expect(REVIEW_SECTIONS).toHaveLength(14);
     for (const section of REVIEW_SECTIONS) expect(section.group === null || REVIEW_FOCUS_GROUPS.some(group => group.key === section.group)).toBe(true);
     expect(REVIEW_SECTIONS.filter(item => item.group === null).map(item => item.id)).toEqual(['flight-comparison']);
   });
