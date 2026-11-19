@@ -1,0 +1,17 @@
+import { describe, expect, it } from 'vitest';
+import { LOG_VERSION, SAMPLE_LOG, parseFlightCSV } from './flightLog';
+import { editNotebookCopy, moveNotebookCopy } from './notebookAgenda';
+import { compareNotebookImport } from './notebookImportReview';
+import { windowNotebook } from './windowNotebook';
+const log={model_version:LOG_VERSION,sha256:'a'.repeat(64),samples:parseFlightCSV(SAMPLE_LOG)};
+const a={id:'a',first_row:3,last_row:5,label:'A',notes:'Private A'},b={id:'b',first_row:4,last_row:4,label:'B',notes:''},c={...a,id:'c',label:'Overlap'};
+describe('manual saved-copy discussion agenda',()=>{
+ it('moves one adjacent position preserving every saved ID/annotation/bound including singleton/overlap',()=>{const entries=[a,b,c];expect(moveNotebookCopy(log,entries,'b',-1)).toEqual([b,a,c]);expect(moveNotebookCopy(log,entries,'a',1)).toEqual([b,a,c]);expect(moveNotebookCopy(log,entries,'b',1)).toEqual([a,c,b]);expect(entries).toEqual([a,b,c]);});
+ it.each([['a',-1],['c',1],['missing',1],['b',0],['b',2],['b','1']])('rejects invalid move %j %j without changing entries',(id,direction)=>{const entries=[a,b,c];expect(()=>moveNotebookCopy(log,entries,id,direction)).toThrow();expect(entries).toEqual([a,b,c]);});
+ it('explicitly edits one saved annotation only, preserving ID/bounds/order/other duplicate copies',()=>{const entries=[a,b,c],result=editNotebookCopy(log,entries,'a','  Revised 🚁  ','Private revised\nnote');expect(result).toEqual([{...a,label:'Revised 🚁',notes:'Private revised\nnote'},b,c]);expect(entries).toEqual([a,b,c]);expect(result[0]).not.toBe(a);});
+ it.each([['','ok'],[' '.repeat(3),'ok'],['a'.repeat(121),'ok'],['ok','n'.repeat(4001)],['ok',null],[null,'ok']])('rejects invalid annotation label/notes atomically',(label,notes)=>{const entries=[a,b];expect(()=>editNotebookCopy(log,entries,'a',label,notes)).toThrow();expect(entries).toEqual([a,b]);});
+ it('revalidates source/models/IDs/bounds and missing copy before movement/edit',()=>{for(const action of [(l,e)=>moveNotebookCopy(l,e,'a',1),(l,e)=>editNotebookCopy(l,e,'a','edited','')]){expect(()=>action({...log,model_version:'future'},[a,b])).toThrow();expect(()=>action(log,[a,a])).toThrow();expect(()=>action(log,[{...a,last_row:7},b])).toThrow();}expect(()=>editNotebookCopy(log,[a],'missing','label','')).toThrow('no longer present');});
+ it('validates final escaped notebook byte limit on annotation save',()=>{const entries=Array.from({length:20},(_,i)=>({...a,id:'a'+i,notes:i<16?'\u0001'.repeat(4000):''}));expect(()=>windowNotebook(log,entries)).not.toThrow();expect(()=>editNotebookCopy(log,entries,'a19','A','\u0001'.repeat(4000))).toThrow('384KiB');});
+ it('can reorder an applied oversized notebook without making it larger or blocking later replacement',()=>{const entries=Array.from({length:20},(_,i)=>({...a,id:'a'+i,notes:'\u0001'.repeat(4000)}));expect(()=>windowNotebook(log,entries)).toThrow();const moved=moveNotebookCopy(log,entries,'a0',1);expect(moved.map(x=>x.id).slice(0,2)).toEqual(['a1','a0']);expect(JSON.stringify(moved).length).toBe(JSON.stringify(entries).length);});
+ it('existing notebook import comparison recognizes same-ID annotation change and order moves independently',()=>{const before=[a,b,c],edited=editNotebookCopy(log,before,'a','Revised','Private revision'),after=moveNotebookCopy(log,edited,'a',1);expect(compareNotebookImport(log,before,windowNotebook(log,after))).toMatchObject({changedCount:1,unchangedCount:2,movedCount:2,newCount:0,removedCount:0});});
+});
