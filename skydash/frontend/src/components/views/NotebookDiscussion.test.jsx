@@ -1,0 +1,37 @@
+// @vitest-environment jsdom
+import {cleanup,fireEvent,render,screen,within} from '@testing-library/react';
+import {afterEach,describe,it,expect,vi} from 'vitest';
+import NotebookDiscussion from './NotebookDiscussion';
+import ReviewWindow from './ReviewWindow';
+import {windowNotebook} from '../../utils/windowNotebook';
+import {LOG_VERSION,SAMPLE_LOG,parseFlightCSV} from '../../utils/flightLog';
+const log={model_version:LOG_VERSION,sha256:'a'.repeat(64),samples:parseFlightCSV(SAMPLE_LOG)};
+const entries=[{id:'first',first_row:3,last_row:5,label:'First discussion',notes:'Private first'},{id:'second',first_row:4,last_row:4,label:'Singleton overlap',notes:''}];
+afterEach(cleanup);
+function setup(extra={}){const onLoad=vi.fn(),onPause=vi.fn();return{...render(<NotebookDiscussion log={log} entries={entries} onLoad={onLoad} onPause={onPause} {...extra}/>),onLoad,onPause};}
+describe('manual guided notebook discussion',()=>{
+ it('starts only explicitly, previews one saved copy, boundary navigation and closing never load fields',()=>{const {onLoad,onPause}=setup();expect(screen.queryByLabelText('Discussion saved-copy preview')).toBeNull();fireEvent.click(screen.getByText('Start saved-copy discussion preview'));expect(screen.getByText('Previous saved-copy preview').disabled).toBe(true);expect(screen.getByLabelText('Discussion saved-copy preview').textContent).toContain('Notebook position 1 of 2: First discussion');expect(screen.getByLabelText('Discussion saved-copy preview').textContent).toContain('original 4s to 14s');fireEvent.click(screen.getByText('Next saved-copy preview'));expect(screen.getByText('Next saved-copy preview').disabled).toBe(true);expect(screen.getByLabelText('Discussion saved-copy preview').textContent).toContain('timestamp span 0s');fireEvent.click(screen.getByText('Previous saved-copy preview'));expect(screen.getByText('Private saved discussion notes (unverified): Private first')).toBeTruthy();fireEvent.click(screen.getByText('Close saved-copy discussion preview'));expect(screen.queryByLabelText('Discussion saved-copy preview')).toBeNull();expect(onLoad).not.toHaveBeenCalled();expect(onPause).toHaveBeenCalledTimes(4);});
+ it('preparing does not load, explicit cancel keeps state and confirmation passes only exact saved copy',()=>{const {onLoad}=setup();fireEvent.click(screen.getByText('Start saved-copy discussion preview'));fireEvent.click(screen.getByText('Prepare discussion copy for current window'));expect(onLoad).not.toHaveBeenCalled();expect(screen.getByText('Next saved-copy preview').disabled).toBe(true);expect(screen.getByText('Close saved-copy discussion preview').disabled).toBe(true);expect(screen.getByLabelText('Confirm discussion copy load').textContent).toContain('Current unsaved window fields will be lost');fireEvent.click(screen.getByText('Keep current window fields'));expect(onLoad).not.toHaveBeenCalled();fireEvent.click(screen.getByText('Prepare discussion copy for current window'));fireEvent.click(screen.getByText('Replace current fields with discussion copy'));expect(onLoad).toHaveBeenCalledExactlyOnceWith(entries[0]);expect(screen.queryByLabelText('Confirm discussion copy load')).toBeNull();expect(screen.getByLabelText('Discussion saved-copy preview').textContent).toContain('Private first');});
+ it('busy state blocks start, navigation, preparation and apply but permits cancel',()=>{const {rerender,onLoad,onPause}=setup({disabled:true});expect(screen.getByText('Start saved-copy discussion preview').disabled).toBe(true);rerender(<NotebookDiscussion log={log} entries={entries} onLoad={onLoad} onPause={onPause}/>);fireEvent.click(screen.getByText('Start saved-copy discussion preview'));fireEvent.click(screen.getByText('Prepare discussion copy for current window'));rerender(<NotebookDiscussion log={log} entries={entries} disabled onLoad={onLoad} onPause={onPause}/>);expect(screen.getByText('Replace current fields with discussion copy').disabled).toBe(true);fireEvent.click(screen.getByText('Keep current window fields'));expect(onLoad).not.toHaveBeenCalled();expect(screen.getByText('Prepare discussion copy for current window').disabled).toBe(true);});
+ it('no saved copies cannot start, labels/notes render inert',()=>{const {unmount}=setup({entries:[]});expect(screen.getByText('Start saved-copy discussion preview').disabled).toBe(true);unmount();setup({entries:[{...entries[0],label:'<img src=x onerror=alert(1)>',notes:'<script>bad()</script>'}]});fireEvent.click(screen.getByText('Start saved-copy discussion preview'));expect(screen.getByLabelText('Discussion saved-copy preview').querySelector('img,script')).toBeNull();expect(within(screen.getByLabelText('Discussion saved-copy preview')).getByText(/<script>/)).toBeTruthy();});
+});
+
+describe('guided discussion lifecycle in applied notebook',()=>{
+ it('preview leaves unsaved current fields alone, confirm loads stale fields only, applied edits/reorder reset preview',()=>{
+  const pause=vi.fn(),seek=vi.fn();render(<ReviewWindow log={log} time={8} initialNotebook={windowNotebook(log,entries)} onPause={pause} onSeek={seek}/>);
+  fireEvent.change(screen.getByLabelText('Window label'),{target:{value:'CURRENT UNSAVED'}});
+  const discussion=screen.getByRole('region',{name:'Guided saved-copy discussion'});
+  fireEvent.click(within(discussion).getByText('Start saved-copy discussion preview'));
+  expect(screen.getByLabelText('Window label').value).toBe('CURRENT UNSAVED');
+  fireEvent.click(screen.getByText('Next saved-copy preview'));expect(screen.getByLabelText('Window label').value).toBe('CURRENT UNSAVED');
+  fireEvent.click(screen.getByText('Prepare discussion copy for current window'));fireEvent.click(screen.getByText('Keep current window fields'));expect(screen.getByLabelText('Window label').value).toBe('CURRENT UNSAVED');
+  fireEvent.click(screen.getByText('Prepare discussion copy for current window'));fireEvent.click(screen.getByText('Replace current fields with discussion copy'));
+  expect(screen.getByLabelText('Window label').value).toBe('Singleton overlap');expect(screen.queryByLabelText('Reviewed sample window')).toBeNull();expect(seek).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByText('Review selected samples'));expect(screen.getByLabelText('Reviewed sample window').textContent).toContain('Data rows 4 through 4');
+  fireEvent.click(screen.getByText('Move earlier: Singleton overlap'));expect(screen.queryByLabelText('Discussion saved-copy preview')).toBeNull();
+  fireEvent.click(screen.getByText('Start saved-copy discussion preview'));expect(screen.getByLabelText('Discussion saved-copy preview').textContent).toContain('Notebook position 1 of 2: Singleton overlap');
+  fireEvent.click(screen.getByText('Edit saved annotations: Singleton overlap'));expect(screen.getByText('Prepare discussion copy for current window').disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText('Saved copy label'),{target:{value:'Renamed singleton'}});fireEvent.click(screen.getByText('Save saved-copy annotations'));
+  expect(screen.queryByLabelText('Discussion saved-copy preview')).toBeNull();expect(screen.getByLabelText('Window label').value).toBe('Singleton overlap');
+ });
+});
