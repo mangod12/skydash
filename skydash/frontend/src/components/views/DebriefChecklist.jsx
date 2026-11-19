@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import { sampleIndexAt } from '../../utils/flightLog';
 import { CHECKLIST_LIMIT, CHECKLIST_BYTES, CHECKLIST_STATES, CHECKLIST_SCOPE, checklistReview, checklistTemplate, readChecklist, checklistReport } from '../../utils/debriefChecklist';
 const button = 'rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-200 disabled:opacity-40';
 const readingValue = (value, unit) => value === null ? 'unknown' : `${value}${unit}`;
 const input = 'mt-1 block w-full min-w-0 rounded border border-white/10 bg-zinc-900 p-2 text-xs text-zinc-200';
-export default function DebriefChecklist({ log, time, onPause, onSeek, disabled = false }) {
-  const [title, setTitle] = useState('Discussion checklist'), [items, setItems] = useState([]), [draft, setDraft] = useState(null), [editing, setEditing] = useState(null);
+const DebriefChecklist = forwardRef(function DebriefChecklist({ log, time, onPause, onSeek, disabled = false, initialReview = null }, ref) {
+  const [title, setTitle] = useState(initialReview?.title || 'Discussion checklist'), [items, setItems] = useState(initialReview?.items || []), [draft, setDraft] = useState(null), [editing, setEditing] = useState(null);
   const [page, setPage] = useState(0), [pending, setPending] = useState(null), [reading, setReading] = useState(false), [remove, setRemove] = useState(null), [error, setError] = useState(''), [message, setMessage] = useState('');
   const busy = disabled || reading || Boolean(pending) || Boolean(remove), blocked = busy || Boolean(draft), pages = Math.max(1, Math.ceil(items.length / 10)), currentPage = Math.min(page, pages - 1);
+  useImperativeHandle(ref, () => ({ snapshot() { if (disabled || reading || pending || remove || draft) throw new Error('Finish or cancel checklist edits, imports or removal before using a follow-up packet.'); return checklistReview(log, title, items); } }));
   const clear = () => { setError(''); setMessage(''); };
   const edit = (key, value) => { onPause(); setDraft({ ...draft, [key]: value }); clear(); };
   const save = () => {
@@ -58,4 +59,5 @@ export default function DebriefChecklist({ log, time, onPause, onSeek, disabled 
     {pending && <div aria-label="Discussion checklist import preview" className="rounded border border-amber-500/30 p-3 space-y-2 text-xs text-amber-200"><p className="break-words whitespace-pre-wrap">{pending.kind === 'template' ? 'Reusable unverified template: all prompts reset to Pending, notes/references blank. No source identity or previous outcomes transferred.' : 'Exact source/model match, not authenticated authorship. Imported status/notes are unverified.'} Replace title and all {items.length} saved prompts with {pending.review.items.length} imported prompts? {pending.review.items.length === 0 ? 'Empty import clears this checklist only.' : ''} Title: {pending.review.title}</p><ul className="max-h-64 overflow-y-auto space-y-2">{pending.review.items.map((item, index) => <li key={item.id} className="break-words whitespace-pre-wrap">{index + 1}. {item.prompt}. Status: {item.status}. Row: {item.row ?? 'none'}. Note/reason: {item.note || '(none)'}</li>)}</ul><div className="flex flex-wrap gap-2"><button className={button} disabled={disabled || reading} onClick={() => { try { const checked = checklistReview(log, pending.review.title, pending.review.items); setTitle(checked.title); setItems(checked.items); setPending(null); setPage(0); clear(); setMessage('Checklist replaced locally only. Cursor and other reviews unchanged. Imported annotations are not verified.'); } catch (failure) { setError(failure.message); } }}>Replace discussion checklist</button><button className={button} disabled={disabled || reading} onClick={() => { setPending(null); clear(); }}>Keep current checklist</button></div></div>}
     {reading && <p role="status" className="text-xs text-violet-200">Reading checklist. Current title/list unchanged.</p>}<p className="text-xs text-zinc-500">Session-only, separate from instructor markers/actions, cases/comparison/notebooks/library. Keep exact CSV and review JSON before leaving/changing source. Template title/prompts may contain private information even though no source fields are exported. Editable, not signed or tamper-evident. No automatic storage/upload/sharing, backend writes, tasks, notifications or aircraft commands.</p>{error && <p role="alert" className="text-xs text-amber-300">{error}</p>}{message && <p role="status" className="text-xs text-violet-200">{message}</p>}
   </article>;
-}
+});
+export default DebriefChecklist;
