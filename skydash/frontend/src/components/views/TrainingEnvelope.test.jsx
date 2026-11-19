@@ -41,4 +41,11 @@ describe('training envelope review', () => {
   it('does not lose the result or notes after a download failure', () => {
     render(<TrainingEnvelope {...props} />); setup(); set('Envelope review notes', 'Keep'); URL.createObjectURL.mockImplementationOnce(() => { throw Error('blocked'); }); fireEvent.click(screen.getByText('Download envelope report')); expect(screen.getByRole('alert').textContent).toContain('could not start'); expect(screen.getByLabelText('Envelope review notes').value).toBe('Keep'); expect(screen.getByLabelText('Generated envelope review')).toBeTruthy();
   });
+  it('matching groups follow reviewed criteria and block while source busy or profile import pending/loading', async () => {
+    const view=render(<TrainingEnvelope {...props} />); setup(); const groups=()=>within(screen.getByLabelText('Maximum source altitude matching row groups')); const button=()=>groups().getByText('Seek group 1 first row 5'); expect(button().disabled).toBe(false); fireEvent.click(button()); expect(props.onSeek).toHaveBeenLastCalledWith(14);
+    set('Maximum source altitude threshold','20'); expect(button().disabled).toBe(true); run(); expect(groups().getByLabelText('Maximum source altitude group totals').textContent).toContain('groups');
+    view.rerender(<TrainingEnvelope {...props} disabled />); for(const control of groups().getAllByRole('button')) expect(control.disabled).toBe(true); view.rerender(<TrainingEnvelope {...props} />);
+    let resolve; fireEvent.change(screen.getByLabelText('Import review profile'),{target:{files:[{size:20,arrayBuffer:()=>new Promise(done=>{resolve=done;})}]}}); for(const control of groups().getAllByRole('button')) expect(control.disabled).toBe(true); resolve(new TextEncoder().encode(JSON.stringify(envelopeProfileJSON(imported))).buffer); await screen.findByText('Use imported criteria'); for(const control of groups().getAllByRole('button')) expect(control.disabled).toBe(true); fireEvent.click(screen.getByText('Keep current criteria')); expect(groups().getAllByRole('button').some(control=>!control.disabled)).toBe(true);
+  });
+
 });
