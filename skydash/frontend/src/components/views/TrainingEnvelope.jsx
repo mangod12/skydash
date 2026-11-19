@@ -1,3 +1,4 @@
+import EnvelopeMatchGroups from './EnvelopeMatchGroups';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { Download, ListChecks } from 'lucide-react';
 import { ENVELOPE_RULES, ENVELOPE_SCOPE, validateEnvelope, evaluateEnvelope, envelopeProfileJSON, readEnvelopeProfile, envelopeReport } from '../../utils/trainingEnvelope';
@@ -6,7 +7,7 @@ const input = 'mt-1 w-full rounded-lg border border-white/10 bg-zinc-900 p-2 tex
 const blank = { name: '', maxAltitude: '', maxSpeed: '', minBattery: '' };
 const fromForm = form => validateEnvelope({ name: form.name, ...Object.fromEntries(ENVELOPE_RULES.map(rule => [rule.key, form[rule.key].trim() ? Number(form[rule.key]) : null])) });
 const toForm = profile => ({ name: profile.name, ...Object.fromEntries(ENVELOPE_RULES.map(rule => [rule.key, profile[rule.key] === null ? '' : String(profile[rule.key])])) });
-const TrainingEnvelope = forwardRef(function TrainingEnvelope({ log, onSeek, onPause, initialReview = null }, ref) {
+const TrainingEnvelope = forwardRef(function TrainingEnvelope({ log, onSeek, onPause, initialReview = null, disabled = false }, ref) {
   const [form, setForm] = useState(() => initialReview ? toForm(initialReview.profile) : blank);
   const [result, setResult] = useState(() => initialReview ? evaluateEnvelope(log, initialReview.profile) : null);
   const [dirty, setDirty] = useState(false);
@@ -67,6 +68,7 @@ const TrainingEnvelope = forwardRef(function TrainingEnvelope({ log, onSeek, onP
             <div className="flex flex-wrap gap-2"><button type="button" disabled={dirty} onClick={() => navigate(rule, 0)} className={button}>First {rule.label.toLowerCase()} match</button><button type="button" disabled={dirty} onClick={() => navigate(rule, rule.matches.length - 1)} className={button}>Last {rule.label.toLowerCase()} match</button></div>
             {selection.rule === rule.key && <div className="rounded border border-white/10 p-2 text-xs text-zinc-300">Match {selection.index + 1}/{rule.matches.length}: sample {rule.matches[selection.index].index + 1} at {rule.matches[selection.index].time_s}s, value {rule.matches[selection.index].value}{rule.unit}.<div className="mt-2 flex flex-wrap gap-2"><button disabled={dirty || selection.index === 0} onClick={() => navigate(rule, selection.index - 1)} className={button}>Previous matching sample</button><button disabled={dirty || selection.index === rule.matches.length - 1} onClick={() => navigate(rule, selection.index + 1)} className={button}>Next matching sample</button></div></div>}
           </>}
+          <EnvelopeMatchGroups samples={log.samples} rule={rule} disabled={disabled || dirty || busy || Boolean(pending)} onPause={onPause} onSeek={onSeek} />
         </>}
       </section>)}
       <label className="block text-xs text-zinc-400">Envelope review notes<textarea aria-label="Envelope review notes" rows={3} maxLength={4000} value={notes} onChange={event => setNotes(event.target.value)} className={input} /></label>

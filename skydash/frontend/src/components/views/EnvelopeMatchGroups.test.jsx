@@ -1,0 +1,18 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import EnvelopeMatchGroups from './EnvelopeMatchGroups';
+import { LOG_VERSION } from '../../utils/flightLog';
+import { evaluateEnvelope } from '../../utils/trainingEnvelope';
+const profile={name:'Discussion',maxAltitude:10,maxSpeed:null,minBattery:null};
+const make=rows=>({model_version:LOG_VERSION,samples:rows.map(([time_s,altitude_m])=>({time_s,altitude_m,ground_speed_m_s:null,battery_pct:null}))});
+const log=make([[0,20],[1,30],[2,10],[3,40],[4,null],[5,50],[10,60],[16,70],[17,0],[18,80]]), rule=evaluateEnvelope(log,profile).rules[0];
+const props=()=>({samples:log.samples,rule,onPause:vi.fn(),onSeek:vi.fn()});
+afterEach(cleanup);
+describe('reviewed matching row groups',()=>{
+ it('discloses exact groups, split neighbors and5s/over5s distinction',()=>{render(<EnvelopeMatchGroups {...props()}/>);expect(screen.getByLabelText('Maximum source altitude group totals').textContent).toContain('5 groups, 7 matching rows');expect(screen.getByText('Group 1: original rows 1 through 2')).toBeTruthy();expect(screen.getAllByText(/matching cell across gap; gap over 5s/)).toHaveLength(2);expect(screen.getAllByText(/original row 5 at 4s, unknown/)).toHaveLength(2);expect(screen.getByText(/Timestamp span 5s, not event duration/)).toBeTruthy();});
+ it('seeks exact endpoints with primary pause, singleton only one control',()=>{const p=props();render(<EnvelopeMatchGroups {...p}/>);fireEvent.click(screen.getByText('Seek group 3 first row 6'));expect(p.onPause).toHaveBeenCalledTimes(1);expect(p.onSeek).toHaveBeenLastCalledWith(5);fireEvent.click(screen.getByText('Seek group 3 last row 7'));expect(p.onSeek).toHaveBeenLastCalledWith(10);expect(screen.queryByText('Seek group 2 last row 4')).toBeNull();});
+ it('blocks all group controls while disabled but leaves original results visible',()=>{const p=props();render(<EnvelopeMatchGroups {...p} disabled/>);for(const button of screen.getAllByRole('button'))expect(button.disabled).toBe(true);fireEvent.click(screen.getByText('Seek group 3 first row 6'));expect(p.onSeek).not.toHaveBeenCalled();expect(screen.getByText(/Group navigation blocked/)).toBeTruthy();});
+ it('pages12original groups and resets on explicit reevaluation even if same criteria',()=>{const source=make(Array.from({length:40},(_,i)=>[i,i%2?0:20])),r=evaluateEnvelope(source,profile).rules[0],p=props(),view=render(<EnvelopeMatchGroups {...p} samples={source.samples} rule={r}/>);expect(within(screen.getByLabelText('Maximum source altitude group ledger')).getAllByRole('listitem')).toHaveLength(12);fireEvent.click(screen.getByText('Next matching group page'));expect(screen.getByLabelText('Maximum source altitude group page').textContent).toBe('Page 2/2');expect(screen.getByText('Group 20: original rows 39 through 39')).toBeTruthy();fireEvent.click(screen.getByText('Seek group 20 first row 39'));expect(p.onSeek).toHaveBeenLastCalledWith(38);view.rerender(<EnvelopeMatchGroups {...p} samples={source.samples} rule={evaluateEnvelope(source,profile).rules[0]}/>);expect(screen.getByLabelText('Maximum source altitude group page').textContent).toBe('Page 1/2');});
+ it('no matches honest and unavailable pages disabled',()=>{const source=make([[0,null],[1,0]]);render(<EnvelopeMatchGroups {...props()} samples={source.samples} rule={evaluateEnvelope(source,profile).rules[0]}/>);expect(screen.getByText(/No matching row groups/)).toBeTruthy();expect(screen.getByText('Next matching group page').disabled).toBe(true);expect(screen.getByText('Previous matching group page').disabled).toBe(true);});
+});
