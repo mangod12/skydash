@@ -10,6 +10,7 @@ import DebriefChecklist from './DebriefChecklist';
 import DebriefFollowup from './DebriefFollowup';
 import TrainingEnvelope from './TrainingEnvelope';
 import ReviewCase from './ReviewCase';
+import NotebookSourceBundle from './NotebookSourceBundle';
 import SourceEvidence from './SourceEvidence';
 import JointChannelEvidence from './JointChannelEvidence';
 import AdjacentChannelChanges from './AdjacentChannelChanges';
@@ -58,6 +59,7 @@ export default function FlightLogReplay({ onBack }) {
   const [followupSeed, setFollowupSeed] = useState(null), [followupRevision, setFollowupRevision] = useState(0);
   const envelopeRef = useRef(null);
   const [reviewSeed, setReviewSeed] = useState(null);
+  const [notebookSeed,setNotebookSeed]=useState(null),[sourceRevision,setSourceRevision]=useState(0);
   const [reviewRevision, setReviewRevision] = useState(0);
   const [log, setLog] = useState(null);
   const [panelFocus, setPanelFocus] = useState('all');
@@ -94,7 +96,7 @@ export default function FlightLogReplay({ onBack }) {
     return () => clearInterval(timer);
   }, [replaying, speed, summary, playbackWindow]);
   const playWindow=(first,last,label,repeat)=>{if(busy||!log)return;try{const range=windowPlaybackRange(log,first,last,label,repeat);setPlaybackWindow(range);setTime(range.start);setPlaying(true);setError('');setMessage('Selected-window primary playback started at original source time. No gap skipping or source edits. Comparison playback and reviews unchanged.');}catch(failure){setError(failure.message||'Selected-window playback could not start.');}};
-  const select = data => { setPanelFocus('all'); setPendingSection(null); setFollowupSeed(null); setBasemapEnabled(false); if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setPlaybackWindow(null); setConfirmDelete(false); };
+  const select = data => { setSourceRevision(value=>value+1); setNotebookSeed(null); setPanelFocus('all'); setPendingSection(null); setFollowupSeed(null); setBasemapEnabled(false); if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setPlaybackWindow(null); setConfirmDelete(false); };
   const followupSnapshot = () => { if (busy || !log || !actionsRef.current || !checklistRef.current) throw new Error('Wait for source and follow-up panels to finish loading.'); return { actions: actionsRef.current.snapshot(), checklist: checklistRef.current.snapshot() }; };
   const applyFollowup = packet => { setFollowupSeed({ sha256: log.sha256, reviewRevision, packet }); setFollowupRevision(value => value + 1); };
   const currentFollowup = followupSeed?.sha256 === log?.sha256 && followupSeed?.reviewRevision === reviewRevision ? followupSeed.packet : null;
@@ -106,6 +108,7 @@ export default function FlightLogReplay({ onBack }) {
     select(opened.log); setReviewSeed(opened.data); setReviewRevision(value => value + 1);
     setMessage('Portable case opened in this browser only. No server archive record created.');
   };
+  const openNotebookBundle=opened=>{select(opened.log);setReviewSeed(null);setReviewRevision(value=>value+1);setNotebookSeed(opened.data.notebook);setMessage('Notebook bundle opened locally with exact full source and saved copies only. Other reviews/comparison cleared. Load a saved selection and review explicitly; no backend record created.');};
   const openMapped = converted => {
     select({ filename: converted.filename, csv_text: converted.csv_text, sha256: converted.sha256, samples: converted.samples, model_version: converted.model_version, title: converted.filename.replace(/\.csv$/i, ''), notes: '' });
     setReviewSeed(null); setReviewRevision(value => value + 1);
@@ -166,6 +169,7 @@ export default function FlightLogReplay({ onBack }) {
       {log && <ReviewFocus focus={panelFocus} onChange={changeFocus} onNavigate={navigateSection} disabled={busy} />}
       <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><CSVColumnMapping workspaceBusy={busy} onOpen={openMapped} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
       <details className="rounded-xl border border-fuchsia-500/20 p-3"><summary className="cursor-pointer text-xs text-fuchsia-200">Device-local review library (explicit storage, not a backup)</summary><div className="mt-3"><LocalReviewLibrary hasSource={Boolean(log)} workspaceBusy={busy} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
+      <NotebookSourceBundle key={`notebook-bundle-${sourceRevision}-${reviewRevision}`} workspaceBusy={busy} onOpen={openNotebookBundle} onPause={()=>{setPlaying(false);setPlaybackWindow(null);}} />
       <ReviewCase workspaceBusy={busy} log={busy ? null : log} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} />
       <div className="grid gap-4 lg:grid-cols-3">
         <aside className="min-w-0 space-y-4">
@@ -231,7 +235,7 @@ export default function FlightLogReplay({ onBack }) {
               {confirmDelete && <div className="text-xs text-amber-300">Permanently delete this server log and its fixed notes? Download both first if needed.<div className="mt-2 flex gap-2"><button disabled={busy} onClick={remove} className={button}>Confirm delete record</button><button disabled={busy} onClick={() => setConfirmDelete(false)} className={button}>Keep record</button></div></div>}
             </article>
             <div hidden={!reviewPanelVisible(panelFocus, 'source')} data-review-panel="RecordedChannelChart"><RecordedChannelChart key={`chart-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} /></div>
-            <div id="selected-sample-window" hidden={!reviewPanelVisible(panelFocus, 'interval')} data-review-panel="ReviewWindow"><ReviewWindow key={`window-${log.sha256}-${reviewRevision}`} onPlayWindow={playWindow} playbackDisabled={busy} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} /></div>
+            <div id="selected-sample-window" hidden={!reviewPanelVisible(panelFocus, 'interval')} data-review-panel="ReviewWindow"><ReviewWindow initialNotebook={notebookSeed} key={`window-${log.sha256}-${reviewRevision}`} onPlayWindow={playWindow} playbackDisabled={busy} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} /></div>
             <div hidden={!reviewPanelVisible(panelFocus, 'interval')} data-review-panel="ReferenceCircle"><ReferenceCircle key={`circle-${log.sha256}-${reviewRevision}`} log={log} time={time} disabled={busy} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} /></div>
             <div hidden={!reviewPanelVisible(panelFocus, 'source')} data-review-panel="SourceRowLedger"><SourceRowLedger key={`ledger-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} /></div>
             <div hidden={!reviewPanelVisible(panelFocus, 'source')} data-review-panel="SourceEvidence"><SourceEvidence key={`evidence-${log.sha256}-${reviewRevision}`} log={log} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} /></div>
