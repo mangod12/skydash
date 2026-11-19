@@ -29,7 +29,7 @@ describe('flight-log import, replay, debrief and archive workflow', () => {
     render(<FlightLogReplay />); await sample(); expect(globalThis.fetch).not.toHaveBeenCalled();
     expect(screen.getByLabelText('Current recorded observation').textContent).toContain('Sample 1/6 at 0s');
     fireEvent.change(screen.getByLabelText('Replay position'), { target: { value: '8' } });
-    expect(screen.getByLabelText('Current recorded observation').textContent).toContain('at 4s'); expect(screen.getByText(/DATA GAP/)).toBeTruthy();
+    expect(screen.getByLabelText('Current recorded observation').textContent).toContain('at 4s'); expect(screen.getByText(/DATA GAP\. Holding observation/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Replay position'), { target: { value: '12' } });
     expect(screen.getByLabelText('Current recorded observation').textContent).toContain('altitude unknown');
     fireEvent.click(screen.getByText('Reset replay')); expect(screen.getByLabelText('Replay position').value).toBe('0');
