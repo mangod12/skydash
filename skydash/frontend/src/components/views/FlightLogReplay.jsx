@@ -3,6 +3,7 @@ import InstructorDebrief from './InstructorDebrief';
 import TrainingEnvelope from './TrainingEnvelope';
 import ReviewCase from './ReviewCase';
 import SourceEvidence from './SourceEvidence';
+import ReviewWindow from './ReviewWindow';
 import CSVColumnMapping from './CSVColumnMapping';
 import LocalReviewLibrary from './LocalReviewLibrary';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -199,6 +200,7 @@ export default function FlightLogReplay({ onBack }) {
               {!canWrite && <p className="text-xs text-amber-300">Analyst role required to save or delete shared records.</p>}
               {confirmDelete && <div className="text-xs text-amber-300">Permanently delete this server log and its fixed notes? Download both first if needed.<div className="mt-2 flex gap-2"><button disabled={busy} onClick={remove} className={button}>Confirm delete record</button><button disabled={busy} onClick={() => setConfirmDelete(false)} className={button}>Keep record</button></div></div>}
             </article>
+            <ReviewWindow key={`window-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
             <SourceEvidence key={`evidence-${log.sha256}-${reviewRevision}`} log={log} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
             <TrainingEnvelope ref={envelopeRef} initialReview={reviewSeed?.envelope || null} key={`envelope-${log.sha256}-${reviewRevision}`} log={log} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
             <InstructorDebrief ref={debriefRef} initialReview={reviewSeed?.debrief || null} key={`instructor-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => setPlaying(false)} onSeek={value => { setPlaying(false); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} />
