@@ -1,3 +1,4 @@
+import SourceStepping from './SourceStepping';
 import RecordedBlocks from './RecordedBlocks';
 import RecordedChannelRanks from './RecordedChannelRanks';
 import ReviewFocus from './ReviewFocus';
@@ -201,6 +202,7 @@ export default function FlightLogReplay({ onBack }) {
               </div>
               {playbackWindow&&<div aria-label="Active selected-window playback" className="rounded border border-cyan-500/30 p-3 space-y-2 text-xs text-cyan-200"><p className="break-words">{playbackWindow.repeat?'REPEATING SELECTED WINDOW':'ONE-PASS SELECTED WINDOW'}: {playbackWindow.label}. Original rows {playbackWindow.first+1} through {playbackWindow.last+1}, original {playbackWindow.start}s to {playbackWindow.end}s. {replaying?'Playing recorded clock.':'Stopped at selected final timestamp.'} Gaps are held, not skipped. Final endpoint shown for at least one timer tick before repeat. Browser timer cadence is approximate, not telemetry or a new source.</p><button className={button} onClick={()=>{setPlaying(false);setPlaybackWindow(null);setMessage('Selected-window playback stopped. Cursor kept at current original time. Full-source replay controls restored.');}}>Stop selected-window playback</button><p>Stop, scrub, reset, global play/pause, actions that pause or seek primary replay cancel the bound. Starting a window always restarts at its original first timestamp. Comparison clock and source/review data unchanged. Session-only, not saved in portable artifacts/library.</p></div>}
               <p className="text-xs text-zinc-400" aria-label="Current recorded observation">Sample {index + 1}/{summary.count} at {current.time_s}s / {current.latitude.toFixed(5)}, {current.longitude.toFixed(5)} / altitude {reading(current.altitude_m, 'm')} / speed {reading(current.ground_speed_m_s, 'm/s')} / battery {reading(current.battery_pct, '%')}</p>
+              <SourceStepping log={log} time={time} disabled={busy} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} />
               <p className={`text-xs ${inGap ? 'text-amber-300' : 'text-zinc-500'}`}>{inGap ? 'DATA GAP. ' : ''}Holding observation from {current.time_s}s; age {(time - current.time_s).toFixed(1)}s. {next ? `Next sample at ${next.time_s}s.` : 'Final sample reached.'}</p>
               <RecordedBasemapControl enabled={basemapEnabled} onChange={setBasemapEnabled} label="primary replay" />
               <div className="h-80 overflow-hidden rounded-lg border border-white/10" aria-label="Recorded flight track">
