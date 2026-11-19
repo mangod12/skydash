@@ -45,3 +45,38 @@ describe('follow-up packet workflow', () => {
     fireEvent.click(screen.getByText('Edit prompt')); expect(() => checklist.current.snapshot()).toThrow('Finish'); fireEvent.click(screen.getByText('Cancel prompt edits')); fireEvent.click(screen.getByText('Remove prompt')); expect(() => checklist.current.snapshot()).toThrow('Finish'); fireEvent.click(screen.getByText('Keep prompt')); expect(checklist.current.snapshot()).toEqual(snapshot.checklist);
   });
 });
+
+describe('optional replacement comparison safety', () => {
+  it('compares only on demand, renders all before/after fields and downloads a report without applying', async () => {
+    setup(); const incoming = JSON.parse(json()); incoming.actions.items[0].owner = 'Different owner'; incoming.checklist.title = 'Revised title'; incoming.checklist.items = [];
+    load(JSON.stringify(incoming)); await screen.findByLabelText('Follow-up packet import preview'); expect(screen.queryByLabelText('Follow-up replacement comparison')).toBeNull();
+    fireEvent.click(screen.getByText('Compare with current saved follow-up')); expect(screen.getByLabelText('Action replacement counts').textContent).toContain('changed 1'); expect(screen.getByLabelText('Checklist replacement counts').textContent).toContain('removed 1');
+    expect(screen.getByLabelText('Action register replacement differences').textContent).toContain('Different owner'); expect(screen.getByLabelText('Action register replacement differences').textContent).toContain('Owner label');
+    fireEvent.click(screen.getByText('Download replacement comparison report')); const text = await blobText(URL.createObjectURL.mock.calls[0][0]); expect(text).toContain('Different owner'); expect(text).toContain('BEFORE title: Private title'); expect(text).toContain('AFTER title: Revised title'); expect(apply).not.toHaveBeenCalled();
+  });
+  it('blocks stale saved snapshots for Replace and report, refreshes explicitly then permits atomic apply', async () => {
+    setup(); load(json()); await screen.findByLabelText('Follow-up packet import preview'); fireEvent.click(screen.getByText('Compare with current saved follow-up'));
+    const changed = { ...snapshot, actions: actionRegister(log, [{ ...action, text: 'Saved after comparison' }]) }; getSnapshot.mockReturnValue(changed);
+    fireEvent.click(screen.getByText('Replace both follow-up sections')); expect(apply).not.toHaveBeenCalled(); expect(screen.getByRole('alert').textContent).toContain('Refresh comparison before Replace');
+    fireEvent.click(screen.getByText('Download replacement comparison report')); expect(URL.createObjectURL).not.toHaveBeenCalled(); expect(screen.getByRole('alert').textContent).toContain('Refresh comparison before download');
+    expect(screen.getByLabelText('Action register replacement differences').textContent).not.toContain('Saved after comparison');
+    fireEvent.click(screen.getByText('Refresh replacement comparison')); expect(screen.getByLabelText('Action register replacement differences').textContent).toContain('Saved after comparison');
+    fireEvent.click(screen.getByText('Replace both follow-up sections')); expect(apply).toHaveBeenCalledWith(JSON.parse(json())); expect(screen.queryByLabelText('Follow-up replacement comparison')).toBeNull();
+  });
+  it('drafts block initial compare, refresh, download and apply without discarding last comparison', async () => {
+    setup(); load(json()); await screen.findByLabelText('Follow-up packet import preview'); getSnapshot.mockImplementation(() => { throw Error('Finish current draft'); });
+    fireEvent.click(screen.getByText('Compare with current saved follow-up')); expect(screen.getByRole('alert').textContent).toContain('Finish current draft'); expect(screen.queryByLabelText('Follow-up replacement comparison')).toBeNull();
+    getSnapshot.mockReturnValue(snapshot); fireEvent.click(screen.getByText('Compare with current saved follow-up')); getSnapshot.mockImplementation(() => { throw Error('New draft'); });
+    for (const text of ['Refresh replacement comparison', 'Download replacement comparison report', 'Replace both follow-up sections']) { fireEvent.click(screen.getByText(text)); expect(screen.getByRole('alert').textContent).toContain('New draft'); }
+    expect(screen.getByLabelText('Follow-up replacement comparison')).toBeTruthy(); expect(apply).not.toHaveBeenCalled(); expect(URL.createObjectURL).not.toHaveBeenCalled();
+  });
+  it('cancel clears comparison, new preview starts uncompared and workspace loading locks comparison actions', async () => {
+    const view = setup(); load(json()); await screen.findByLabelText('Follow-up packet import preview'); fireEvent.click(screen.getByText('Compare with current saved follow-up')); fireEvent.click(screen.getByText('Keep current follow-up sections')); expect(screen.queryByLabelText('Follow-up replacement comparison')).toBeNull();
+    load(json()); await screen.findByLabelText('Follow-up packet import preview'); expect(screen.queryByLabelText('Follow-up replacement comparison')).toBeNull(); fireEvent.click(screen.getByText('Compare with current saved follow-up'));
+    view.rerender(<DebriefFollowup log={log} workspaceBusy getSnapshot={getSnapshot} onApply={apply} onPause={pause} />);
+    for (const text of ['Refresh replacement comparison', 'Download replacement comparison report', 'Replace both follow-up sections']) expect(screen.getByText(text).disabled).toBe(true);
+  });
+  it('download failure keeps preview/comparison/current saved work unchanged', async () => {
+    setup(); load(json()); await screen.findByLabelText('Follow-up packet import preview'); fireEvent.click(screen.getByText('Compare with current saved follow-up')); URL.createObjectURL.mockImplementationOnce(() => { throw Error('Download blocked'); }); fireEvent.click(screen.getByText('Download replacement comparison report')); expect(screen.getByRole('alert').textContent).toContain('Download blocked'); expect(screen.getByLabelText('Follow-up replacement comparison')).toBeTruthy(); expect(apply).not.toHaveBeenCalled();
+  });
+});
