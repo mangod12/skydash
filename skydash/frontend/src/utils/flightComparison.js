@@ -13,12 +13,18 @@ export function comparisonAlignment(primary, baseline, alignment = null) {
   if (!Number.isInteger(primaryIndex) || primaryIndex < 0 || primaryIndex >= primary.samples.length || !Number.isInteger(baselineIndex) || baselineIndex < 0 || baselineIndex >= baseline.samples.length || typeof label !== 'string' || !label.trim() || label.length > 200) throw new Error('Choose an existing sample row for each source and a review anchor label (1 to 200 characters).');
   return { primaryIndex, baselineIndex, primaryS: primary.samples[primaryIndex].time_s, baselineS: baseline.samples[baselineIndex].time_s, label, manual: true };
 }
+export function mappedComparisonSourceTime(samples, origin, reviewTime) {
+  // An exact review-clock sample match must return its original numeric time.
+  // No epsilon snapping: near timestamps remain separate review positions.
+  let low = 0, high = samples.length - 1;
+  while (low < high) { const middle = Math.floor((low + high) / 2); if (samples[middle].time_s - origin < reviewTime) low = middle + 1; else high = middle; }
+  return samples[low].time_s - origin === reviewTime ? samples[low].time_s : reviewTime + origin;
+}
 export function compareFlights(primary, baseline, time = 0, alignment = null) {
   if (primary.model_version !== LOG_VERSION || baseline.model_version !== LOG_VERSION) throw new Error('Both logs must use the current supported CSV replay model.');
   const a = summarizeFlight(primary.samples), b = summarizeFlight(baseline.samples);
   const anchor = comparisonAlignment(primary, baseline, alignment);
-  // Preserve exact source endpoints under floating-point anchor subtraction/addition.
-  const sourceTime = (samples, origin) => time === -origin ? 0 : time === samples.at(-1).time_s - origin ? samples.at(-1).time_s : time + origin;
+  const sourceTime = (samples, origin) => mappedComparisonSourceTime(samples, origin, time);
   const left = recordedObservation(primary.samples, sourceTime(primary.samples, anchor.primaryS)), right = recordedObservation(baseline.samples, sourceTime(baseline.samples, anchor.baselineS));
   const delta = key => a[key] === null || b[key] === null ? null : a[key] - b[key];
   // Never compare a held gap observation, or a time outside either source.
