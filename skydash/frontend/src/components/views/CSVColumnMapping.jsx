@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import MappingRecipe from './MappingRecipe';
 import { Download } from 'lucide-react';
 import { MAX_LOG_BYTES } from '../../utils/flightLog';
 import { MAPPING_FIELDS, MAPPING_SCOPE, readMappingCSV, convertMappedCSV, mappingReport } from '../../utils/csvColumnMapping';
@@ -17,7 +18,7 @@ export default function CSVColumnMapping({ onOpen, onPause, workspaceBusy = fals
       if (file.size > MAX_LOG_BYTES) throw new Error('Input CSV must be at most 1MiB.');
       const text = new globalThis.TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(await file.arrayBuffer());
       const parsed = readMappingCSV(text);
-      setSource({ ...parsed, text, filename: file.name.slice(0, 120) }); setMapping(empty()); setResult(null); setConfirm(false); setMessage('CSV structure loaded locally. No columns inferred or current replay replaced. Choose meanings and units explicitly.');
+      setSource(previous => ({ ...parsed, text, filename: file.name.slice(0, 120), revision: (previous?.revision ?? 0) + 1 })); setMapping(empty()); setResult(null); setConfirm(false); setMessage('CSV structure loaded locally. No columns inferred or current replay replaced. Choose meanings and units explicitly.');
     } catch (failure) { setError(failure.message || 'Input CSV could not be read. Previous mapping remains.'); }
     finally { setBusy(false); }
   };
@@ -36,7 +37,7 @@ export default function CSVColumnMapping({ onOpen, onPause, workspaceBusy = fals
     <header><p className="text-[10px] tracking-widest text-orange-300">TRAINING / EXPLICIT CSV ADAPTER</p><h2 className="mt-1 text-lg font-semibold text-zinc-100">Map another numeric CSV</h2><p className="mt-2 text-xs leading-relaxed text-zinc-400">{MAPPING_SCOPE}</p></header>
     <p className="text-xs text-zinc-500">Comma-separated UTF-8, one unique header,2to10,000 data rows,3to64columns,1MiB. Quoted single-line cells and escaped quotes allowed; no multiline fields, ISO dates, binary flight logs, semicolon files, scaled coordinates, radians or battery voltage conversion. Extra columns are excluded. Required numeric time/coordinates cannot be missing. Optional blank cells stay unknown.</p>
     <label className="block text-xs text-zinc-300">Choose CSV for explicit mapping<input aria-label="Choose CSV for mapping" disabled={busy || workspaceBusy} type="file" accept=".csv,text/csv" onChange={read} className="mt-2 block w-full min-w-0 text-xs text-zinc-400" /></label>
-    {source && <><p className="break-words text-xs text-zinc-400">{source.filename}: {source.rows.length} rows, {source.headers.length} columns. No automatic semantic detection.</p><form onSubmit={preview} className="space-y-3">
+    {source && <><p className="break-words text-xs text-zinc-400">{source.filename}: {source.rows.length} rows, {source.headers.length} columns. No automatic semantic detection.</p><MappingRecipe key={source.revision} headers={source.headers} mapping={mapping} onApply={changed} onPause={onPause} disabled={busy || workspaceBusy} /><form onSubmit={preview} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{MAPPING_FIELDS.map(field => <label key={field.key} className="text-xs text-zinc-400">{field.label}{field.required ? ' (required)' : ' (optional)'}<select aria-label={`Map ${field.key}`} disabled={busy} className={input} value={mapping.columns[field.key] ?? ''} onChange={event => changed({ ...mapping, columns: { ...mapping.columns, [field.key]: event.target.value === '' ? null : Number(event.target.value) } })}><option value="">{field.required ? 'Choose source column' : 'Unmapped / unknown'}</option>{source.headers.map((header, index) => <option key={index} value={index}>{index + 1}. {header}</option>)}</select></label>)}</div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[
         ['timeUnit', 'Input time unit', [['', 'Choose unit'], ['s', 'Seconds'], ['ms', 'Milliseconds']]],
