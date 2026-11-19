@@ -25,7 +25,7 @@ Scrub or play at 1x, 2x, 4x or 8x. Each position holds the latest observation at
 
 The report describes the entire source independently of playback position: sample count, duration, connected-segment distance, gaps, maximum recorded altitude and speed, minimum recorded battery and channel completeness. Connected-segment distance excludes gaps and is not actual flown distance. No grades, causal claims or scenario scores are inferred. Notes are explicitly analyst-authored, not sensor observations.
 
-Download the report and exact source CSV. These contain location data. The source and notes stay in the current browser session until Save to server, but basemap tile requests go to external map providers for the viewed area. Unsaved data is lost when leaving the workspace. New imports and opening records replace the current unsaved draft, as the UI states.
+Download the report and exact source CSV. These contain location data. The source and notes stay in the current browser session until Save to server, and recorded-review basemap tiles are off by default. Explicitly enabling a map background sends viewed-area tile requests to the configured provider, external by default. Unsaved data is lost when leaving the workspace. New imports and opening records replace the current unsaved draft, as the UI states.
 
 ## Server archive and deployment boundary
 
@@ -50,7 +50,7 @@ Backend tests cover source validation, API contracts, duplicate rejection, bound
 
 ## Two-flight debrief comparison
 
-After loading primary A, choose Compare two flights and import a baseline B, or load the clearly synthetic baseline. Both logs use the same bounded CSV schema; no backend archive or network upload is required. Basemap tile requests still go to external providers. A source change clears its comparison. A new baseline replaces comparison notes, as stated before loading. Invalid imports preserve the last good pair and notes.
+After loading primary A, choose Compare two flights and import a baseline B, or load the clearly synthetic baseline. Both logs use the same bounded CSV schema; no backend archive or network upload is required. Recorded-review background tiles are off by default; explicitly enabling a background sends viewed-area requests to the configured provider, external by default. A source change clears its comparison. A new baseline replaces comparison notes, as stated before loading. Invalid imports preserve the last good pair and notes.
 
 By default the shared cursor aligns each file's relative time zero, not UTC, takeoff, an exercise event or progress along a route. Optional manual sample anchors are described below. Play at 1x/2x/4x/8x, scrub, pause and reset. Paired cards show exact sample time and age. Each side holds the latest observation. A gap over five seconds is flagged and suppresses all instantaneous channel differences. Beyond either file's last timestamp, that side shows no observation, hides its marker and suppresses differences. No source is stretched to match the other.
 
@@ -80,7 +80,7 @@ Editing criteria marks previous results stale and disables evidence navigation a
 
 Download review profile exports reusable criteria only, with format `skydash-training-envelope-v1`. It contains no source fingerprint, samples or review notes and is intentionally not source-bound. Keep the exact CSV separately to reproduce a report. Import profile JSON (up to 8KiB) validates exact fields, numeric ranges and supported format, then previews values and requires confirmation before replacing fields. Imported policy identity is unverified. Applying it preserves review notes, marks the old result stale and does not auto-run. Bad imports preserve the current fields and result.
 
-This workflow is browser-local and makes no backend writes. Profiles/results/notes are session-only until downloaded; changing source or leaving the workspace discards them. Re-export after edits. The optional server CSV archive stores none of this review state. This feature works while the hosted archive is unavailable; normal map tile requests still go to external basemap providers.
+This workflow is browser-local and makes no backend writes. Profiles/results/notes are session-only until downloaded; changing source or leaving the workspace discards them. Re-export after edits. The optional server CSV archive stores none of this review state. This feature works while the hosted archive is unavailable; recorded-review background tiles are off by default and require per-map permission.
 
 ## Portable review case (single-file local handoff)
 
@@ -147,3 +147,11 @@ Download comparison review JSON keeps the exact baseline CSV/title/filename/fing
 After loading the exact primary, Import comparison review JSON works even before any baseline is loaded. Format `skydash-comparison-review-v1` is bounded to2MiB, embedded CSV to1MiB, notes to4,000characters, and existing title/anchor limits. Strict known fields, replay/comparison/anchor versions, exact current primary bytes/fingerprint, embedded baseline bytes/fingerprint, full numeric CSV parsing and anchor sample bounds are checked. Imported samples, metrics, reports or arbitrary extra fields are rejected. Fingerprints identify source bytes, not aircraft or reviewer identity.
 
 A valid file previews baseline identity/sample count/fingerprint, anchor rows/label and notes character count without changing the current comparison. Explicit Replace comparison with imported review replaces only baseline, comparison notes, anchors and unfinished anchor edits, then pauses at review clock zero. Evidence is recomputed from source CSVs. Primary source, primary analyst/instructor/envelope reviews and backend records remain unchanged. Keep current comparison cancels. Invalid imports preserve existing pair/notes/alignment. Exports are blocked while an import preview or unfinished anchor edits remain, so cancel the preview before exporting current work. Re-export after edits; the restored comparison is still session-only.
+
+## Recorded-review map privacy
+
+Primary replay and two-flight comparison draw recorded track segments and sample markers on a blank map by default. No background tile layer is mounted for those maps until the reviewer explicitly checks its permission box. This is intentional, not missing source data. Panning, zooming and replay work with tiles off. The map still shows source coordinates; this is not coordinate redaction.
+
+Enabling background tiles sends the viewed map area and connection details to the configured provider, OpenStreetMap by default (or the existing self-hosted build-time tile URL). Keep disabled for sensitive sites unless deployment policy permits that provider. Primary/comparison permissions are separate, session-only, not exported and never restored from imported files. Primary source loading, case opening and mapped-source confirmation reset primary background off; loading/reopening/clearing a comparison resets its background off. Comparison remount on a changed primary also starts off. Turning off unmounts its layer and stops new layer requests; it cannot recall prior requests, provider logs, in-flight requests or cached tiles.
+
+This affects only the two recorded-review background layers, not other SkyDash network traffic or live maps, backend archive calls, browser extensions or the surrounding deployment. It does not claim offline, air-gap, access-control or no-network operation. Existing deployment tile URL/attribution settings are unchanged. Use approved deployment/network controls for sensitive data, not this checkbox alone.

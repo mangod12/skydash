@@ -6,9 +6,9 @@ import SourceEvidence from './SourceEvidence';
 import CSVColumnMapping from './CSVColumnMapping';
 import LocalReviewLibrary from './LocalReviewLibrary';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, Polyline, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { ArrowLeft, Download, Play, Pause, RotateCcw, Save, Upload } from 'lucide-react';
-import { DARK_BASEMAP } from '../../utils/basemap';
+import RecordedBasemapLayer, { RecordedBasemapControl } from './RecordedBasemap';
 import { apiFetch } from '../../utils/api';
 import { API_BASE, API_CONFIGURED } from '../../utils/runtimeConfig';
 import { useCan } from '../../hooks/useCan';
@@ -47,6 +47,7 @@ export default function FlightLogReplay({ onBack }) {
   const [notes, setNotes] = useState('');
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [basemapEnabled, setBasemapEnabled] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [archive, setArchive] = useState([]);
   const [archiveReady, setArchiveReady] = useState(false);
@@ -67,7 +68,7 @@ export default function FlightLogReplay({ onBack }) {
     const timer = setInterval(() => { const now = performance.now(); const delta = (now - previous) / 1000; previous = now; setTime(value => Math.min(summary.durationS, value + delta * speed)); }, 100);
     return () => clearInterval(timer);
   }, [replaying, speed, summary]);
-  const select = data => { if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setConfirmDelete(false); };
+  const select = data => { setBasemapEnabled(false); if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setConfirmDelete(false); };
   const caseSnapshot = () => {
     if (busy || !log || !debriefRef.current || !envelopeRef.current) throw new Error('Wait for source loading to finish before exporting a case.');
     return { log, review: { title: title.trim(), notes }, debrief: debriefRef.current.snapshot(), envelope: envelopeRef.current.snapshot() };
@@ -141,7 +142,7 @@ export default function FlightLogReplay({ onBack }) {
         <aside className="min-w-0 space-y-4">
           <div className="rounded-xl border border-white/10 p-4 space-y-3">
             <h2 className="text-sm font-semibold text-zinc-200">1. Preview a single-aircraft CSV</h2>
-            <p className="text-xs leading-relaxed text-zinc-400">CSV and notes stay in this browser until you choose Save to server. Map tiles are fetched from external providers for the viewed area. A new preview or opening a record replaces your unsaved draft. Direct binary MAVLink and PX4 ULog imports are not supported. Use the explicit column mapper above for other numeric CSVs, or convert offline into this schema.</p>
+            <p className="text-xs leading-relaxed text-zinc-400">CSV and notes stay in this browser until you choose Save to server. External background map tiles are off by default. Enabling a recorded-review basemap discloses the viewed area to its provider. A new preview or opening a record replaces your unsaved draft. Direct binary MAVLink and PX4 ULog imports are not supported. Use the explicit column mapper above for other numeric CSVs, or convert offline into this schema.</p>
             <code className="block break-all text-[10px] text-cyan-300">{LOG_HEADER}</code>
             <p className="text-xs text-zinc-500">UTF-8, unquoted numeric cells, 2 to 10,000 rows, 1MiB, up to 6 hours starting at 0s. Latitude within 85°; no dateline crossing. Optional altitude, speed and battery cells may be blank (unknown). Coordinates and time cannot be blank.</p>
             <label className="block text-xs text-zinc-300"><Upload size={14} className="inline mr-2" />Choose CSV<input aria-label="Choose flight CSV" type="file" accept=".csv,text/csv" disabled={busy} onChange={fileChosen} className="mt-2 block w-full min-w-0 text-xs text-zinc-400 file:mr-2 file:rounded file:border-0 file:bg-cyan-950 file:p-2 file:text-cyan-200" /></label>
@@ -172,9 +173,10 @@ export default function FlightLogReplay({ onBack }) {
               </div>
               <p className="text-xs text-zinc-400" aria-label="Current recorded observation">Sample {index + 1}/{summary.count} at {current.time_s}s / {current.latitude.toFixed(5)}, {current.longitude.toFixed(5)} / altitude {reading(current.altitude_m, 'm')} / speed {reading(current.ground_speed_m_s, 'm/s')} / battery {reading(current.battery_pct, '%')}</p>
               <p className={`text-xs ${inGap ? 'text-amber-300' : 'text-zinc-500'}`}>{inGap ? 'DATA GAP. ' : ''}Holding observation from {current.time_s}s; age {(time - current.time_s).toFixed(1)}s. {next ? `Next sample at ${next.time_s}s.` : 'Final sample reached.'}</p>
+              <RecordedBasemapControl enabled={basemapEnabled} onChange={setBasemapEnabled} label="primary replay" />
               <div className="h-80 overflow-hidden rounded-lg border border-white/10" aria-label="Recorded flight track">
                 <MapContainer center={point(log.samples[0])} zoom={15} className="h-full w-full" style={{ background: '#09090b' }}>
-                  <TileLayer url={DARK_BASEMAP.url} attribution={DARK_BASEMAP.attribution} className={DARK_BASEMAP.className} maxZoom={DARK_BASEMAP.maxZoom} maxNativeZoom={DARK_BASEMAP.maxNativeZoom} />
+                  <RecordedBasemapLayer enabled={basemapEnabled} />
                   <FitTrack samples={log.samples} />
                   {summary.segments.map((segment, segmentIndex) => <Polyline key={segmentIndex} positions={segment.map(point)} pathOptions={{ color: '#22d3ee', weight: 3 }} />)}
                   <CircleMarker center={point(current)} radius={8} pathOptions={{ color: inGap ? '#fbbf24' : '#34d399', fillOpacity: 1 }}><Tooltip permanent direction="top">RECORDED {current.time_s}s</Tooltip></CircleMarker>
