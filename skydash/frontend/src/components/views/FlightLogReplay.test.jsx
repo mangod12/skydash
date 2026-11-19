@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { TextEncoder, TextDecoder } from 'node:util';
 import { webcrypto } from 'node:crypto';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import FlightLogReplay from './FlightLogReplay';
 import { SAMPLE_LOG, LOG_VERSION, flightCSVHash } from '../../utils/flightLog';
@@ -18,7 +18,7 @@ beforeEach(async () => {
   vi.stubGlobal('fetch', vi.fn(async () => response([])));
 });
 afterEach(() => { vi.useRealTimers(); cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
-const sample = async () => { fireEvent.click(screen.getByText('Load synthetic sample')); await screen.findByLabelText('Current recorded observation'); };
+const sample = async () => { const button = screen.getByText('Load synthetic sample'); await waitFor(() => expect(button.disabled).toBe(false)); fireEvent.click(button); await waitFor(() => expect(button.disabled).toBe(false)); await screen.findByLabelText('Current recorded observation'); };
 const refreshAndOpen = async () => {
   globalThis.fetch.mockResolvedValueOnce(response([saved])).mockResolvedValueOnce(response(saved));
   fireEvent.click(screen.getByText('Refresh server archive')); await screen.findByText('Saved training');
@@ -175,6 +175,10 @@ describe('review workspace presentation focus', () => {
     render(<FlightLogReplay />); await sample(); focus('debrief');
     fireEvent.change(screen.getByLabelText('Choose flight CSV'), { target: { files: [{ name: 'invalid.csv', size: 3, arrayBuffer: async () => new TextEncoder().encode('bad').buffer }] } });
     await screen.findByRole('alert'); expect(screen.getByLabelText('Visible review panel group').value).toBe('debrief');
-    await sample(); expect(screen.getByLabelText('Visible review panel group').value).toBe('all');
+    const digest = await webcrypto.subtle.digest('SHA-256', new TextEncoder().encode(SAMPLE_LOG)); let releaseHash;
+    vi.spyOn(globalThis.crypto.subtle, 'digest').mockImplementationOnce(() => new Promise(resolve => { releaseHash = () => resolve(digest); }));
+    const reloading = sample(); await waitFor(() => expect(releaseHash).toBeTypeOf('function'));
+    expect(screen.getByText('Load synthetic sample').disabled).toBe(true); expect(screen.getByLabelText('Visible review panel group').value).toBe('debrief');
+    releaseHash(); await reloading; expect(screen.getByLabelText('Visible review panel group').value).toBe('all');
   });
 });
