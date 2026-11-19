@@ -1,10 +1,11 @@
+import FollowupReferenceIndex from './FollowupReferenceIndex';
 import FollowupReplacement from './FollowupReplacement';
 import { followupReplacementDiff, followupDiffReport } from '../../utils/followupReplacement';
 import FollowupShelf from './FollowupShelf';
 import { useState } from 'react';
 import { FOLLOWUP_BYTES, FOLLOWUP_SCOPE, followupPacket, readFollowupPacket, followupReport } from '../../utils/debriefFollowup';
 const button = 'rounded-lg border border-fuchsia-500/25 bg-fuchsia-500/10 px-3 py-2 text-xs text-fuchsia-200 disabled:opacity-40';
-export default function DebriefFollowup({ log, workspaceBusy = false, getSnapshot, onApply, onPause }) {
+export default function DebriefFollowup({ log, workspaceBusy = false, getSnapshot, onApply, onPause, onSeek }) {
   const [reading, setReading] = useState(false), [pending, setPending] = useState(null), [error, setError] = useState(''), [message, setMessage] = useState('');
   const [comparison, setComparison] = useState(null);
   const blocked = workspaceBusy || reading || Boolean(pending);
@@ -57,6 +58,7 @@ export default function DebriefFollowup({ log, workspaceBusy = false, getSnapsho
       <div className="flex flex-wrap gap-2"><button className={button} disabled={workspaceBusy || reading} onClick={compare}>{comparison ? 'Refresh replacement comparison' : 'Compare with current saved follow-up'}</button>{comparison && <button className={button} disabled={workspaceBusy || reading} onClick={downloadComparison}>Download replacement comparison report</button>}</div>
       {comparison && <FollowupReplacement comparison={comparison} />}
       <div className="flex flex-wrap gap-2"><button className={button} disabled={workspaceBusy || reading} onClick={apply}>Replace both follow-up sections</button><button className={button} disabled={workspaceBusy || reading} onClick={() => { setPending(null); setComparison(null); setError(''); setMessage('Packet import canceled. Both current sections kept, including edits made during preview.'); }}>Keep current follow-up sections</button></div></section>}
+    <FollowupReferenceIndex log={log} getSnapshot={getSnapshot} onPause={onPause} onSeek={onSeek} disabled={blocked} />
     <FollowupShelf log={log} getSnapshot={getSnapshot} onPreview={data => { setComparison(null); setPending(data); setError(''); setMessage('Stored packet preview ready. Current sections unchanged.'); }} onPause={onPause} disabled={blocked} />
     {reading && <p role="status" className="text-xs text-fuchsia-200">Reading follow-up packet. Both current reviews unchanged.</p>}<p className="text-xs text-zinc-500">512KiB strict UTF-8/known fields/models/exact-source validation. No imported metrics accepted; report evidence recomputed from loaded source. JSON has no coordinates/CSV, but private annotations can mention sensitive places/people. Current edits are session-only unless explicitly saved to the local shelf below; source/review revision clears this preview. Matching hashes authenticate neither author nor completion. Editable, not signed or tamper-evident. No automatic storage/upload/sharing/backend writes/tasks/notifications or aircraft commands.</p>{error && <p role="alert" className="text-xs text-amber-300">{error}</p>}{message && <p role="status" className="text-xs text-fuchsia-200">{message}</p>}
   </article>;
