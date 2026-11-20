@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import NotebookDuplicatePreview from './NotebookDuplicatePreview';
+import {applyNotebookDuplicate} from '../../utils/notebookDuplicatePreview';
 import NotebookBoundsEditor from './NotebookBoundsEditor';
 import {applyNotebookBounds} from '../../utils/notebookBoundsPreview';
 import NotebookAgendaPreview from './NotebookAgendaPreview';
@@ -85,6 +87,11 @@ export default function WindowNotebook({ log, result, dirty, onLoad, onPause, on
     const checked=applyNotebookAgenda(log,entries,ids,preview);
     onPause();setEntries(checked);setRevision(value=>value+1);setRemoveId(null);setError('');setMessage('Previewed complete agenda order applied. Every saved copy ID/bounds/annotation kept exactly once. Current window/source/clock/comparison and earlier files/snapshots unchanged. Derived notebook previews reset; future exports follow this order.');
   };
+  const duplicateSelected=(ids,preview)=>{
+    if(reading||bundleBusy||editing||pending||playbackDisabled||removeId)return;
+    const checked=applyNotebookDuplicate(log,entries,ids,preview);
+    onPause();setEntries(checked);setRevision(value=>value+1);setRemoveId(null);setError('');setMessage('Previewed duplicates appended with fresh IDs in original notebook order. All existing copies kept exact. Current window/source/clock/comparison and earlier files/snapshots unchanged. Derived notebook previews reset. Duplicate records are not independent flights or new observations.');
+  };
   const samples = log.samples, model = log.model_version;
   const summaries = useMemo(() => {
     const source = { samples, model_version: model };
@@ -121,6 +128,6 @@ export default function WindowNotebook({ log, result, dirty, onLoad, onPause, on
     <div hidden={!visible('discussion')} data-notebook-tool="discussion">
     <NotebookDiscussion key={`discussion-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)} onPause={onPause} onLoad={onLoad} />
     </div>
-    <div hidden={!visible('manage')} data-notebook-tool="saved-copies" className="space-y-3"><NotebookAgendaPreview key={`agenda-preview-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} onApply={applyAgenda} /><NotebookRemoval key={`removal-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} onRemove={removeSelected} />{list(entries)}</div>{error && <p role="alert" className="text-xs text-amber-300">{error}</p>}{message && <p role="status" className="text-xs text-sky-200">{message}</p>}
+    <div hidden={!visible('manage')} data-notebook-tool="saved-copies" className="space-y-3"><NotebookDuplicatePreview key={`duplicate-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} onDuplicate={duplicateSelected} /><NotebookAgendaPreview key={`agenda-preview-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} onApply={applyAgenda} /><NotebookRemoval key={`removal-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} onRemove={removeSelected} />{list(entries)}</div>{error && <p role="alert" className="text-xs text-amber-300">{error}</p>}{message && <p role="status" className="text-xs text-sky-200">{message}</p>}
   </section>;
 }
