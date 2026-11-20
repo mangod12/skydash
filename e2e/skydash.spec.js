@@ -371,40 +371,36 @@ test.describe('SkyDash E2E Tests', () => {
 
   test('notebook task focus retains hidden drafts and evidence guards without changing full export contents', async ({ page }) => {
     await page.getByRole('button',{name:'Scenario Lab',exact:true}).click();await page.getByRole('button',{name:'FLIGHT LOG REPLAY',exact:true}).click();
-await page.getByText('Load synthetic sample',{exact:true}).click();
-const window=page.getByRole('article',{name:'Selected-sample review window',exact:true});
-const notebook=window.getByRole('region',{name:'Review window notebook',exact:true});
-const choice=notebook.getByLabel('Notebook task focus',{exact:true});
-const discussion=notebook.getByRole('region',{name:'Guided saved-copy discussion',exact:true});
-const matrix=notebook.getByRole('region',{name:'Saved-copy recorded availability matrix',exact:true});
-const comparison=page.getByRole('article',{name:'Two-flight comparison',exact:true});
-await comparison.getByText('Load synthetic baseline',{exact:true}).click();await comparison.getByLabel('Comparison time',{exact:true}).fill('6');
-for(const[first,last,label]of [['2','5','Focus gap copy'],['4','4','Focus singleton']]){
- for(const[name,value]of [['Window start data row',first],['Window end data row',last],['Window label',label],['Window discussion notes','Private saved focus note']])await window.getByLabel(name,{exact:true}).fill(value);
- await window.getByText('Review selected samples',{exact:true}).click();await notebook.getByText('Save reviewed window copy to notebook',{exact:true}).click();
-}
-await window.getByLabel('Window label',{exact:true}).fill('UNSAVED_CURRENT');await page.getByLabel('Replay position',{exact:true}).fill('8');
-await expect(choice).toHaveValue('all');await discussion.getByText('Start saved-copy discussion preview',{exact:true}).click();
-const inspector=discussion.getByRole('region',{name:'Discussion saved-copy channel inspector',exact:true});
-await inspector.getByText('Open discussion channel inspector',{exact:true}).click();await inspector.getByText('Next discussion original row',{exact:true}).click();
-await matrix.getByText('Review saved-copy availability',{exact:true}).click();await matrix.getByLabel('Saved-copy availability filter',{exact:true}).selectOption('gap');
-await choice.selectOption('discussion');await expect(discussion).toBeVisible();await expect(matrix).toBeHidden();await expect(notebook.getByText('Load saved selection: Focus gap copy',{exact:true})).toBeHidden();
-await expect(inspector.getByLabel('Discussion inspector exact row',{exact:true})).toContainText('original row 3 at 4s');
-if(typeof capture==='function'){await capture('desktop-discussion',discussion);await capture('desktop-focus',notebook.getByRole('region',{name:'Notebook focus controls',exact:true}));}
-await choice.selectOption('evidence');await expect(discussion).toBeHidden();await expect(matrix.getByRole('region',{name:'Reviewed saved-copy availability',exact:true})).toContainText('Previous stale result');await expect(matrix.getByText('Download reviewed availability report',{exact:true})).toBeDisabled();
-await page.setViewportSize({width:390,height:1000});if(typeof capture==='function')await capture('mobile-evidence-stale',matrix);
-await choice.selectOption('discussion');await expect(inspector.getByLabel('Discussion inspector exact row',{exact:true})).toContainText('original row 3 at 4s');
-await choice.selectOption('manage');await expect(matrix).toBeHidden();await notebook.getByText('Edit saved annotations: Focus gap copy',{exact:true}).click();await notebook.getByLabel('Saved copy private notes',{exact:true}).fill('UNSAVED_PRIVATE_NOTE');await expect(choice).toBeDisabled();
-if(typeof capture==='function'){await capture('mobile-edit-lock',notebook.getByRole('region',{name:'Saved notebook annotation editor',exact:true}));await capture('mobile-focus-lock',notebook.getByRole('region',{name:'Notebook focus controls',exact:true}));}
-await notebook.getByText('Discard saved-copy annotation edits',{exact:true}).click();await expect(choice).toBeEnabled();
-await choice.selectOption('handoff');await expect(notebook.getByText('Download window notebook JSON',{exact:true})).toBeVisible();await expect(discussion).toBeHidden();
-const waiting=page.waitForEvent('download');await notebook.getByText('Download window notebook JSON',{exact:true}).click();const stream=await(await waiting).createReadStream(),chunks=[];for await(const chunk of stream)chunks.push(chunk);const text=Buffer.concat(chunks).toString();const outgoing=JSON.parse(text);expect(outgoing.windows).toHaveLength(2);expect(outgoing.windows[0].notes).toBe('Private saved focus note');expect(text).not.toContain('UNSAVED_');expect(text).not.toContain('focus":');if(typeof saveReport==='function')saveReport(text);
-if(typeof capture==='function'){await capture('mobile-handoff',notebook.getByRole('region',{name:'Scoped notebook handoff',exact:true}));await capture('mobile-focus-handoff',notebook.getByRole('region',{name:'Notebook focus controls',exact:true}));}
-await choice.selectOption('manage');await notebook.getByText('Move earlier: Focus singleton',{exact:true}).click();await choice.selectOption('evidence');await expect(matrix.getByRole('region',{name:'Reviewed saved-copy availability',exact:true})).toHaveCount(0);await choice.selectOption('discussion');await expect(discussion.getByRole('region',{name:'Discussion saved-copy preview',exact:true})).toHaveCount(0);
-await choice.selectOption('all');await expect(discussion).toBeVisible();await expect(matrix).toBeVisible();await expect(notebook.getByText('Load saved selection: Focus singleton',{exact:true})).toBeVisible();
-await expect(window.getByLabel('Window label',{exact:true})).toHaveValue('UNSAVED_CURRENT');await expect(page.getByLabel('Replay position',{exact:true})).toHaveValue('8');await expect(comparison.getByLabel('Comparison time',{exact:true})).toHaveValue('6');
-if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))throw Error('horizontal overflow');
-
+    await page.getByText('Load synthetic sample',{exact:true}).click();
+    const window=page.getByRole('article',{name:'Selected-sample review window',exact:true});
+    const notebook=window.getByRole('region',{name:'Review window notebook',exact:true});
+    const choice=notebook.getByLabel('Notebook task focus',{exact:true});
+    const discussion=notebook.getByRole('region',{name:'Guided saved-copy discussion',exact:true});
+    const matrix=notebook.getByRole('region',{name:'Saved-copy recorded availability matrix',exact:true});
+    const comparison=page.getByRole('article',{name:'Two-flight comparison',exact:true});
+    await comparison.getByText('Load synthetic baseline',{exact:true}).click();await comparison.getByLabel('Comparison time',{exact:true}).fill('6');
+    for(const[first,last,label]of [['2','5','Focus gap copy'],['4','4','Focus singleton']]){
+     for(const[name,value]of [['Window start data row',first],['Window end data row',last],['Window label',label],['Window discussion notes','Private saved focus note']])await window.getByLabel(name,{exact:true}).fill(value);
+     await window.getByText('Review selected samples',{exact:true}).click();await notebook.getByText('Save reviewed window copy to notebook',{exact:true}).click();
+    }
+    await window.getByLabel('Window label',{exact:true}).fill('UNSAVED_CURRENT');await page.getByLabel('Replay position',{exact:true}).fill('8');
+    await expect(choice).toHaveValue('all');await discussion.getByText('Start saved-copy discussion preview',{exact:true}).click();
+    const inspector=discussion.getByRole('region',{name:'Discussion saved-copy channel inspector',exact:true});
+    await inspector.getByText('Open discussion channel inspector',{exact:true}).click();await inspector.getByText('Next discussion original row',{exact:true}).click();
+    await matrix.getByText('Review saved-copy availability',{exact:true}).click();await matrix.getByLabel('Saved-copy availability filter',{exact:true}).selectOption('gap');
+    await choice.selectOption('discussion');await expect(discussion).toBeVisible();await expect(matrix).toBeHidden();await expect(notebook.getByText('Load saved selection: Focus gap copy',{exact:true})).toBeHidden();
+    await expect(inspector.getByLabel('Discussion inspector exact row',{exact:true})).toContainText('original row 3 at 4s');
+    await choice.selectOption('evidence');await expect(discussion).toBeHidden();await expect(matrix.getByRole('region',{name:'Reviewed saved-copy availability',exact:true})).toContainText('Previous stale result');await expect(matrix.getByText('Download reviewed availability report',{exact:true})).toBeDisabled();
+    await page.setViewportSize({width:390,height:1000});
+    await choice.selectOption('discussion');await expect(inspector.getByLabel('Discussion inspector exact row',{exact:true})).toContainText('original row 3 at 4s');
+    await choice.selectOption('manage');await expect(matrix).toBeHidden();await notebook.getByText('Edit saved annotations: Focus gap copy',{exact:true}).click();await notebook.getByLabel('Saved copy private notes',{exact:true}).fill('UNSAVED_PRIVATE_NOTE');await expect(choice).toBeDisabled();
+    await notebook.getByText('Discard saved-copy annotation edits',{exact:true}).click();await expect(choice).toBeEnabled();
+    await choice.selectOption('handoff');await expect(notebook.getByText('Download window notebook JSON',{exact:true})).toBeVisible();await expect(discussion).toBeHidden();
+    const waiting=page.waitForEvent('download');await notebook.getByText('Download window notebook JSON',{exact:true}).click();const stream=await(await waiting).createReadStream(),chunks=[];for await(const chunk of stream)chunks.push(chunk);const text=Buffer.concat(chunks).toString();const outgoing=JSON.parse(text);expect(outgoing.windows).toHaveLength(2);expect(outgoing.windows[0].notes).toBe('Private saved focus note');expect(text).not.toContain('UNSAVED_');expect(text).not.toContain('focus":');
+    await choice.selectOption('manage');await notebook.getByText('Move earlier: Focus singleton',{exact:true}).click();await choice.selectOption('evidence');await expect(matrix.getByRole('region',{name:'Reviewed saved-copy availability',exact:true})).toHaveCount(0);await choice.selectOption('discussion');await expect(discussion.getByRole('region',{name:'Discussion saved-copy preview',exact:true})).toHaveCount(0);
+    await choice.selectOption('all');await expect(discussion).toBeVisible();await expect(matrix).toBeVisible();await expect(notebook.getByText('Load saved selection: Focus singleton',{exact:true})).toBeVisible();
+    await expect(window.getByLabel('Window label',{exact:true})).toHaveValue('UNSAVED_CURRENT');await expect(page.getByLabel('Replay position',{exact:true})).toHaveValue('8');await expect(comparison.getByLabel('Comparison time',{exact:true})).toHaveValue('6');
+    if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))throw Error('horizontal overflow');
   });
 
   test('saved-copy availability matrix filters missing original channels and within-copy gaps without changing drafts and blocks stale exports', async ({ page }) => {
