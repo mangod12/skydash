@@ -31,7 +31,8 @@
     "package-training-intake": "node scripts/package-training-intake.mjs",
     "create-training-example": "node scripts/create-training-example.mjs",
     "report-review-comparison": "node scripts/report-review-comparison.mjs",
-    "build:offline-review": "vite build --config vite.offline-review.config.js"
+    "build:offline-review": "vite build --config vite.offline-review.config.js",
+    "offline-review-distribution": "node scripts/offline-review-distribution.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",
