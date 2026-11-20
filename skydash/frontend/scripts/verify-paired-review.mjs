@@ -14,6 +14,7 @@ async function loadValidator(entry) {
   return import('data:text/javascript;base64,' + Buffer.from(chunks[0].code).toString('base64'));
 }
 export const loadPairedValidator = () => loadValidator('src/utils/pairedReviewBundle.js');
+export const loadCaseValidator = () => loadValidator('src/utils/reviewCase.js');
 export const loadNotebookValidator = () => loadValidator('src/utils/notebookSourceBundle.js');
 export async function verifyPairedFile(filename, { reportPath = null, expectedSha256 = null } = {}) {
   if (expectedSha256 !== null && !/^[a-fA-F0-9]{64}$/.test(expectedSha256)) throw new Error('Expected bundle SHA-256 must contain exactly64hexadecimal characters.');
