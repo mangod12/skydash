@@ -19,7 +19,7 @@ Create a training manifest in the folder that owns its listed files. Use format 
 
 Do not infer expectations from a filename, embedded hash or a successful earlier receipt. Obtain them through an independent trusted route. Computing a hash from a received file is useful for reproducibility, but it does not authenticate the file. If you also have an independent expectation for the complete manifest bytes, pass it separately with `--expect-sha256`.
 
-V1 manifests still accept only notebook/paired. Use V2 explicitly to include a case, not a changed file extension or guessed kind. Both formats allow1to20unique canonical in-folder regular files,20MiB combined data and a64KiB manifest. Case/notebook files are limited to2MiB each; paired files to4MiB. Traversal, outside symlinks, duplicate aliases, unknown fields and unsupported formats fail.
+V1 manifests still accept only notebook/paired. Use V2 explicitly to include a case, not a changed file extension or guessed kind. Both formats allow 1 to 20 unique canonical in-folder regular files, 20 MiB combined data and a 64 KiB manifest. Case/notebook files are limited to 2 MiB each; paired files to 4 MiB. Traversal, outside symlinks, duplicate aliases, unknown fields and unsupported formats fail.
 
 ## Check and read the report
 
@@ -38,7 +38,7 @@ A completed structural check means all specified expected artifact bytes and nes
 
 ## Optionally check original conversion relations
 
-Create a separate lineage manifest with format `skydash-training-lineage-manifest-v1` and `conversions`,1to20ordered entries. Each entry has exactly `original`, `recipe` and `converted`; each of those has exactly `path` and independently expected complete-file `sha256`. Files are unique canonical regular files inside the lineage manifest's own folder. Original/converted inputs are at most1MiB each, recipes64KiB and lineage data20MiB total. Its manifest is at most64KiB. The two manifests keep separate folder roots and data budgets, at most40MiB combined plus the two manifests.
+Create a separate lineage manifest with format `skydash-training-lineage-manifest-v1` and `conversions`, 1 to 20 ordered entries. Each entry has exactly `original`, `recipe` and `converted`; each of those has exactly `path` and independently expected complete-file `sha256`. Files are unique canonical regular files inside the lineage manifest's own folder. Original/converted inputs are at most 1 MiB each, recipes 64 KiB and lineage data 20 MiB total. Its manifest is at most 64 KiB. The two manifests keep separate folder roots and data budgets, at most 40 MiB combined plus the two manifests.
 
 For all listed originals, first check whether you can truthfully confirm WGS84 decimal-degree coordinates. The recipe's declaration cannot do that for you. Only then run:
 
@@ -52,7 +52,7 @@ The command reproduces every conversion using the current adapter, checks all th
 
 ## Read evidence without adding it into a score
 
-Bundle/copy ordinals are positions in the selected package, not verified chronology or student identity. Exact-source reuse is different from repeated complete artifacts. Repeated sources and overlapping/singleton copies are not independent flights or training completions. Never sum their samples, spans, distances, grades or completion counts. First/last source seconds have an unverified time basis; their span is not continuous observation. Every interval is unsampled, including intervals of5seconds or less, and a known channel cell does not mean a correct sensor.
+Bundle/copy ordinals are positions in the selected package, not verified chronology or student identity. Exact-source reuse is different from repeated complete artifacts. Repeated sources and overlapping/singleton copies are not independent flights or training completions. Never sum their samples, spans, distances, grades or completion counts. First/last source seconds have an unverified time basis; their span is not continuous observation. Every interval is unsampled, including intervals of 5 seconds or less, and a known channel cell does not mean a correct sensor.
 
 The HTML omits filenames, paths, titles, private notes, marker text/IDs, criteria values, coordinates and individual readings. Hashes, counts, bounds, times and reuse patterns can still identify sensitive work. The report is editable and unsigned. It is not an authenticated history or custody record, a complete handoff certificate, a source backup, a reopenable bundle or a readiness assessment. Share only after reviewing its audience and retain the original package and validator checkout.
 
