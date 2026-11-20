@@ -1,0 +1,9 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, expect, it, vi } from 'vitest';
+import BaselineReplacementPreview from './BaselineReplacementPreview';
+afterEach(cleanup);
+const current = { filename: 'old.csv', sha256: 'abc' }, candidate = { filename: 'new.csv', sha256: 'def', samples: [{ time_s: 0 }, { time_s: 7 }], model_version: 'skydash-flight-csv-v1' };
+it('has no preview without both current and checked candidate', () => { const { container } = render(<BaselineReplacementPreview current={current} />); expect(container.textContent).toBe(''); });
+it('shows exact source identities and explicit separate-source consequences without acting automatically', () => { const onConfirm = vi.fn(), onCancel = vi.fn(); render(<BaselineReplacementPreview current={current} candidate={candidate} onConfirm={onConfirm} onCancel={onCancel} />); expect(screen.getByRole('heading')).toBe(document.activeElement); expect(screen.getByText(/fingerprint differs/)).toBeTruthy(); expect(screen.getByText(/Primary A, its clock/)).toBeTruthy(); expect(onConfirm).not.toHaveBeenCalled(); fireEvent.click(screen.getByText('Keep current baseline and comparison')); expect(onCancel).toHaveBeenCalledOnce(); fireEvent.click(screen.getByText('Replace baseline with checked source')); expect(onConfirm).toHaveBeenCalledOnce(); });
+it('warns on identical bytes and blocks both actions while checking', () => { const onConfirm = vi.fn(); render(<BaselineReplacementPreview current={current} candidate={{ ...candidate, sha256: current.sha256 }} disabled onConfirm={onConfirm} />); expect(screen.getByText(/fingerprint is identical/)).toBeTruthy(); fireEvent.click(screen.getByText('Replace baseline with checked source')); expect(onConfirm).not.toHaveBeenCalled(); expect(screen.getByText('Keep current baseline and comparison').disabled).toBe(true); });

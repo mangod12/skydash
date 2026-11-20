@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { TextEncoder, TextDecoder } from 'node:util';
 import { webcrypto } from 'node:crypto';
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import FlightComparison from './FlightComparison';
 import { SAMPLE_LOG, LOG_VERSION, parseFlightCSV, flightCSVHash } from '../../utils/flightLog';
@@ -13,7 +13,7 @@ beforeEach(async () => {
   primary = { title: 'Primary test', filename: 'primary.csv', sha256: await flightCSVHash(SAMPLE_LOG), model_version: LOG_VERSION, csv_text: SAMPLE_LOG, samples: parseFlightCSV(SAMPLE_LOG) };
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
-const load = async () => { fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByText(/Baseline B loaded locally/); await screen.findByLabelText('Comparison time'); };
+const load = async () => { fireEvent.click(screen.getByText('Load synthetic baseline')); await waitFor(() => expect(screen.getByText('Load synthetic baseline').disabled).toBe(false)); if (screen.queryByText('Replace baseline with checked source')) fireEvent.click(screen.getByText('Replace baseline with checked source')); await screen.findByText(/Baseline B loaded locally/); await screen.findByLabelText('Comparison time'); };
 const file = text => ({ name: 'second.csv', size: text.length, arrayBuffer: async () => new TextEncoder().encode(text).buffer });
 describe('two-flight local comparison workflow', () => {
   it('requires a baseline, stays local, compares gaps and shorter-source boundaries explicitly', async () => {
@@ -29,7 +29,7 @@ describe('two-flight local comparison workflow', () => {
   });
   it('imports an actual second file and warns if the source is identical', async () => {
     render(<FlightComparison primary={primary} />);
-    fireEvent.change(screen.getByLabelText('Choose baseline CSV'), { target: { files: [file(SAMPLE_LOG)] } }); await screen.findByLabelText('Comparison time');
+    fireEvent.change(screen.getByLabelText('Choose baseline CSV'), { target: { files: [file(SAMPLE_LOG)] } }); if (screen.queryByLabelText('Comparison time')) fireEvent.click(await screen.findByText('Replace baseline with checked source')); await screen.findByLabelText('Comparison time');
     expect(screen.getByRole('alert').textContent).toContain('IDENTICAL SOURCE CHECKSUMS'); expect(screen.getByText(/B \/ second.csv/)).toBeTruthy(); expect(globalThis.fetch).not.toHaveBeenCalled();
   });
   it('keeps the last good comparison and notes if the next baseline fails validation', async () => {
@@ -140,4 +140,36 @@ it('starts basemap off and resets permission on new baseline, imported review or
   fireEvent.click(screen.getByLabelText(label)); const { createComparisonReview } = await import('../../utils/comparisonReview'); const contents = await createComparisonReview(primary, primary);
   fireEvent.change(screen.getByLabelText('Import comparison review JSON'), { target: { files: [{ name:'review.json', size:contents.length, arrayBuffer:async()=>new TextEncoder().encode(contents).buffer }] } }); await screen.findByText('Preview comparison review: Primary test'); expect(screen.getByLabelText(label).checked).toBe(true); fireEvent.click(screen.getByText('Replace comparison with imported review')); expect(screen.getByLabelText(label).checked).toBe(false);
   fireEvent.click(screen.getByLabelText(label)); fireEvent.click(screen.getByText('Clear comparison')); await load(); expect(screen.getByLabelText(label).checked).toBe(false);
+});
+
+describe('checked baseline replacement', () => {
+  it('keeps notes, applied alignment, unfinished anchor edits, cursor and basemap on cancel even for identical source', async () => {
+    render(<FlightComparison primary={primary} />); await load();
+    fireEvent.change(screen.getByLabelText('Comparison notes'), { target: { value: 'PRIVATE current notes' } });
+    fireEvent.change(screen.getByLabelText('A anchor data row'), { target: { value: '4' } }); fireEvent.change(screen.getByLabelText('B anchor data row'), { target: { value: '3' } }); fireEvent.change(screen.getByLabelText('Review anchor label'), { target: { value: 'Current applied anchors' } }); fireEvent.click(screen.getByText('Apply manual sample anchors'));
+    fireEvent.change(screen.getByLabelText('Comparison time'), { target: { value: '2' } }); fireEvent.click(screen.getByLabelText('Allow external basemap for two-flight comparison'));
+    fireEvent.change(screen.getByLabelText('Review anchor label'), { target: { value: 'PRIVATE unfinished anchors' } });
+    fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByText(/fingerprint is identical/);
+    expect(screen.getByRole('heading', { name: 'Baseline checked locally. Current comparison not replaced.' })).toBe(document.activeElement);
+    fireEvent.click(screen.getByText('Keep current baseline and comparison'));
+    expect(screen.getByLabelText('Comparison notes').value).toBe('PRIVATE current notes'); expect(screen.getByLabelText('Comparison time').value).toBe('2'); expect(screen.getByLabelText('Review anchor label').value).toBe('PRIVATE unfinished anchors'); expect(screen.getByLabelText('Applied comparison alignment').textContent).toContain('Current applied anchors'); expect(screen.getByLabelText('Allow external basemap for two-flight comparison').checked).toBe(true); expect(screen.getByText('Download comparison review JSON').disabled).toBe(true); expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+  it('confirms checked bytes only and clears comparison notes/anchors/permission even with identical source', async () => {
+    render(<FlightComparison primary={primary} />); await load(); fireEvent.change(screen.getByLabelText('Comparison notes'), { target: { value: 'discarded notes' } }); fireEvent.change(screen.getByLabelText('Review anchor label'), { target: { value: 'unfinished anchors' } }); fireEvent.click(screen.getByLabelText('Allow external basemap for two-flight comparison'));
+    fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByText(/fingerprint is identical/); fireEvent.click(screen.getByText('Replace baseline with checked source'));
+    expect(screen.getByLabelText('Comparison notes').value).toBe(''); expect(screen.getByLabelText('Comparison time').value).toBe('0'); expect(screen.getByLabelText('Review anchor label').value).toBe(''); expect(screen.getByLabelText('Allow external basemap for two-flight comparison').checked).toBe(false); expect(screen.getByLabelText('Applied comparison alignment').textContent).toContain('CSV starts'); expect(screen.queryByLabelText('Recorded baseline replacement preview')).toBeNull(); expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+  it('invalid second check drops only its old proposal, while clear and imported review discard proposals', async () => {
+    render(<FlightComparison primary={primary} />); await load(); fireEvent.change(screen.getByLabelText('Comparison notes'), { target: { value: 'Kept' } }); fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByLabelText('Recorded baseline replacement preview');
+    fireEvent.change(screen.getByLabelText('Choose baseline CSV'), { target: { files: [file('bad')] } }); await screen.findByRole('alert'); expect(screen.queryByLabelText('Recorded baseline replacement preview')).toBeNull(); expect(screen.getByLabelText('Comparison notes').value).toBe('Kept');
+    fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByLabelText('Recorded baseline replacement preview');
+    const { createComparisonReview } = await import('../../utils/comparisonReview'); const contents = await createComparisonReview(primary, primary, 'Imported comparison');
+    fireEvent.change(screen.getByLabelText('Import comparison review JSON'), { target: { files: [{ name: 'review.json', size: contents.length, arrayBuffer: async () => new TextEncoder().encode(contents).buffer }] } }); await screen.findByText('Preview comparison review: Primary test'); expect(screen.queryByLabelText('Recorded baseline replacement preview')).toBeNull(); expect(screen.getByLabelText('Comparison notes').value).toBe('Kept');
+    fireEvent.click(screen.getByText('Keep current comparison')); fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByLabelText('Recorded baseline replacement preview'); fireEvent.click(screen.getByText('Clear comparison')); expect(screen.queryByLabelText('Recorded baseline replacement preview')).toBeNull(); expect(screen.queryByLabelText('Comparison time')).toBeNull();
+  });
+  it('checks a different baseline once and opens the in-memory candidate only after confirmation', async () => {
+    render(<FlightComparison primary={primary} />); await load(); const arrayBuffer = vi.fn(async () => new TextEncoder().encode(SAMPLE_LOG).buffer);
+    fireEvent.change(screen.getByLabelText('Choose baseline CSV'), { target: { files: [{ name: 'different.csv', size: SAMPLE_LOG.length, arrayBuffer }] } }); await screen.findByText(/fingerprint differs/); expect(screen.getByText(/B \/ synthetic-baseline.csv/)).toBeTruthy(); expect(arrayBuffer).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByText('Replace baseline with checked source')); expect(screen.getByText(/B \/ different.csv/)).toBeTruthy(); expect(arrayBuffer).toHaveBeenCalledOnce(); expect(primary.csv_text).toBe(SAMPLE_LOG);
+  });
 });
