@@ -24,7 +24,18 @@ export async function verifyPairedManifest(filename) {
   }
   const receipts = [];
   for (const [index, item] of targets.entries()) receipts.push({ ordinal: index + 1, receipt: await verifyPairedFile(item.target, { expectedSha256: item.sha256 }) });
-  return { format: 'skydash-paired-intake-receipt-v1', exact_manifest_sha256: createHash('sha256').update(raw).digest('hex'), bundle_count: receipts.length, receipts, scope: 'All listed bundles validated before this receipt was issued. Exact expected artifact digests compared in manifest order. No filenames, paths, private notes or coordinates printed. Manifest is editable, not authenticated or signed; obtain expected digests independently. This does not prove authorship, source truth, flight identity, independence, grading or readiness. No writes, upload, sharing or aircraft commands. Repeated sources across bundles are not independent flights and must not be summed.' };
+  const sourceReferences = new Map(), artifactReferences = new Map();
+  for (const { ordinal, receipt } of receipts) {
+    const artifact = artifactReferences.get(receipt.exact_bundle_sha256) || [];
+    artifact.push(ordinal); artifactReferences.set(receipt.exact_bundle_sha256, artifact);
+    for (const role of ['primary', 'baseline']) {
+      const source = sourceReferences.get(receipt[role].sha256) || [];
+      source.push({ ordinal, role }); sourceReferences.set(receipt[role].sha256, source);
+    }
+  }
+  const repeated_sources = [...sourceReferences.entries()].filter(([, references]) => references.length > 1).map(([sha256, references]) => ({ sha256, references }));
+  const repeated_artifacts = [...artifactReferences.entries()].filter(([, ordinals]) => ordinals.length > 1).map(([sha256, ordinals]) => ({ sha256, ordinals }));
+  return { format: 'skydash-paired-intake-receipt-v1', exact_manifest_sha256: createHash('sha256').update(raw).digest('hex'), bundle_count: receipts.length, receipts, repeated_sources, repeated_artifacts, identity_scope: 'Repeated sources compare exact CSV bytes across ordered roles, including A/B reuse within one bundle. Repeated artifacts compare exact whole-bundle bytes, including formatting and notes. Different artifact bytes can contain the same source. References are ordinal/role only, no flight/student identity or independence is inferred. No combined sample, duration, grade or completion totals.', scope: 'All listed bundles validated before this receipt was issued. Exact expected artifact digests compared in manifest order. No filenames, paths, private notes or coordinates printed. Manifest is editable, not authenticated or signed; obtain expected digests independently. This does not prove authorship, source truth, flight identity, independence, grading or readiness. No writes, upload, sharing or aircraft commands. Repeated sources across bundles are not independent flights and must not be summed.' };
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const args = process.argv.slice(2);

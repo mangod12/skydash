@@ -42,3 +42,8 @@ it('enforces input-file, individual bundle and aggregate byte limits before pars
   await writeFile(manifest,'x'.repeat(64*1024+1)); expect(run(manifest).status).toBe(1); await writeFile(manifest,Buffer.from([0xff])); expect(run(manifest).status).toBe(1); expect(run(dir).status).toBe(1);
 });
 it('prints bounded help and rejects missing or extra arguments without reading a bundle', () => { expect(run('--help').status).toBe(0); expect(run().status).toBe(1); expect(run(manifest,'extra').status).toBe(1); });
+
+it('separates repeated source references from repeated artifact identity without combined evidence or flight totals', async () => {
+  let result = JSON.parse(run(manifest).stdout); expect(result.repeated_sources).toHaveLength(1); expect(result.repeated_sources[0].references).toEqual([{ordinal:1,role:'primary'},{ordinal:1,role:'baseline'},{ordinal:2,role:'primary'},{ordinal:2,role:'baseline'}]); expect(result.repeated_artifacts).toEqual([]);
+  await writeFile(join(dir,'session','b.json'),text); data.bundles[1].sha256=digest(text); await save(); result=JSON.parse(run(manifest).stdout); expect(result.repeated_artifacts).toEqual([{sha256:digest(text),ordinals:[1,2]}]); expect(result).not.toHaveProperty('total_samples'); expect(result).not.toHaveProperty('total_duration'); expect(result.identity_scope).toContain('No combined sample');
+});
