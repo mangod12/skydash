@@ -19,7 +19,8 @@
     "compare-paired-reviews": "node scripts/compare-paired-reviews.mjs",
     "verify-notebook-review": "node scripts/verify-notebook-review.mjs",
     "verify-training-manifest": "node scripts/verify-training-manifest.mjs",
-    "verify-csv-conversion": "node scripts/verify-csv-conversion.mjs"
+    "verify-csv-conversion": "node scripts/verify-csv-conversion.mjs",
+    "verify-training-lineage": "node scripts/verify-training-lineage.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",
