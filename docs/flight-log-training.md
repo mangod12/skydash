@@ -579,3 +579,11 @@ separately first. Existing server records, device-local snapshots and downloaded
 files are not deleted or updated. This confirmation does not add autosave,
 recovery across source replacement, browser-close protection, verified identity,
 training completion, grades or aircraft commands.
+
+## Leaving a recorded workspace
+
+Once a primary source is open, Back to Scenario Lab and app view/workspace navigation first show a destination preview. Keep recorded workspace open cancels navigation and preserves the current source, panels, saved notebook, recovery point, comparison and drafts. The request pauses primary replay, not the independent comparison clock. Leave and discard recorded session explicitly completes the latest requested navigation and discards in-memory review work. Choosing the already active view/workspace does not discard or reset the review. Opening another source clears an old exit proposal.
+
+This warning applies conservatively whenever a source is open, including an archived source or after a download. It does not track whether every panel is saved. No single export covers all panels and drafts. Download the artifacts needed before leaving; existing server records, device-local snapshots and downloads remain unchanged and can be older than current work. No automatic storage or upload is added.
+
+A loaded source also registers a browser before-unload warning for refresh, tab close or external navigation. Browsers control its wording and may require interaction or ignore it, especially on mobile. The listener is removed when the review unmounts. Authentication expiry/sign-out are not delayed, and crashes/forced closure can still discard the session. This is not autosave or guaranteed recovery. Navigation requests can have unrelated background-app effects; cancel preserves the recorded workspace, not every other app state.

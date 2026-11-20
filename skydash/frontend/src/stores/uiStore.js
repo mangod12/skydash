@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+const workspaceState = ws => ({ workspace: ws, recordedReviewOpen: false, sidebarOpen: ws !== 'operator', activeView: ws === 'analyst' ? 'intel' : 'dashboard', notificationOpen: ws === 'commander' });
+
 export const useUIStore = create((set, get) => ({
   sidebarOpen: false,
   activeView: 'dashboard',
@@ -14,16 +16,30 @@ export const useUIStore = create((set, get) => ({
   consoleOpen: false,
   recordedReviewOpen: false,
 
-  setWorkspace: (ws) => set({
-    workspace: ws,
-    recordedReviewOpen: false,
-    sidebarOpen: ws !== 'operator',
-    activeView: ws === 'analyst' ? 'intel' : 'dashboard',
-    notificationOpen: ws === 'commander',
-  }),
+  recordedSourceOpen: false,
+  pendingRecordedExit: null,
+  setWorkspace: (ws) => {
+    if (get().recordedSourceOpen && ws === get().workspace) return;
+    if (get().recordedSourceOpen) { set({ pendingRecordedExit: { kind: 'workspace', value: ws } }); return; }
+    set(workspaceState(ws));
+  },
+  setRecordedSourceOpen: (open) => set({ recordedSourceOpen: open, ...(!open ? { pendingRecordedExit: null } : {}) }),
+  requestRecordedBack: () => set({ pendingRecordedExit: { kind: 'back' } }),
+  cancelRecordedExit: () => set({ pendingRecordedExit: null }),
+  confirmRecordedExit: () => {
+    const pending = get().pendingRecordedExit;
+    if (!pending) return null;
+    set({ pendingRecordedExit: null, recordedSourceOpen: false, recordedReviewOpen: false,
+      ...(pending.kind === 'view' ? { activeView: pending.value } : pending.kind === 'workspace' ? workspaceState(pending.value) : {}) });
+    return pending.kind;
+  },
 
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-  setActiveView: (view) => set({ activeView: view, recordedReviewOpen: false }),
+  setActiveView: (view) => {
+    if (get().recordedSourceOpen && view === get().activeView) return;
+    if (get().recordedSourceOpen) { set({ pendingRecordedExit: { kind: 'view', value: view } }); return; }
+    set({ activeView: view, recordedReviewOpen: false });
+  },
   setRecordedReviewOpen: (open) => set({ recordedReviewOpen: open }),
   toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   toggleNotifications: () => set((s) => ({ notificationOpen: !s.notificationOpen })),
