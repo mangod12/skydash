@@ -80,3 +80,6 @@ social media/
 *.db-wal
 
 .coverage
+
+# Generated standalone recorded-review assets
+skydash/frontend/dist-offline-review/

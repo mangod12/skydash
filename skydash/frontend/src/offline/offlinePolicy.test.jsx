@@ -1,0 +1,9 @@
+// @vitest-environment jsdom
+import { afterEach, expect, it, vi } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import * as policy from './runtimeConfig';
+import RecordedBasemapLayer, { RecordedBasemapControl } from './RecordedBasemap';
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+it('has no configured backend/WS/ADSB and cannot derive one from supplied strings', () => { for (const key of ['API_BASE', 'WS_BASE', 'ADSB_URL']) expect(policy[key]).toBe(''); for (const key of ['API_CONFIGURED', 'WS_CONFIGURED', 'ADSB_CONFIGURED', 'BACKEND_CONFIGURED']) expect(policy[key]).toBe(false); expect(policy.deriveWsBase('https://example.invalid')).toBe(''); });
+it('does not read inherited account credentials or probe the network when the fixed local policy loads', async () => { const read = vi.spyOn(Storage.prototype, 'getItem'), fetch = vi.spyOn(globalThis, 'fetch'); const { useAuthStore } = await import('./authStore'); expect(useAuthStore.getState().token).toBeNull(); expect(useAuthStore.getState().user).toBeNull(); expect(useAuthStore.getState().authEnabled).toBe(false); expect(useAuthStore.getState().getAuthHeader()).toEqual({}); expect(read).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled(); });
+it('replaces all recorded basemap controls with an unavailable scope and never creates a tile layer even if enabled', () => { const view = render(<><RecordedBasemapControl label="Primary" enabled onChange={vi.fn()} /><RecordedBasemapLayer enabled /></>); expect(screen.getByText('Background tiles unavailable in standalone recorded review')).toBeTruthy(); expect(screen.queryByRole('checkbox')).toBeNull(); expect(view.container.querySelector('.leaflet-tile')).toBeNull(); expect(screen.getByText(/not a certified air-gap boundary/)).toBeTruthy(); });
