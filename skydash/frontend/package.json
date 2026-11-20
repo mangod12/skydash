@@ -21,7 +21,8 @@
     "verify-training-manifest": "node scripts/verify-training-manifest.mjs",
     "verify-csv-conversion": "node scripts/verify-csv-conversion.mjs",
     "verify-training-lineage": "node scripts/verify-training-lineage.mjs",
-    "compare-notebook-reviews": "node scripts/compare-notebook-reviews.mjs"
+    "compare-notebook-reviews": "node scripts/compare-notebook-reviews.mjs",
+    "verify-review-case": "node scripts/verify-review-case.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",
