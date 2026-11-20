@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import PanelState from '../common/PanelState';
 import GlassCard from '../common/GlassCard';
 import ActivityItem from '../common/ActivityItem';
@@ -8,15 +9,16 @@ const ACTIVITY_FILTERS = ['all', 'intel', 'mission', 'system', 'alert', 'telemet
 export default function DashboardActivityFeed() {
   const activityFilter = useActivityStore((s) => s.filter);
   const setActivityFilter = useActivityStore((s) => s.setFilter);
-  const filteredActivities = useActivityStore((s) => s.getFiltered());
+  const activities = useActivityStore((s) => s.activities);
+  const filteredActivities = useMemo(() => activityFilter === 'all' ? activities : activities.filter(activity => activity.category === activityFilter), [activities, activityFilter]);
 
   return (
     <GlassCard className="!p-4 h-full" animate={false}>
-      <div className="flex items-center justify-between mb-3">
+      <section aria-label="Session activity records"><div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
-          ACTIVITY FEED
+          SESSION ACTIVITY
         </span>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1" role="group" aria-label="Activity category filter">
           {ACTIVITY_FILTERS.map((f) => (
             <button
               key={f}
@@ -32,15 +34,16 @@ export default function DashboardActivityFeed() {
           ))}
         </div>
       </div>
+      <p className="text-xs text-zinc-400 mb-3 leading-relaxed">Only events explicitly added by this browser session appear here. No seeded incidents, login history or telemetry alerts. Not a server audit log, radio transcript or recorded-flight debrief. Missing entries do not prove no activity or a safe aircraft state.</p>
       <div className="space-y-1 overflow-y-auto max-h-[440px] pr-1 custom-scrollbar">
         {filteredActivities.length === 0 ? (
-          <PanelState title="No activity yet" hint="Operator and system events will be listed here." />
+          <PanelState title={activityFilter === 'all' ? 'No session activity records' : 'No matching session records'} hint="No recorded entries for this view, not confirmation of radio silence, no incidents or flight readiness." />
         ) : (
           filteredActivities.slice(0, 20).map((activity) => (
             <ActivityItem key={activity.id} activity={activity} />
           ))
         )}
-      </div>
+      </div></section>
     </GlassCard>
   );
 }
