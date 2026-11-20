@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "verify-paired-review": "node scripts/verify-paired-review.mjs"
+    "verify-paired-review": "node scripts/verify-paired-review.mjs",
+    "verify-paired-manifest": "node scripts/verify-paired-manifest.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",
