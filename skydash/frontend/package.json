@@ -27,7 +27,8 @@
     "compare-training-packages": "node scripts/compare-training-packages.mjs",
     "compare-review-cases": "node scripts/compare-review-cases.mjs",
     "report-training-comparison": "node scripts/report-training-comparison.mjs",
-    "report-review-case-comparison": "node scripts/report-review-case-comparison.mjs"
+    "report-review-case-comparison": "node scripts/report-review-case-comparison.mjs",
+    "package-training-intake": "node scripts/package-training-intake.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",
