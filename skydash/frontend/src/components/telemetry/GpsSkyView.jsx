@@ -1,78 +1,17 @@
 import { satelliteReading } from '../../utils/telemetryReadings';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 
-/**
- * Simplified GPS satellite constellation sky dome
- * Shows satellite count with a visual sky plot
- */
+// A count alone cannot establish satellite locations, signal strength or navigation quality.
 export default function GpsSkyView() {
-  const data = useTelemetryStore((s) => s.data);
-  const satCount = data?.gps?.satellites;
-  const available = satelliteReading(satCount);
-
-  // Generate deterministic satellite positions from count
-  const satellites = Array.from({ length: available ? Math.min(satCount, 32) : 0 }).map((_, i) => {
-    const angle = (i * 137.5) * Math.PI / 180; // Golden angle distribution
-    const r = 12 + (i % 3) * 10; // Varying radius
-    return {
-      x: 32 + Math.cos(angle) * r,
-      y: 32 + Math.sin(angle) * r,
-    };
-  });
-
-  const getColor = () => {
-    if (!available) return { text: 'text-zinc-500', dot: '#71717a' };
-    if (satCount >= 10) return { text: 'text-emerald-400', dot: '#10b981' };
-    if (satCount >= 6) return { text: 'text-cyan-400', dot: '#22d3ee' };
-    return { text: 'text-amber-400', dot: '#f59e0b' };
-  };
-
-  const colors = getColor();
-
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between items-baseline gap-2">
-        <span className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 truncate min-w-0">
-          GPS CONSTELLATION
-        </span>
-        <span className={`shrink-0 whitespace-nowrap text-xs font-mono tabular-nums font-bold ${colors.text}`}>
-          {available ? satCount : '--'} SATS
-        </span>
-      </div>
-
-      {/* Sky dome */}
-      <div className="flex justify-center">
-        <svg viewBox="0 0 64 64" className="w-16 h-16">
-          {/* Outer ring (horizon) */}
-          <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
-          {/* Middle ring (45 deg elevation) */}
-          <circle cx="32" cy="32" r="18" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="2 2" />
-          {/* Inner ring (zenith area) */}
-          <circle cx="32" cy="32" r="8" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
-          {/* Cross lines */}
-          <line x1="32" y1="4" x2="32" y2="60" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
-          <line x1="4" y1="32" x2="60" y2="32" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
-
-          {/* Satellite dots */}
-          {satellites.map((sat, i) => (
-            <circle
-              key={i}
-              cx={sat.x}
-              cy={sat.y}
-              r="2"
-              fill={colors.dot}
-              opacity={0.8}
-            >
-              <animate
-                attributeName="opacity"
-                values="0.5;1;0.5"
-                dur={`${1.5 + (i % 3) * 0.5}s`}
-                repeatCount="indefinite"
-              />
-            </circle>
-          ))}
-        </svg>
-      </div>
+  const data = useTelemetryStore(state => state.data);
+  const connected = useTelemetryStore(state => state.isConnected);
+  const count = data?.gps?.satellites;
+  return <section aria-label="Reported GPS satellite count" className="space-y-2">
+    <div className="flex flex-wrap justify-between items-baseline gap-2">
+      <span className="text-[10px] font-semibold tracking-widest text-zinc-500">GPS REPORTED COUNT</span>
+      <span className="text-xs font-mono text-cyan-200">{satelliteReading(count) ? count : '--'} SATS</span>
     </div>
-  );
+    <p className="text-[10px] text-zinc-400 break-words">{data?.drone_id ? `Source: ${data.drone_id}. ` : 'No selected source. '}Count from latest received snapshot; may be stale. No per-satellite positions or signal measurements supplied, so no sky plot is shown. Count alone does not verify fix quality, accuracy or navigation integrity.</p>
+    {!connected && <p className="text-[10px] text-amber-300">Disconnected. Retained count is not current telemetry.</p>}
+  </section>;
 }

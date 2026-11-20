@@ -119,26 +119,10 @@ export function ClockWidget() {
 
 /* ─── Weather Widget ───────────────────────────────────── */
 
-const CONDITIONS = [
-  { label: 'CLEAR', wind: '8 kt NW', vis: '10+ km', temp: '18C' },
-  { label: 'OVERCAST', wind: '12 kt W', vis: '6 km', temp: '14C' },
-  { label: 'RAIN', wind: '18 kt SW', vis: '3 km', temp: '11C' },
-  { label: 'FOG', wind: '4 kt VAR', vis: '0.8 km', temp: '9C' },
-];
-
 export function WeatherWidget() {
-  const [idx] = useState(() => Math.floor(Math.random() * CONDITIONS.length));
-  const wx = CONDITIONS[idx];
-
-  return (
-    <div className="flex flex-col items-center justify-center h-full gap-1">
-      <span className="text-[8px] text-zinc-600 tracking-[0.15em]">CONDITIONS</span>
-      <span className="text-sm font-mono font-bold text-indigo-400">{wx.label}</span>
-      <div className="text-[9px] font-mono text-zinc-500 space-y-0.5 text-center mt-1">
-        <div>WIND {wx.wind}</div>
-        <div>VIS {wx.vis}</div>
-        <div>TEMP {wx.temp}</div>
-      </div>
-    </div>
-  );
+  return <section aria-label="Weather observations unavailable" className="h-full overflow-y-auto space-y-2 text-xs text-zinc-400">
+    <h4 className="text-[10px] tracking-widest text-zinc-500">WEATHER UNAVAILABLE</h4>
+    <p>Wind, visibility and temperature are unknown. No weather observation, location or observation time is supplied to this widget.</p>
+    <p>No random conditions or inferred forecast. Obtain a current, location-specific weather briefing separately. This is not a flight-weather or go/no-go assessment.</p>
+  </section>;
 }

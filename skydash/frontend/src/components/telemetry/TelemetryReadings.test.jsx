@@ -25,11 +25,11 @@ it('renders unknown sensor readings without crashing or manufacturing zero/full 
   expect(container.textContent).not.toContain('0%');
 });
 
-it('caps satellite drawing work while retaining the actual valid count', () => {
+it('retains the actual valid count without manufacturing any satellite position dots', () => {
   useTelemetryStore.getState().updateTelemetry({ drone_id: 'one', gps: { satellites: 1000000 } }, 0);
   const { container } = render(<TelemetryPanel />);
   expect(screen.getByText('1000000 SATS')).toBeTruthy();
-  expect(container.querySelectorAll('circle animate')).toHaveLength(32);
+  expect(container.querySelectorAll('circle animate')).toHaveLength(0);
 });
 
 it('preserves genuine zero readings instead of replacing them with unknown values', () => {

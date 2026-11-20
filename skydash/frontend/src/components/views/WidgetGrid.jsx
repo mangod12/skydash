@@ -7,7 +7,6 @@ import { AddWidgetPicker, ResizeHandle } from './WidgetControls';
 import { useWidgetStore } from '../../stores/widgetStore';
 
 const ROW_H = 48;
-const COLS = 12;
 const EASE = [0.16, 1, 0.3, 1];
 
 /* ─── Draggable Widget Cell ────────────────────────────── */
@@ -16,8 +15,8 @@ function WidgetCell({ widget, editMode, onSwapDrag }) {
   const removeWidget = useWidgetStore((s) => s.removeWidget);
 
   const style = {
-    gridColumn: `${widget.x} / span ${widget.w}`,
-    gridRow: `${widget.y} / span ${widget.h}`,
+    '--widget-col': `${widget.x} / span ${widget.w}`,
+    '--widget-row': `${widget.y} / span ${widget.h}`,
     minHeight: widget.h * ROW_H,
   };
 
@@ -48,7 +47,7 @@ function WidgetCell({ widget, editMode, onSwapDrag }) {
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ duration: 0.3, ease: EASE }}
       style={style}
-      className="group relative"
+      className="group relative min-w-0 col-span-full md:[grid-column:var(--widget-col)] md:[grid-row:var(--widget-row)]"
       draggable={editMode}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
@@ -129,7 +128,7 @@ export default function WidgetGrid() {
             </AnimatePresence>
           </div>
         </div>
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)`, gridTemplateRows: `repeat(${maxRow}, ${ROW_H}px)` }}>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:[grid-template-rows:var(--widget-rows)]" style={{ '--widget-rows': `repeat(${maxRow}, ${ROW_H}px)` }}>
           <AnimatePresence mode="popLayout">
             {widgets.map((w) => (
               <WidgetCell key={w.id} widget={w} editMode={editMode} onSwapDrag={handleSwapDrag} />
