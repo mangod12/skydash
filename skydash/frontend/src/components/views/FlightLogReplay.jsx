@@ -1,3 +1,4 @@
+import TrainingPackageBuilder from './TrainingPackageBuilder';
 import PairedReviewBundle from './PairedReviewBundle';
 import RecordedExitPreview from './RecordedExitPreview';
 import { useUIStore } from '../../stores/uiStore';
@@ -197,6 +198,7 @@ export default function FlightLogReplay({ onBack }) {
     <div className="mx-auto max-w-7xl space-y-4">
       <button disabled={busy} onClick={() => { if (log) useUIStore.getState().requestRecordedBack(); else onBack?.(); }} className="inline-flex items-center gap-2 text-xs text-zinc-400"><ArrowLeft size={14} /> Back to Scenario Lab</button>
       <header><p className="text-[10px] tracking-widest text-cyan-300">IMPORT / REPLAY / DEBRIEF</p><h1 className="mt-1 text-2xl font-semibold text-zinc-100">Flight Log Replay</h1><p className="mt-2 text-xs leading-relaxed text-zinc-400">{LOG_SCOPE}</p></header>
+      <TrainingPackageBuilder workspaceBusy={busy} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} />
       <RecordedExitPreview pending={pendingExit} disabled={busy} onKeep={() => useUIStore.getState().cancelRecordedExit()} onLeave={() => { if (busy) return; if (useUIStore.getState().confirmRecordedExit() === 'back') onBack?.(); }} />
       <SourceReplacementPreview current={log} candidate={pendingSource} disabled={busy} onCancel={() => { if (busy) return; setPendingSource(null); setError(''); setMessage('Source replacement canceled. Current recorded workspace kept; playback stays under manual control.'); }} onConfirm={() => { if (busy || !pendingSource) return; const checked = pendingSource; applyCheckedSource(checked); setError(''); setMessage('Checked source opened at zero. Previous local reviews and comparison cleared after confirmation. No server record changed or created.'); }} />
       {log && <ReviewFocus focus={panelFocus} onChange={changeFocus} onNavigate={navigateSection} disabled={busy} />}

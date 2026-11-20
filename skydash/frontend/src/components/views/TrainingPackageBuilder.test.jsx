@@ -1,0 +1,44 @@
+// @vitest-environment jsdom
+import { beforeEach, afterEach, expect, it, vi } from 'vitest';
+import { TextEncoder, TextDecoder } from 'node:util';
+import { webcrypto } from 'node:crypto';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import TrainingPackageBuilder from './TrainingPackageBuilder';
+import { createReviewCase } from '../../utils/reviewCase';
+import { SAMPLE_LOG, LOG_VERSION, flightCSVHash, parseFlightCSV } from '../../utils/flightLog';
+let text, pause;
+const file = (name = 'case.json', value = text) => { const bytes = new TextEncoder().encode(value); return { name, size: bytes.length, arrayBuffer: async () => bytes.buffer }; };
+const add = (...files) => fireEvent.change(screen.getByLabelText('Add training package artifacts'), { target: { files } });
+const check = () => fireEvent.click(screen.getByText('Validate selected artifacts'));
+const download = () => screen.getByText('Download checked manifest JSON');
+const ready = () => screen.findByText(/selected artifacts passed nested validation/);
+beforeEach(async () => {
+  vi.stubGlobal('TextEncoder', TextEncoder); vi.stubGlobal('TextDecoder', TextDecoder); vi.stubGlobal('crypto', webcrypto); pause = vi.fn();
+  const log = { filename: 'PRIVATE.csv', title: 'PRIVATE', csv_text: SAMPLE_LOG, sha256: await flightCSVHash(SAMPLE_LOG), model_version: LOG_VERSION, samples: parseFlightCSV(SAMPLE_LOG) }; text = await createReviewCase(log, { title: 'PRIVATE', notes: 'PRIVATE notes' }, { markers: [], notes: '' }, null);
+  URL.createObjectURL = vi.fn(() => 'blob:manifest'); URL.revokeObjectURL = vi.fn(); vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {}); vi.stubGlobal('fetch', vi.fn());
+});
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+it('requires explicit validation and download, emits only manifest not private reviews, and never fetches or stores', async () => {
+  const storage = vi.spyOn(Storage.prototype, 'setItem'); render(<TrainingPackageBuilder onPause={pause} />); expect(download().disabled).toBe(true); add(file()); expect(download().disabled).toBe(true); expect(pause).not.toHaveBeenCalled(); check(); await ready(); expect(pause).toHaveBeenCalledTimes(1); expect(URL.createObjectURL).not.toHaveBeenCalled(); fireEvent.click(download()); expect(URL.createObjectURL).toHaveBeenCalledTimes(1); const blob = URL.createObjectURL.mock.calls[0][0], result = await new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsText(blob); }); const manifest = JSON.parse(result); expect(manifest.bundles[0]).toEqual({ kind: 'case', path: 'case.json', sha256: await flightCSVHash(text) }); expect(result).not.toContain('PRIVATE'); expect(screen.getByText(/Manifest download requested/)).toBeTruthy(); expect(fetch).not.toHaveBeenCalled(); expect(storage).not.toHaveBeenCalled();
+});
+it('adding or removing any artifact invalidates a checked manifest and preserves listed order', async () => {
+  render(<TrainingPackageBuilder />); add(file('first.json')); check(); await ready(); add(file('second.json')); expect(download().disabled).toBe(true); check(); await ready(); fireEvent.click(screen.getByLabelText('Remove training artifact 1')); expect(download().disabled).toBe(true); expect(screen.getByLabelText('Selected training artifacts').textContent).not.toContain('first.json'); expect(screen.getByLabelText('Selected training artifacts').textContent).toContain('1. case: second.json'); fireEvent.click(screen.getByText('Clear package selection')); expect(screen.queryByLabelText('Selected training artifacts')).toBeNull();
+});
+it('late malformed artifact or wrong selected kind refuses all output and suppresses private input errors', async () => {
+  render(<TrainingPackageBuilder />); add(file('good.json'), file('bad.json', 'PRIVATE malformed')); check(); await screen.findByRole('alert'); expect(download().disabled).toBe(true); expect(screen.getByRole('alert').textContent).not.toContain('PRIVATE'); expect(screen.queryByText(/selected artifacts passed nested validation/)).toBeNull(); fireEvent.click(screen.getByText('Clear package selection')); fireEvent.change(screen.getByLabelText('Training package artifact kind'), { target: { value: 'notebook' } }); add(file()); check(); await screen.findByRole('alert'); expect(download().disabled).toBe(true);
+});
+it('rejects duplicate-name selection without losing prior files, invalidates old check and permits recheck', async () => {
+  render(<TrainingPackageBuilder />); add(file()); check(); await ready(); add(file()); expect(screen.getByRole('alert')).toBeTruthy(); expect(download().disabled).toBe(true); expect(screen.getAllByLabelText('Remove training artifact 1')).toHaveLength(1); check(); await ready(); expect(download().disabled).toBe(false);
+});
+it('locks selection/removal/validation/download while source workspace is busy and resumes checked manifest afterward', async () => {
+  const view = render(<TrainingPackageBuilder />); add(file()); check(); await ready(); view.rerender(<TrainingPackageBuilder workspaceBusy />); expect(download().disabled).toBe(true); expect(screen.getByLabelText('Add training package artifacts').disabled).toBe(true); expect(screen.getByLabelText('Remove training artifact 1').disabled).toBe(true); view.rerender(<TrainingPackageBuilder />); expect(download().disabled).toBe(false);
+});
+it('locks all edits during async checking and does not publish a late result after unmount', async () => {
+  let finish; const delayed = { name: 'delayed.json', size: new TextEncoder().encode(text).length, arrayBuffer: () => new Promise(resolve => { finish = resolve; }) }; const view = render(<TrainingPackageBuilder />); add(delayed); check(); await waitFor(() => expect(finish).toBeTypeOf('function')); expect(download().disabled).toBe(true); expect(screen.getByLabelText('Training package artifact kind').disabled).toBe(true); expect(screen.getByText('Clear package selection').disabled).toBe(true); view.unmount(); finish(new TextEncoder().encode(text).buffer); await new Promise(resolve => setTimeout(resolve, 10)); expect(URL.createObjectURL).not.toHaveBeenCalled();
+});
+it('keeps checked manifest on a blocked download for retry and treats filenames as escaped text', async () => {
+  render(<TrainingPackageBuilder />); add(file('<img src=x>.json')); check(); await ready(); expect(document.querySelector('img')).toBeNull(); URL.createObjectURL.mockImplementationOnce(() => { throw Error('blocked'); }); fireEvent.click(download()); await screen.findByRole('alert'); expect(download().disabled).toBe(false); fireEvent.click(download()); expect(URL.createObjectURL).toHaveBeenCalledTimes(2);
+});
+it('chooses a manifest download filename distinct from all selected originals, ignoring case', async () => {
+  let name; HTMLAnchorElement.prototype.click.mockImplementation(function () { name = this.download; }); render(<TrainingPackageBuilder />); add(file('SKYDASH-training-manifest.json'), file('skydash-training-manifest-1.json')); check(); await ready(); fireEvent.click(download()); expect(name).toBe('skydash-training-manifest-2.json');
+});
