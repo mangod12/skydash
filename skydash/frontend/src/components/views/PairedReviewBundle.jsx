@@ -1,8 +1,10 @@
+import { readReviewArtifact } from '../../utils/reviewArtifact';
 import { useEffect, useRef, useState } from 'react';
 import { pairedReviewBundleReport, createPairedReviewBundle, readPairedReviewBundle, MAX_PAIRED_BUNDLE_BYTES, PAIRED_BUNDLE_SCOPE } from '../../utils/pairedReviewBundle';
 const button = 'rounded border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-200 disabled:opacity-40';
 export default function PairedReviewBundle({ hasSource, workspaceBusy, getSnapshot, onOpen, onPause }) {
   const [busy, setBusy] = useState(false), [pending, setPending] = useState(null), [error, setError] = useState(''), [message, setMessage] = useState('');
+  const [expectedDigest, setExpectedDigest] = useState('');
   const heading = useRef(null);
   useEffect(() => { if (pending) { heading.current?.focus(); heading.current?.scrollIntoView?.({ block: 'center' }); } }, [pending]);
   const disabled = busy || workspaceBusy;
@@ -22,8 +24,8 @@ export default function PairedReviewBundle({ hasSource, workspaceBusy, getSnapsh
     onPause(); setBusy(true); setPending(null); setError(''); setMessage('');
     try {
       if (file.size > MAX_PAIRED_BUNDLE_BYTES) throw new Error('Paired review bundle must be at most 4MiB.');
-      const text = new globalThis.TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(await file.arrayBuffer());
-      setPending(await readPairedReviewBundle(text)); setMessage('Both sources, fingerprints and review models checked. Preview only, not verified authorship. Nothing replaced.');
+      const { text, ...artifact } = await readReviewArtifact(file, MAX_PAIRED_BUNDLE_BYTES, expectedDigest);
+      setPending({ ...await readPairedReviewBundle(text), artifact }); setMessage('Both sources, fingerprints and review models checked. Preview only, not verified authorship. Nothing replaced.');
     } catch (failure) { setError(failure.message || 'Paired bundle could not be read.'); }
     finally { setBusy(false); }
   };
@@ -32,9 +34,11 @@ export default function PairedReviewBundle({ hasSource, workspaceBusy, getSnapsh
     <p className="text-xs text-zinc-500">Download needs both sources, applied or discarded anchor edits, no pending comparison import/replacement, and a primary case snapshot with no unfinished marker/envelope work. Both replay clocks pause when collecting a snapshot. Both downloads are sensitive files, not secure transport or a server save. JSON reopens listed review sections; the text report is readable only and recomputes whole-source evidence, not cursor-specific deltas.</p>
     <div className="flex flex-wrap gap-2"><button className={button} disabled={disabled || !hasSource || Boolean(pending)} onClick={() => download(false)}>Download paired review bundle JSON</button>
     <button className={button} disabled={disabled || !hasSource || Boolean(pending)} onClick={() => download(true)}>Download paired review handoff report</button></div>
+    <label className="block text-xs text-zinc-400">Optional expected paired complete-file SHA-256<input aria-label="Expected paired artifact SHA-256" value={expectedDigest} maxLength={64} disabled={disabled || Boolean(pending)} onChange={event => setExpectedDigest(event.target.value)} className="mt-1 block w-full min-w-0 rounded bg-zinc-900 p-2 font-mono" /></label><p className="text-xs text-zinc-500">Obtain a complete-file digest separately, not an embedded CSV hash. Blank skips this external byte check. Digest agreement is not authenticity, authorship or a signature. Expected value locks during validation/preview; cancel to change it.</p>
     <label className="block text-xs text-zinc-400">Open paired review bundle JSON (up to 4MiB)<input aria-label="Open paired review bundle JSON" type="file" accept=".json,application/json" disabled={disabled} onChange={read} className="mt-2 block w-full min-w-0 text-xs" /></label>
     {busy && <p role="status" className="text-xs text-violet-200">Checking paired review data locally...</p>}{error && <p role="alert" className="text-xs text-amber-300">{error} Current workspace not replaced.</p>}{message && <p role="status" className="text-xs text-violet-200">{message}</p>}
     {pending && <section aria-label="Paired review bundle preview" className="rounded border border-amber-500/30 p-3 space-y-3 text-xs text-zinc-400">
+      <p className="break-all">Exact complete-file SHA-256: {pending.artifact.sha256}. {pending.artifact.expectedMatched ? 'Separately supplied expected digest matched.' : 'No external expected digest checked.'}</p>
       <h3 ref={heading} tabIndex={-1} className="text-sm text-amber-200">Checked two-source bundle. Current workspace kept.</h3>
       {[[pending.primary.log, 'A / primary'], [pending.comparison.baseline, 'B / baseline']].map(([log, label]) => <p key={label} className="[overflow-wrap:anywhere]">{label}: {log.filename} (unverified). {log.samples.length} original samples, 0s through {log.samples.at(-1).time_s}s, not continuous observed duration. Exact SHA-256 {log.sha256}.</p>)}
       <p>{pending.primary.data.debrief.markers.length} added instructor markers. {pending.primary.data.envelope ? 'Evaluated envelope criteria included.' : 'No envelope criteria.'} Comparison notes: {pending.comparison.notes.length} characters. {pending.comparison.alignment ? 'Manual applied anchors included, not verified simultaneous events.' : 'CSV-start alignment.'}</p>
