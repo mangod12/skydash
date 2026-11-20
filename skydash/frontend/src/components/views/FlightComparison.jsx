@@ -1,7 +1,7 @@
 import BaselineReplacementPreview from './BaselineReplacementPreview';
 import ComparisonChannelChart from './ComparisonChannelChart';
 import ComparisonStepping from './ComparisonStepping';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import { MapContainer, Polyline, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { Download, Play, Pause, RotateCcw } from 'lucide-react';
 import SampleWindowComparison from './SampleWindowComparison';
@@ -26,11 +26,11 @@ function Observation({ observation, label, color }) {
     {observation.sample ? <><p className="mt-1 text-xs text-zinc-300">Sample {observation.index + 1} at {observation.sample.time_s}s / age {observation.ageS.toFixed(1)}s</p><p className="mt-1 text-xs text-zinc-400">Altitude {show(observation.sample.altitude_m, 'm')}, speed {show(observation.sample.ground_speed_m_s, 'm/s')}, battery {show(observation.sample.battery_pct, '%')}</p><p className="mt-1 text-xs text-zinc-500">{observation.sample.latitude.toFixed(5)}, {observation.sample.longitude.toFixed(5)}</p>{observation.state === 'gap' && <p className="mt-1 text-xs text-amber-300">DATA GAP: held observation, no instantaneous deltas.</p>}</> : <p className="mt-1 text-xs text-amber-300">OUTSIDE SOURCE: no observation. Marker hidden, no instantaneous deltas.</p>}
   </div>;
 }
-export default function FlightComparison({ primary }) {
-  const [baseline, setBaseline] = useState(null);
+const FlightComparison = forwardRef(function FlightComparison({ primary, openedReview = null }, ref) {
+  const [baseline, setBaseline] = useState(openedReview?.baseline || null);
   const [pendingBaseline, setPendingBaseline] = useState(null);
   const [baselineRevision, setBaselineRevision] = useState(0);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(openedReview?.notes || '');
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [basemapEnabled, setBasemapEnabled] = useState(false);
@@ -38,8 +38,13 @@ export default function FlightComparison({ primary }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [alignment, setAlignment] = useState(null), [anchorA, setAnchorA] = useState('1'), [anchorB, setAnchorB] = useState('1'), [anchorLabel, setAnchorLabel] = useState('');
+  const [alignment, setAlignment] = useState(openedReview?.alignment || null), [anchorA, setAnchorA] = useState(String((openedReview?.alignment?.primaryIndex || 0) + 1)), [anchorB, setAnchorB] = useState(String((openedReview?.alignment?.baselineIndex || 0) + 1)), [anchorLabel, setAnchorLabel] = useState(openedReview?.alignment?.label || '');
   const [anchorDirty, setAnchorDirty] = useState(false), [pendingReview, setPendingReview] = useState(null);
+  useImperativeHandle(ref, () => ({ snapshot: () => {
+    setPlaying(false);
+    if (!baseline || busy || anchorDirty || pendingReview || pendingBaseline) throw new Error('Load baseline B, apply or discard anchor edits, and finish comparison imports/replacement before bundling. Independent-window and other comparison panel drafts are excluded, download them separately.');
+    return { baseline, notes, alignment };
+  } }), [baseline, busy, anchorDirty, pendingReview, pendingBaseline, notes, alignment]);
   const resetAlignment = () => { setAlignment(null); setAnchorA('1'); setAnchorB('1'); setAnchorLabel(''); setAnchorDirty(false); };
   const applyAlignment = () => {
     setPlaying(false); setError('');
@@ -160,4 +165,5 @@ export default function FlightComparison({ primary }) {
       <p className="text-xs text-zinc-500">Download primary CSV using the source button above. Comparison notes are not added to either saved server record. Closing this screen, changing primary or clearing removes this comparison.</p>
     </>}
   </article>;
-}
+});
+export default FlightComparison;

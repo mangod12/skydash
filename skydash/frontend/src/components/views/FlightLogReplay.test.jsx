@@ -4,7 +4,8 @@ import { webcrypto } from 'node:crypto';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import FlightLogReplay from './FlightLogReplay';
-import { SAMPLE_LOG, LOG_VERSION, flightCSVHash } from '../../utils/flightLog';
+import { createPairedReviewBundle } from '../../utils/pairedReviewBundle';
+import { SAMPLE_LOG, LOG_VERSION, parseFlightCSV, flightCSVHash } from '../../utils/flightLog';
 import { useUIStore } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
 vi.mock('react-leaflet', () => ({ MapContainer: ({ children }) => <div>{children}</div>, TileLayer: () => null, Polyline: () => null, CircleMarker: ({ children }) => <div>{children}</div>, Tooltip: ({ children }) => <span>{children}</span>, useMap: () => ({ fitBounds: vi.fn() }) }));
@@ -303,4 +304,17 @@ describe('source-open exit guard integration', () => {
     act(() => useUIStore.getState().setActiveView('telemetry')); expect(screen.getByText('Play replay')).toBeTruthy();
     await sample(); expect(screen.queryByLabelText('Leave recorded workspace preview')).toBeNull(); expect(useUIStore.getState().activeView).toBe('scenario');
   });
+});
+
+it('paired open is atomic on cancel and resets stale primary-case preview only after confirmation, including identical sources', async () => {
+  render(<FlightLogReplay />); await sample();
+  const log = { ...saved, samples: parseFlightCSV(SAMPLE_LOG) }, primary = { log, review: { title: 'Paired checked title', notes: 'Paired checked notes' }, debrief: { markers: [], notes: '' }, envelope: null };
+  const text = await createPairedReviewBundle(primary, { baseline: log, notes: 'Paired B notes', alignment: null });
+  const upload = (label, contents) => fireEvent.change(screen.getByLabelText(label), { target: { files: [{ size: contents.length, arrayBuffer: async () => new TextEncoder().encode(contents).buffer }] } });
+  upload('Open review case JSON', JSON.stringify(JSON.parse(text).primary_case)); await screen.findByText('Replace local workspace with case');
+  fireEvent.change(screen.getByLabelText('Analyst notes'), { target: { value: 'Keep latest notes' } });
+  upload('Open paired review bundle JSON', text); await screen.findByLabelText('Paired review bundle preview'); fireEvent.click(screen.getByText('Keep current workspace and sources'));
+  expect(screen.getByLabelText('Analyst notes').value).toBe('Keep latest notes'); expect(screen.getByText('Replace local workspace with case')).toBeTruthy(); expect(screen.queryByLabelText('Comparison time')).toBeNull();
+  upload('Open paired review bundle JSON', text); await screen.findByLabelText('Paired review bundle preview'); fireEvent.click(screen.getByText('Replace workspace with checked paired review'));
+  expect(screen.queryByText('Replace local workspace with case')).toBeNull(); expect(screen.getByLabelText('Review title').value).toBe('Paired checked title'); expect(screen.getByLabelText('Analyst notes').value).toBe('Paired checked notes'); expect(screen.getByLabelText('Comparison notes').value).toBe('Paired B notes'); expect(screen.getByLabelText('Comparison time').value).toBe('0'); expect(screen.getByLabelText('Replay position').value).toBe('0'); expect(globalThis.fetch).not.toHaveBeenCalled();
 });
