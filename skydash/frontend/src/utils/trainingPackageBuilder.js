@@ -12,12 +12,13 @@ export function checkPackageSelection(entries) {
     names.add(file.name);
   }
 }
-export async function buildTrainingPackageManifest(entries) {
+export async function buildTrainingPackageManifest(entries, { requireExpected = false } = {}) {
   checkPackageSelection(entries); const bundles = [];
-  for (const { kind, file } of entries) {
+  for (const { kind, file, expectedSha256 } of entries) {
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (bytes.byteLength !== file.size) throw Error('File bytes changed during reading.');
     const sha256 = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), byte => byte.toString(16).padStart(2, '0')).join('');
+    if (requireExpected && (typeof expectedSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(expectedSha256) || sha256 !== expectedSha256)) throw Error('Expected original artifact digest mismatch.');
     await readers[kind](new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes));
     bundles.push({ kind, path: file.name, sha256 });
   }
