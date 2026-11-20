@@ -1,3 +1,4 @@
+import { createReviewCase } from '../../utils/reviewCase';
 // @vitest-environment jsdom
 import { TextEncoder, TextDecoder } from 'node:util';
 import { webcrypto } from 'node:crypto';
@@ -317,4 +318,12 @@ it('paired open is atomic on cancel and resets stale primary-case preview only a
   expect(screen.getByLabelText('Analyst notes').value).toBe('Keep latest notes'); expect(screen.getByText('Replace local workspace with case')).toBeTruthy(); expect(screen.queryByLabelText('Comparison time')).toBeNull();
   upload('Open paired review bundle JSON', text); await screen.findByLabelText('Paired review bundle preview'); fireEvent.click(screen.getByText('Replace workspace with checked paired review'));
   expect(screen.queryByText('Replace local workspace with case')).toBeNull(); expect(screen.getByLabelText('Review title').value).toBe('Paired checked title'); expect(screen.getByLabelText('Analyst notes').value).toBe('Paired checked notes'); expect(screen.getByLabelText('Comparison notes').value).toBe('Paired B notes'); expect(screen.getByLabelText('Comparison time').value).toBe('0'); expect(screen.getByLabelText('Replay position').value).toBe('0'); expect(globalThis.fetch).not.toHaveBeenCalled();
+});
+
+it('prepares a manifest from separately selected originals without replacing active primary, comparison or notes', async () => {
+  render(<FlightLogReplay />); await sample(); fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByLabelText('Comparison time');
+  fireEvent.change(screen.getByLabelText('Analyst notes'), { target: { value: 'Current primary kept' } }); fireEvent.change(screen.getByLabelText('Comparison notes'), { target: { value: 'Current baseline kept' } }); fireEvent.change(screen.getByLabelText('Replay position'), { target: { value: '8' } }); fireEvent.change(screen.getByLabelText('Comparison time'), { target: { value: '6' } });
+  const log = { filename: 'other.csv', title: 'Separate', csv_text: SAMPLE_LOG, sha256: await flightCSVHash(SAMPLE_LOG), model_version: LOG_VERSION, samples: parseFlightCSV(SAMPLE_LOG) }, text = await createReviewCase(log, { title: 'Separate', notes: 'Other selected file' }, { markers: [], notes: '' }, null), bytes = new TextEncoder().encode(text);
+  fireEvent.change(screen.getByLabelText('Add training package artifacts'), { target: { files: [{ name: 'other.json', size: bytes.length, arrayBuffer: async () => bytes.buffer }] } }); fireEvent.click(screen.getByText('Validate selected artifacts')); await screen.findByText(/selected artifacts passed nested validation/);
+  expect(screen.getByLabelText('Replay position').value).toBe('8'); expect(screen.getByLabelText('Comparison time').value).toBe('6'); expect(screen.getByLabelText('Analyst notes').value).toBe('Current primary kept'); expect(screen.getByLabelText('Comparison notes').value).toBe('Current baseline kept'); expect(screen.queryByLabelText('Checked source replacement')).toBeNull(); expect(fetch).not.toHaveBeenCalled(); expect(URL.createObjectURL).not.toHaveBeenCalled();
 });
