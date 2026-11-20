@@ -57,3 +57,19 @@ Bundle/copy ordinals are positions in the selected package, not verified chronol
 The HTML omits filenames, paths, titles, private notes, marker text/IDs, criteria values, coordinates and individual readings. Hashes, counts, bounds, times and reuse patterns can still identify sensitive work. The report is editable and unsigned. It is not an authenticated history or custody record, a complete handoff certificate, a source backup, a reopenable bundle or a readiness assessment. Share only after reviewing its audience and retain the original package and validator checkout.
 
 For exact schemas, limits and related tools, see [Flight-log training and review](flight-log-training.md).
+
+## Read two checked package snapshots side by side
+
+From `skydash/frontend`:
+
+```sh
+node scripts/report-training-comparison.mjs LEFT.json RIGHT.json > comparison.html
+```
+
+The command validates both original manifests and every listed original artifact with the current nested validators before printing one static offline HTML report. Optional `--expect-left-sha256 HEX` and `--expect-right-sha256 HEX` independently pin each complete raw manifest before its paths are parsed. Artifact expectations are still required within each manifest. No saved comparison/intake receipt can replace originals. Same canonical folder/size/kind/source/review limits as `compare-training-packages` apply, separately per side, at most40MiB combined data plus two64KiB manifests. Inputs must remain unchanged while checking. Check exit status: shell redirection can create an empty file even when validation fails; no partial HTML is printed.
+
+The report separates complete-manifest byte equality, ordered kind/exact-artifact equality, kind/artifact occurrence inventory equality, and exact embedded CSV source occurrence inventory equality. The artifact and source sections retain every left/right bundle ordinal, kind and source role, including repeated artifacts and identical primary/baseline CSVs. Mobile columns stack; print keeps side-by-side references. Matching inventory with different artifact order is a sequence change, not absent work. Different complete JSON can mean formatting or private review changes while exact CSV remains unchanged. Equal source counts can hide role reassignment or different private reviews, so inspect every reference, not only the summary.
+
+Left/right are selected snapshots, never verified earlier/later revisions, aircraft, flights, people or completion records. No guessed pairing, annotation diff/transfer, additions/deletions, combined samples/durations/flight totals, merged package, patch or conversion-lineage check is provided. An absent exact occurrence means only those bytes do not appear on that side. This report does not identify what changed inside a review. For an explicitly selected pair of case originals, the separate case-comparison command retains its own scope.
+
+HTML has no scripts or external assets. It omits private paths/filenames/titles/notes/marker text and IDs/criteria/coordinates/readings, but hashes, counts and reuse patterns can still identify sensitive work. Review the audience before sharing; the command never uploads, shares, changes originals or writes files itself. Generated expectations and editable unsigned reports are not independent authentication, custody, source truth, source backups, complete handoff/workspace certificates, completion, grades or readiness.
