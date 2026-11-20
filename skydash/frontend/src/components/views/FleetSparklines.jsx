@@ -1,83 +1,21 @@
-import { useMemo } from 'react';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { useTelemetryStore } from '../../stores/telemetryStore';
-import { COLORS } from '../../utils/designTokens';
+import { finiteReading, percentReading } from '../../utils/telemetryReadings';
 
-const SPARK_POINTS = 20;
-
-function batteryColor(pct) {
-  if (pct < 15) return COLORS.critical;
-  if (pct < 30) return COLORS.warning;
-  return COLORS.healthy;
-}
-
-function generateHistory(drone) {
-  const alt = drone.altitude ?? 0;
-  const bat = drone.battery_percentage ?? 50;
-  return Array.from({ length: SPARK_POINTS }, (_, i) => {
-    const noise = Math.sin(i * 0.7 + (drone.drone_id?.charCodeAt(0) || 0)) * 5;
-    const trend = (i / SPARK_POINTS) * 3;
-    return {
-      alt: Math.max(0, alt + noise - trend + (i * 0.2)),
-      bat: Math.max(0, Math.min(100, bat + 2 - (i * 0.15) + Math.sin(i * 0.5) * 1.5)),
-    };
-  });
-}
-
-function Spark({ data, dataKey, color, label }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[8px] text-zinc-600 w-6 shrink-0 uppercase tracking-wider">
-        {label}
-      </span>
-      <div className="w-[120px] h-[28px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-            <Line
-              type="monotone"
-              dataKey={dataKey}
-              stroke={color}
-              strokeWidth={1.5}
-              dot={false}
-              isAnimationActive={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-export default function FleetSparklines() {
-  const fleet = useTelemetryStore((s) => s.fleet);
-  const history = useTelemetryStore((s) => s.history);
-
-  const sparkData = useMemo(() => {
-    const drones = fleet.length > 0
-      ? fleet
-      : [{ drone_id: 'AWAITING', altitude: 0, battery_percentage: 0 }];
-    return drones.map((drone) => ({
-      id: drone.drone_id,
-      history: history.length >= SPARK_POINTS
-        ? history.slice(-SPARK_POINTS).map((h) => ({ alt: h.altitude, bat: h.battery }))
-        : generateHistory(drone),
-      batPct: drone.battery_percentage ?? 50,
-    }));
-  }, [fleet, history]);
-
-  return (
-    <div className="space-y-3">
-      {sparkData.map(({ id, history: data, batPct }) => (
-        <div key={id} className="flex items-center gap-3">
-          <span className="text-[10px] font-mono font-semibold text-zinc-400 w-20 truncate">
-            {id}
-          </span>
-          <div className="flex items-center gap-4">
-            <Spark data={data} dataKey="alt" color={COLORS.dataLight} label="ALT" />
-            <Spark data={data} dataKey="bat" color={batteryColor(batPct)} label="BAT" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+// No per-drone received history is kept by this component. Never invent one from a snapshot
+// or repeat the selected drone's voltage/altitude trail under other aircraft identities.
+export default function FleetSparklines({ limit = null }) {
+  const fleet = useTelemetryStore(state => state.fleet);
+  const connected = useTelemetryStore(state => state.isConnected);
+  const shown = limit === null ? fleet : fleet.slice(0, limit);
+  return <section aria-label="Latest fleet snapshot readings" className="space-y-2 text-xs text-zinc-400">
+    <p className="text-[10px]">Latest received fleet snapshot, not history or a recorded-flight review. Values may be stale. No synthetic trend or voltage-to-percentage conversion.</p>
+    {!connected && <p className="text-amber-300">Disconnected. Retained snapshot is not current telemetry.</p>}
+    {!fleet.length && <p>No received fleet readings. No placeholder aircraft or readings.</p>}
+    {shown.length < fleet.length && <p>Showing first {shown.length} of {fleet.length} snapshot entries.</p>}
+    <div className="space-y-2">{shown.map((drone, index) => <div key={`${drone.drone_id}-${index}`} className="rounded border border-white/10 p-2 space-y-1 min-w-0" aria-label={`Fleet snapshot ${drone.drone_id}`}>
+      <h4 className="font-mono text-cyan-200 break-all">{drone.drone_id}</h4>
+      <div className="flex flex-wrap gap-x-4 gap-y-1"><span>Source altitude: {finiteReading(drone.altitude) ? `${drone.altitude.toFixed(1)}m` : 'unknown'}</span><span>Battery: {percentReading(drone.battery_percentage) ? `${drone.battery_percentage.toFixed(1)}%` : 'unknown'}</span></div>
+      <p className="text-[10px] break-words">Source timestamp (unverified units/time basis): {finiteReading(drone.timestamp) ? String(drone.timestamp) : 'unknown'}. Altitude datum unverified.</p>
+    </div>)}</div>
+  </section>;
 }

@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useMemo } from 'react';
 import { Shield, Wifi, WifiOff, Crosshair, Activity } from 'lucide-react';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import FleetSparklines from './FleetSparklines';
 import { useTelemetryStore } from '../../stores/telemetryStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
@@ -70,48 +70,8 @@ function MiniMapWidget() {
 
 /* ─── Sparkline Widget ─────────────────────────────────── */
 
-const SPARK_POINTS = 20;
-
-function genSparkData(drones) {
-  return drones.slice(0, 3).map((d) => ({
-    id: d.drone_id,
-    data: Array.from({ length: SPARK_POINTS }, (_, i) => ({
-      alt: Math.max(0, (d.altitude ?? 50) + Math.sin(i * 0.7) * 5 - i * 0.2),
-      bat: Math.max(0, Math.min(100, (d.battery_percentage ?? 60) - i * 0.15 + Math.sin(i * 0.5) * 1.5)),
-    })),
-  }));
-}
-
 function SparklineWidget() {
-  const fleet = useTelemetryStore((s) => s.fleet);
-  const sparks = useMemo(() => {
-    const drones = fleet.length > 0 ? fleet : [{ drone_id: 'AWAITING', altitude: 0, battery_percentage: 0 }];
-    return genSparkData(drones);
-  }, [fleet]);
-
-  return (
-    <div className="space-y-2 h-full overflow-y-auto">
-      {sparks.map(({ id, data }) => (
-        <div key={id} className="flex items-center gap-2">
-          <span className="text-[9px] font-mono text-zinc-500 w-16 truncate">{id}</span>
-          <div className="w-[100px] h-[24px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data}>
-                <Line type="monotone" dataKey="alt" stroke="#22d3ee" strokeWidth={1.2} dot={false} isAnimationActive={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="w-[100px] h-[24px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data}>
-                <Line type="monotone" dataKey="bat" stroke="#10b981" strokeWidth={1.2} dot={false} isAnimationActive={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  return <div className="h-full overflow-y-auto"><FleetSparklines limit={3} /></div>;
 }
 
 /* ─── Widget Map + Renderer ────────────────────────────── */
@@ -130,7 +90,7 @@ const WIDGET_MAP = {
 export const WIDGET_LABELS = {
   'stat-card': 'STAT CARD',
   'mini-map': 'MINI MAP',
-  'sparkline': 'SPARKLINE',
+  'sparkline': 'FLEET SNAPSHOT',
   'threat-gauge': 'THREAT GAUGE',
   'entity-list': 'ENTITY LIST',
   'feed': 'INTEL FEED',
