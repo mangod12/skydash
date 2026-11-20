@@ -57,7 +57,7 @@ async function verifiedRecord(data) {
   return { ...data, samples };
 }
 
-export default function FlightLogReplay({ onBack }) {
+export default function FlightLogReplay({ onBack, backLabel = 'Back to Scenario Lab', backDestination = 'Scenario Lab' }) {
   const canWrite = useCan('analyst');
   const pendingExit = useUIStore(state => state.pendingRecordedExit);
   const debriefRef = useRef(null), comparisonRef = useRef(null);
@@ -196,10 +196,10 @@ export default function FlightLogReplay({ onBack }) {
 
   return <section aria-label="Flight log replay" className="h-full overflow-y-auto overflow-x-hidden bg-zinc-950 p-4">
     <div className="mx-auto max-w-7xl space-y-4">
-      <button disabled={busy} onClick={() => { if (log) useUIStore.getState().requestRecordedBack(); else onBack?.(); }} className="inline-flex items-center gap-2 text-xs text-zinc-400"><ArrowLeft size={14} /> Back to Scenario Lab</button>
+      <button disabled={busy} onClick={() => { if (log) useUIStore.getState().requestRecordedBack(); else onBack?.(); }} className="inline-flex items-center gap-2 text-xs text-zinc-400"><ArrowLeft size={14} /> {backLabel}</button>
       <header><p className="text-[10px] tracking-widest text-cyan-300">IMPORT / REPLAY / DEBRIEF</p><h1 className="mt-1 text-2xl font-semibold text-zinc-100">Flight Log Replay</h1><p className="mt-2 text-xs leading-relaxed text-zinc-400">{LOG_SCOPE}</p></header>
       <TrainingPackageBuilder workspaceBusy={busy} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} />
-      <RecordedExitPreview pending={pendingExit} disabled={busy} onKeep={() => useUIStore.getState().cancelRecordedExit()} onLeave={() => { if (busy) return; if (useUIStore.getState().confirmRecordedExit() === 'back') onBack?.(); }} />
+      <RecordedExitPreview backDestination={backDestination} pending={pendingExit} disabled={busy} onKeep={() => useUIStore.getState().cancelRecordedExit()} onLeave={() => { if (busy) return; if (useUIStore.getState().confirmRecordedExit() === 'back') onBack?.(); }} />
       <SourceReplacementPreview current={log} candidate={pendingSource} disabled={busy} onCancel={() => { if (busy) return; setPendingSource(null); setError(''); setMessage('Source replacement canceled. Current recorded workspace kept; playback stays under manual control.'); }} onConfirm={() => { if (busy || !pendingSource) return; const checked = pendingSource; applyCheckedSource(checked); setError(''); setMessage('Checked source opened at zero. Previous local reviews and comparison cleared after confirmation. No server record changed or created.'); }} />
       {log && <ReviewFocus focus={panelFocus} onChange={changeFocus} onNavigate={navigateSection} disabled={busy} />}
       <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><CSVColumnMapping key={`mapper-${rawOpenRevision}`} workspaceBusy={busy} onOpen={openMapped} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
