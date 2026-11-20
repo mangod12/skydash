@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { webcrypto } from 'node:crypto';
+import { webcrypto, createHash } from 'node:crypto';
 import { createPairedReviewBundle } from './pairedReviewBundle';
 import { SAMPLE_LOG, parseFlightCSV, flightCSVHash, LOG_VERSION } from './flightLog';
 let dir, path, text;
@@ -29,4 +29,17 @@ it('rejects malformed JSON, UTF-8, mismatched nested source and oversize files w
 });
 it('rejects missing files and invalid arguments and offers scope-specific help without private output', () => {
   expect(run(join(dir, 'absent.json')).status).toBe(1); expect(run(path, '--overwrite', 'target').status).toBe(1); expect(run().status).toBe(1); const help = run('--help'); expect(help.status).toBe(0); expect(help.stdout).toContain('Optional report is sensitive');
+});
+
+it('receipts bind exact complete bundle bytes separately from embedded source hashes, including notes and whitespace', async () => {
+  const original = JSON.parse(run(path).stdout); expect(original.exact_bundle_sha256).toBe(createHash('sha256').update(text).digest('hex')); expect(original.expected_bundle_digest_matched).toBe(false);
+  for (const changed of [text + '\n', text.replace('PRIVATE comparison notes', 'EDITED comparison notes')]) {
+    await writeFile(path, changed); const result = run(path); expect(result.status).toBe(0); const edited = JSON.parse(result.stdout); expect(edited.primary.sha256).toBe(original.primary.sha256); expect(edited.baseline.sha256).toBe(original.baseline.sha256); expect(edited.exact_bundle_sha256).not.toBe(original.exact_bundle_sha256);
+    const report = join(dir, 'unexpected.txt'); const failed = run(path, '--report', report, '--expect-sha256', original.exact_bundle_sha256); expect(failed.status).toBe(1); expect(failed.stdout).toBe(''); await expect(stat(report)).rejects.toThrow();
+  }
+});
+it('checks a separately supplied complete-bundle digest before any report output and rejects duplicate/invalid digest options', async () => {
+  const digest = createHash('sha256').update(text).digest('hex'); const result = run(path, '--expect-sha256', digest.toUpperCase()); expect(result.status).toBe(0); expect(JSON.parse(result.stdout).expected_bundle_digest_matched).toBe(true);
+  for (const args of [['--constructor','bad'], ['--__proto__','bad'], ['--expect-sha256','bad'], ['--expect-sha256',digest,'--expect-sha256',digest], ['--report','new.txt','--report','other.txt'], ['--expect-sha256']]) { const bad = run(path, ...args); expect(bad.status).toBe(1); expect(bad.stdout).toBe(''); }
+  const report = join(dir, 'matched.txt'); expect(run(path, '--expect-sha256',digest,'--report',report).status).toBe(0); expect(await readFile(report,'utf8')).toContain('PRIVATE analyst notes');
 });

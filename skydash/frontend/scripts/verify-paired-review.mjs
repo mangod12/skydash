@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Offline reader only. Validation code comes from this checkout, never from the input file.
+import { createHash } from 'node:crypto';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -12,7 +13,8 @@ export async function loadPairedValidator() {
   if (chunks.length !== 1 || chunks[0].imports.length || chunks[0].dynamicImports.length) throw new Error('Expected a single offline validation module.');
   return import('data:text/javascript;base64,' + Buffer.from(chunks[0].code).toString('base64'));
 }
-export async function verifyPairedFile(filename, { reportPath = null } = {}) {
+export async function verifyPairedFile(filename, { reportPath = null, expectedSha256 = null } = {}) {
+  if (expectedSha256 !== null && !/^[a-fA-F0-9]{64}$/.test(expectedSha256)) throw new Error('Expected bundle SHA-256 must contain exactly64hexadecimal characters.');
   const input = resolve(filename);
   // No overwrites, including the input bundle, are allowed for report output.
   if (reportPath && resolve(reportPath) === input) throw new Error('Report output must not replace the input bundle.');
@@ -20,12 +22,14 @@ export async function verifyPairedFile(filename, { reportPath = null } = {}) {
   if (!info.isFile() || info.size > LIMIT) throw new Error('Input must be a regular paired JSON file of at most 4MiB.');
   const bytes = await readFile(input);
   if (bytes.length > LIMIT) throw new Error('Input exceeds 4MiB.');
+  const bundleSha256 = createHash('sha256').update(bytes).digest('hex');
+  if (expectedSha256 !== null && bundleSha256 !== expectedSha256.toLowerCase()) throw new Error('Exact bundle SHA-256 does not match the separately supplied expected digest.');
   const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
   const validator = await loadPairedValidator();
   const opened = await validator.readPairedReviewBundle(text);
   const a = opened.primary.log, b = opened.comparison.baseline;
   const receipt = {
-    format: 'skydash-paired-validation-receipt-v1', bundle_format: opened.data.format,
+    format: 'skydash-paired-validation-receipt-v1', exact_bundle_sha256: bundleSha256, expected_bundle_digest_matched: expectedSha256 !== null, bundle_format: opened.data.format,
     scope: 'Structural/source-byte/model/bounds validation only. No authenticated authorship, source truth, flight identity, grade, certification or readiness claim. Receipt is editable, not a signature. No automatic upload, storage or sharing.',
     primary: { sha256: a.sha256, samples: a.samples.length, start_s: 0, end_s: a.samples.at(-1).time_s },
     baseline: { sha256: b.sha256, samples: b.samples.length, start_s: 0, end_s: b.samples.at(-1).time_s },
@@ -42,8 +46,16 @@ export async function verifyPairedFile(filename, { reportPath = null } = {}) {
   return receipt;
 }
 async function main(args) {
-  if (args.length === 1 && ['--help', '-h'].includes(args[0])) { console.log('Usage: npm run verify-paired-review -- BUNDLE.json [--report NEW_REPORT.txt]\nOffline validation with the same parser and nested validators as the app. JSON receipt to stdout, no private notes/coordinates. Optional report is sensitive, written only to a new file. No network/server/browser storage.'); return; }
-  if (!(args.length === 1 || (args.length === 3 && args[1] === '--report')) || args[0].startsWith('-')) throw new Error('Usage: verify-paired-review BUNDLE.json [--report NEW_REPORT.txt]');
-  console.log(JSON.stringify(await verifyPairedFile(args[0], { reportPath: args[2] || null }), null, 2));
+  const usage = 'Usage: npm run verify-paired-review -- BUNDLE.json [--expect-sha256 HEX] [--report NEW_REPORT.txt]';
+  if (args.length === 1 && ['--help', '-h'].includes(args[0])) { console.log(usage + '\nOffline validation with the same parser and nested validators as the app. JSON receipt to stdout, no private notes/coordinates. Optional report is sensitive, written only to a new file. Expected digest compares exact entire bundle bytes, including reviewer text and whitespace; source-only fingerprints do not cover those. Obtain the digest separately. Digest agreement is not authenticity or a signature. No network/server/browser storage.'); return; }
+  if (!args.length || args[0].startsWith('-') || args.length % 2 !== 1) throw new Error(usage);
+  const options = {};
+  for (let index = 1; index < args.length; index += 2) {
+    const key = args[index] === '--report' ? 'reportPath' : args[index] === '--expect-sha256' ? 'expectedSha256' : null;
+    if (!key || key in options || !args[index + 1] || args[index + 1].startsWith('--')) throw new Error(usage);
+    options[key] = args[index + 1];
+  }
+  console.log(JSON.stringify(await verifyPairedFile(args[0], options), null, 2));
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main(process.argv.slice(2)).catch(() => { console.error('Paired bundle validation failed or report output could not be created. No receipt issued. Check the input JSON/UTF-8, 4MiB limit, exact nested hashes/models/review bounds and a new writable report path. Input bundle is unchanged.'); process.exitCode = 1; });
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main(process.argv.slice(2)).catch(() => { console.error('Paired bundle validation failed or report output could not be created. No receipt issued. Check the input JSON/UTF-8, 4MiB limit, exact nested hashes/models/review bounds, expected entire-bundle digest if supplied, and a new writable report path. Input bundle is unchanged.'); process.exitCode = 1; });
