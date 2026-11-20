@@ -26,7 +26,7 @@ import { notebookDiscussionPacket } from '../../utils/notebookDiscussionPacket';
 import { reviewWindow } from '../../utils/reviewWindow';
 import { MAX_NOTEBOOK_BYTES, MAX_NOTEBOOK_WINDOWS, windowNotebook, readWindowNotebook, addReviewedWindow } from '../../utils/windowNotebook';
 const button = 'rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2 text-xs text-sky-200 disabled:opacity-40 max-w-full [overflow-wrap:anywhere]';
-export default function WindowNotebook({ log, result, dirty, onLoad, onPause, onSeek, playbackDisabled=false, initialNotebook=null }) {
+export default function WindowNotebook({ log, result, dirty, onLoad, onPause, onSeek, onPlayWindow, playbackDisabled=false, initialNotebook=null }) {
   const active=useRef(true);useEffect(()=>{active.current=true;return()=>{active.current=false;};},[]);
   const [revision,setRevision]=useState(0);
   const [focus,setFocus]=useState('all');
@@ -34,7 +34,7 @@ export default function WindowNotebook({ log, result, dirty, onLoad, onPause, on
   const [bundleBusy,setBundleBusy]=useState(false),[editing,setEditing]=useState(null),[shelfConsent,setShelfConsent]=useState(false);
   const [entries, setEntries] = useState(()=>initialNotebook?readWindowNotebook(JSON.stringify(initialNotebook),log).windows:[]), [pending, setPending] = useState(null), [removeId, setRemoveId] = useState(null), [reading, setReading] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState('');
   const [previous,setPrevious]=useState(null);
-  const commitEntries=next=>{const checked=windowNotebook(log,next).windows;setPrevious(entries);setEntries(checked);};
+  const commitEntries=next=>{const checked=windowNotebook(log,next).windows;onPause();setPrevious(entries);setEntries(checked);};
   const restorePrevious=preview=>{
     if(previous===null||reading||bundleBusy||editing||pending||playbackDisabled||removeId)return;
     const current=windowNotebook(log,entries),before=windowNotebook(log,previous);
@@ -136,7 +136,7 @@ export default function WindowNotebook({ log, result, dirty, onLoad, onPause, on
     <NotebookCopyComparison onSeek={onSeek} key={`copy-comparison-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)} onPause={onPause} />
     </div>
     <div hidden={!visible('discussion')} data-notebook-tool="discussion">
-    <NotebookDiscussion key={`discussion-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)} onPause={onPause} onLoad={onLoad} />
+    <NotebookDiscussion key={`discussion-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} onLoad={onLoad} onPlayWindow={onPlayWindow} />
     </div>
     <div hidden={!visible('manage')} data-notebook-tool="saved-copies" className="space-y-3"><NotebookRecovery key={`recovery-${revision}`} log={log} entries={entries} previous={previous} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} onRestore={restorePrevious} /><NotebookDuplicatePreview key={`duplicate-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} onDuplicate={duplicateSelected} /><NotebookAgendaPreview key={`agenda-preview-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} onApply={applyAgenda} /><NotebookRemoval key={`removal-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} onRemove={removeSelected} /><NotebookCopyFinder log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} renderList={items=>list(items)} /></div>{error && <p role="alert" className="text-xs text-amber-300">{error}</p>}{message && <p role="status" className="text-xs text-sky-200">{message}</p>}
   </section>;
