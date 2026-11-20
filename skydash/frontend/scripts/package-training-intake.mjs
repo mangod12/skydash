@@ -14,7 +14,7 @@ function crc32(bytes) { let crc = 0xffffffff; for (const byte of bytes) crc = cr
 export function storedZip(entries) {
   const locals = [], central = [], names = new Set(); let offset = 0, centralSize = 0;
   for (const [name, contents] of entries) {
-    if (name.includes('\\') || name.startsWith('/') || name.split('/').some(part => ['', '.', '..'].includes(part) || /[. ]$/.test(part) || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part)) || /[\x00-\x1f\x7f:<>"|?*]/.test(name) || names.has(name.normalize('NFC').toLowerCase())) throw Error('Archive paths must be unique safe relative names, including case.');
+    if (name.includes('\\') || name.startsWith('/') || name.split('/').some(part => ['', '.', '..'].includes(part) || /[. ]$/.test(part) || /^(con|prn|aux|nul|conin\$|conout\$|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/i.test(part)) || /[\x00-\x1f\x7f:<>"|?*]/.test(name) || names.has(name.normalize('NFC').toLowerCase())) throw Error('Archive paths must be unique safe relative names, including case.');
     const key = name.normalize('NFC').toLowerCase();
     if ([...names].some(other => key.startsWith(other + '/') || other.startsWith(key + '/'))) throw Error('Archive file and folder paths conflict.');
     names.add(key); const filename = Buffer.from(name), bytes = Buffer.from(contents), crc = crc32(bytes);
