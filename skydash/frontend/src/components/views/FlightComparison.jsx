@@ -1,3 +1,4 @@
+import BaselineReplacementPreview from './BaselineReplacementPreview';
 import ComparisonChannelChart from './ComparisonChannelChart';
 import ComparisonStepping from './ComparisonStepping';
 import { Fragment, useEffect, useMemo, useState } from 'react';
@@ -27,6 +28,7 @@ function Observation({ observation, label, color }) {
 }
 export default function FlightComparison({ primary }) {
   const [baseline, setBaseline] = useState(null);
+  const [pendingBaseline, setPendingBaseline] = useState(null);
   const [baselineRevision, setBaselineRevision] = useState(0);
   const [notes, setNotes] = useState('');
   const [time, setTime] = useState(0);
@@ -58,14 +60,20 @@ export default function FlightComparison({ primary }) {
     const timer = setInterval(() => { const now = performance.now(); const delta = (now - previous) / 1000; previous = now; setTime(value => Math.min(end, value + delta * speed)); }, 100);
     return () => clearInterval(timer);
   }, [replaying, end, speed]);
+  const applyBaseline = data => {
+    setPendingBaseline(null); setBaselineRevision(value => value + 1); setBasemapEnabled(false); setBaseline(data);
+    setTime(0); setPlaying(false); setNotes(''); setPendingReview(null); resetAlignment(); setError('');
+    setMessage('Baseline B loaded locally. No CSV or notes uploaded. Comparison reset to 0s; prior comparison notes replaced.');
+  };
   const load = async (read, filename) => {
     if (busy) return;
-    setBusy(true); setPlaying(false); setError(''); setMessage('');
+    setBusy(true); setPendingBaseline(null); setPlaying(false); setError(''); setMessage('');
     try {
       const csv_text = await read();
       const samples = parseFlightCSV(csv_text), sha256 = await flightCSVHash(csv_text);
-      setBaselineRevision(value => value + 1); setBasemapEnabled(false); setBaseline({ title: filename.replace(/\.csv$/i, '').slice(0, 120), filename: filename.slice(0, 120), csv_text, samples, sha256, model_version: LOG_VERSION });
-      setTime(0); setNotes(''); setPendingReview(null); resetAlignment(); setMessage('Baseline B loaded locally. No CSV or notes uploaded. Comparison reset to 0s; prior comparison notes replaced.');
+      const checked = { title: filename.replace(/\.csv$/i, '').slice(0, 120), filename: filename.slice(0, 120), csv_text, samples, sha256, model_version: LOG_VERSION };
+      if (baseline) { setPendingBaseline(checked); setMessage('Baseline checked locally. Current comparison kept until explicit confirmation.'); }
+      else applyBaseline(checked);
     } catch (failure) { setError(failure.message || 'Baseline could not be read.'); }
     finally { setBusy(false); }
   };
@@ -76,7 +84,7 @@ export default function FlightComparison({ primary }) {
   };
   const importReview = async event => {
     const file = event.target.files?.[0]; event.target.value = ''; if (!file || busy) return;
-    setBusy(true); setPlaying(false); setError(''); setMessage('');
+    setBusy(true); setPendingBaseline(null); setPlaying(false); setError(''); setMessage('');
     try {
       if (file.size > MAX_COMPARISON_REVIEW_BYTES) throw new Error('Comparison review JSON must be at most 2MiB.');
       const contents = new globalThis.TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(await file.arrayBuffer());
@@ -96,7 +104,7 @@ export default function FlightComparison({ primary }) {
   };
   const confirmReview = () => {
     if (!pendingReview || busy) return;
-    const item = pendingReview; setBaselineRevision(value => value + 1); setBasemapEnabled(false); setBaseline(item.baseline); setNotes(item.notes); setAlignment(item.alignment); setAnchorA(String((item.alignment?.primaryIndex || 0) + 1)); setAnchorB(String((item.alignment?.baselineIndex || 0) + 1)); setAnchorLabel(item.alignment?.label || ''); setAnchorDirty(false); setPendingReview(null); setTime(0); setPlaying(false); setError(''); setMessage('Comparison review reopened at review clock zero. Evidence recomputed from exact primary and embedded baseline CSVs. Primary source/reviews and backend records unchanged.');
+    const item = pendingReview; setPendingBaseline(null); setBaselineRevision(value => value + 1); setBasemapEnabled(false); setBaseline(item.baseline); setNotes(item.notes); setAlignment(item.alignment); setAnchorA(String((item.alignment?.primaryIndex || 0) + 1)); setAnchorB(String((item.alignment?.baselineIndex || 0) + 1)); setAnchorLabel(item.alignment?.label || ''); setAnchorDirty(false); setPendingReview(null); setTime(0); setPlaying(false); setError(''); setMessage('Comparison review reopened at review clock zero. Evidence recomputed from exact primary and embedded baseline CSVs. Primary source/reviews and backend records unchanged.');
   };
   const download = kind => {
     let url;
@@ -107,12 +115,13 @@ export default function FlightComparison({ primary }) {
       document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); setError(''); setMessage('Download requested. Keep the comparison report and both source CSVs; they contain location data.');
     } catch { if (url) URL.revokeObjectURL(url); setError('Comparison download could not start. Sources and notes are unchanged.'); }
   };
-  const clear = () => { setBaselineRevision(value => value + 1); setBasemapEnabled(false); setBaseline(null); setPendingReview(null); resetAlignment(); setNotes(''); setTime(0); setPlaying(false); setError(''); setMessage('Comparison cleared. Primary A is unchanged.'); };
+  const clear = () => { setPendingBaseline(null); setBaselineRevision(value => value + 1); setBasemapEnabled(false); setBaseline(null); setPendingReview(null); resetAlignment(); setNotes(''); setTime(0); setPlaying(false); setError(''); setMessage('Comparison cleared. Primary A is unchanged.'); };
   return <article id="flight-comparison" aria-label="Two-flight comparison" className="rounded-xl border border-violet-500/25 p-4 space-y-3">
     <header><p className="text-[10px] tracking-widest text-violet-300">TRAINING / COMPARE RECORDED SORTIES</p><h2 className="mt-1 text-lg font-semibold text-zinc-100">4. Two-flight comparison</h2><p className="mt-2 text-xs leading-relaxed text-zinc-400">{COMPARISON_SCOPE}</p></header>
-    <p className="text-xs text-zinc-400 break-all">Primary A: {primary.title} / {primary.filename}. Import a second CSV as baseline B. Uses the same numeric schema and limits as the primary. Loading another baseline replaces comparison notes. Changing primary clears the comparison. No server archive is needed.</p>
+    <p className="text-xs text-zinc-400 break-all">Primary A: {primary.title} / {primary.filename}. Import a second CSV as baseline B. Uses the same numeric schema and limits as the primary. With an existing baseline, checked CSV replacement requires confirmation before clearing comparison notes, anchors and derived panels. Cancel to finish or download the current comparison first. Changing primary clears the comparison. No server archive is needed.</p>
     <label className="block text-xs text-zinc-300">Baseline CSV<input aria-label="Choose baseline CSV" type="file" accept=".csv,text/csv" disabled={busy} onChange={fileChosen} className="mt-2 block w-full min-w-0 text-xs text-zinc-400 file:mr-2 file:rounded file:border-0 file:bg-violet-950 file:p-2 file:text-violet-200" /></label>
     <div className="flex flex-wrap gap-2"><button disabled={busy} onClick={() => load(async () => syntheticBaseline, 'synthetic-baseline.csv')} className={button}>Load synthetic baseline</button>{baseline && <button disabled={busy} onClick={clear} className={button}>Clear comparison</button>}</div>
+    <BaselineReplacementPreview current={baseline} candidate={pendingBaseline} disabled={busy} onCancel={() => { if (busy) return; setPendingBaseline(null); setError(''); setMessage('Baseline replacement canceled. Current comparison and drafts kept; playback stays under manual control.'); }} onConfirm={() => { if (busy || !pendingBaseline) return; applyBaseline(pendingBaseline); }} />
     {busy && <p className="text-xs text-zinc-400" aria-live="polite">Reading baseline...</p>}{error && <p role="alert" className="text-xs text-amber-300">{error} Previous comparison remains unchanged.</p>}{message && <p role="status" className="text-xs text-violet-200">{message}</p>}
     <section aria-label="Portable comparison review" className="rounded-lg border border-violet-500/25 p-3 space-y-3"><h3 className="text-sm text-violet-200">Portable comparison review</h3><p className="text-xs text-zinc-400">{COMPARISON_REVIEW_SCOPE}</p><p className="text-xs text-zinc-500">Load exact primary CSV first, then import this JSON to restore baseline, comparison notes and applied anchors. Source/analyst/instructor/envelope review above is not changed. Portable primary cases and the local library still exclude comparison. Download both before leaving.</p>
       <label className="block text-xs text-zinc-400">Import comparison review JSON<input type="file" accept=".json,application/json" aria-label="Import comparison review JSON" disabled={busy} onChange={importReview} className="mt-1 w-full min-w-0 text-xs file:rounded file:border-0 file:bg-violet-950 file:p-2 file:text-violet-200" /></label>
