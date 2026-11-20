@@ -54,3 +54,7 @@ it('applies kind-specific and total package byte limits before emitting any rece
 it('offers help and rejects missing/extra/unknown/directory inputs and duplicated expected-digest flags',()=>{
  expect(verify('--help').status).toBe(0);expect(intake('--help').status).toBe(0);for(const args of [[],[notebook,'--unknown','x'],[notebook,'--expect-sha256','abc'],[notebook,'--expect-sha256',hash(noteText),'--expect-sha256',hash(noteText)],[dir],[join(dir,'missing')]])failure(verify(...args));failure(intake());failure(intake(manifest,'extra'));failure(intake(dir));
 });
+
+it('pins complete manifest bytes before package lookup, separately from its per-artifact pins',async()=>{
+ const digest=hash(await readFile(manifest));const pinned=success(intake(manifest,'--expect-sha256',digest.toUpperCase()));expect(pinned.expected_manifest_digest_matched).toBe(true);expect(success(intake(manifest)).expected_manifest_digest_matched).toBe(false);await writeFile(manifest,(await readFile(manifest,'utf8'))+'\n');failure(intake(manifest,'--expect-sha256',digest));expect(success(intake(manifest)).exact_manifest_sha256).not.toBe(digest);failure(intake(manifest,'--expect-sha256','bad'));failure(intake(manifest,'--expect-sha256',digest,'--expect-sha256',digest));
+});
