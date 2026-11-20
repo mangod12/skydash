@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { createPairedReviewBundle, readPairedReviewBundle, MAX_PAIRED_BUNDLE_BYTES, PAIRED_BUNDLE_SCOPE } from '../../utils/pairedReviewBundle';
+import { pairedReviewBundleReport, createPairedReviewBundle, readPairedReviewBundle, MAX_PAIRED_BUNDLE_BYTES, PAIRED_BUNDLE_SCOPE } from '../../utils/pairedReviewBundle';
 const button = 'rounded border border-violet-500/25 bg-violet-500/10 px-3 py-2 text-xs text-violet-200 disabled:opacity-40';
 export default function PairedReviewBundle({ hasSource, workspaceBusy, getSnapshot, onOpen, onPause }) {
   const [busy, setBusy] = useState(false), [pending, setPending] = useState(null), [error, setError] = useState(''), [message, setMessage] = useState('');
   const heading = useRef(null);
   useEffect(() => { if (pending) { heading.current?.focus(); heading.current?.scrollIntoView?.({ block: 'center' }); } }, [pending]);
   const disabled = busy || workspaceBusy;
-  const download = async () => {
+  const download = async (report = false) => {
     if (disabled || pending) return;
     onPause(); setBusy(true); setError(''); setMessage(''); let url;
     try {
       const snapshot = getSnapshot(), contents = await createPairedReviewBundle(snapshot.primary, snapshot.comparison);
-      url = URL.createObjectURL(new Blob([contents], { type: 'application/json' })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `skydash-paired-review-${snapshot.primary.log.sha256.slice(0, 8)}-${snapshot.comparison.baseline.sha256.slice(0, 8)}.json`; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setMessage('Paired bundle download requested. Both exact full CSVs and listed review sections included, not a complete workspace backup. Re-export after edits. No upload or server record.');
+      const output = report ? await pairedReviewBundleReport(contents) : contents;
+      url = URL.createObjectURL(new Blob([output], { type: report ? 'text/plain;charset=utf-8' : 'application/json' })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `skydash-paired-review-${snapshot.primary.log.sha256.slice(0, 8)}-${snapshot.comparison.baseline.sha256.slice(0, 8)}.${report ? 'txt' : 'json'}`; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMessage(report ? 'Readable paired report download requested. Includes recomputed whole-source evidence and listed private primary/comparison review sections. Text cannot reopen sources or reviews. Keep paired JSON separately. No upload or server record.' : 'Paired bundle download requested. Both exact full CSVs and listed review sections included, not a complete workspace backup. Re-export after edits. No upload or server record.');
     } catch (failure) { if (url) URL.revokeObjectURL(url); setError(failure.message || 'Paired bundle download could not start.'); }
     finally { setBusy(false); }
   };
@@ -28,8 +29,9 @@ export default function PairedReviewBundle({ hasSource, workspaceBusy, getSnapsh
   };
   return <article aria-label="Paired review source bundle" className="rounded-xl border border-violet-500/25 p-4 space-y-3">
     <h2 className="text-lg text-violet-200">Two-source review handoff</h2><p className="text-xs leading-relaxed text-zinc-400">{PAIRED_BUNDLE_SCOPE}</p>
-    <p className="text-xs text-zinc-500">Download needs both sources, applied or discarded anchor edits, no pending comparison import/replacement, and a primary case snapshot with no unfinished marker/envelope work. Both replay clocks pause when collecting a snapshot. Downloads are sensitive files, not secure transport or a server save.</p>
-    <button className={button} disabled={disabled || !hasSource || Boolean(pending)} onClick={download}>Download paired review bundle JSON</button>
+    <p className="text-xs text-zinc-500">Download needs both sources, applied or discarded anchor edits, no pending comparison import/replacement, and a primary case snapshot with no unfinished marker/envelope work. Both replay clocks pause when collecting a snapshot. Both downloads are sensitive files, not secure transport or a server save. JSON reopens listed review sections; the text report is readable only and recomputes whole-source evidence, not cursor-specific deltas.</p>
+    <div className="flex flex-wrap gap-2"><button className={button} disabled={disabled || !hasSource || Boolean(pending)} onClick={() => download(false)}>Download paired review bundle JSON</button>
+    <button className={button} disabled={disabled || !hasSource || Boolean(pending)} onClick={() => download(true)}>Download paired review handoff report</button></div>
     <label className="block text-xs text-zinc-400">Open paired review bundle JSON (up to 4MiB)<input aria-label="Open paired review bundle JSON" type="file" accept=".json,application/json" disabled={disabled} onChange={read} className="mt-2 block w-full min-w-0 text-xs" /></label>
     {busy && <p role="status" className="text-xs text-violet-200">Checking paired review data locally...</p>}{error && <p role="alert" className="text-xs text-amber-300">{error} Current workspace not replaced.</p>}{message && <p role="status" className="text-xs text-violet-200">{message}</p>}
     {pending && <section aria-label="Paired review bundle preview" className="rounded border border-amber-500/30 p-3 space-y-3 text-xs text-zinc-400">

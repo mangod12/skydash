@@ -75,6 +75,16 @@ test.describe('SkyDash E2E Tests', () => {
     await page.waitForTimeout(500);
   });
 
+  test('readable paired handoff report reuses guarded snapshot and preserves both cursors and reviews', async ({ page }) => {
+    await page.getByRole('button', { name: 'Scenario Lab', exact: true }).click(); await page.getByRole('button', { name: 'FLIGHT LOG REPLAY', exact: true }).click(); await page.getByText('Load synthetic sample', { exact: true }).click();
+    const pair = page.getByRole('article', { name: 'Two-flight comparison', exact: true }), bundle = page.getByRole('article', { name: 'Paired review source bundle', exact: true }); await pair.getByText('Load synthetic baseline', { exact: true }).click(); await pair.getByLabel('Comparison notes', { exact: true }).fill('PRIVATE readable paired comparison'); await page.getByLabel('Analyst notes', { exact: true }).fill('PRIVATE readable primary');
+    await pair.getByLabel('Review anchor label', { exact: true }).fill('Unfinished anchor'); await bundle.getByText('Download paired review handoff report', { exact: true }).click(); await expect(bundle.getByRole('alert')).toContainText('anchor edits'); await pair.getByText('Discard anchor edits', { exact: true }).click();
+    await page.getByLabel('Replay position', { exact: true }).fill('8'); await pair.getByLabel('Comparison time', { exact: true }).fill('6');
+    const request = page.waitForEvent('download'); await bundle.getByText('Download paired review handoff report', { exact: true }).click(); const download = await request; expect(download.suggestedFilename()).toMatch(/\.txt$/); const stream = await download.createReadStream(), chunks = []; for await (const chunk of stream) chunks.push(chunk); const text = Buffer.concat(chunks).toString(); for (const value of ['READABLE SNAPSHOT ONLY', 'SECTION SCOPES', 'PRIVATE readable primary', 'PRIVATE readable paired comparison', '=== PRIMARY A', '=== ORDERED A / B', 'No cursor-specific instantaneous deltas', 'not better/worse']) expect(text).toContain(value);
+    await expect(page.getByLabel('Replay position', { exact: true })).toHaveValue('8'); await expect(pair.getByLabel('Comparison time', { exact: true })).toHaveValue('6'); await expect(page.getByLabel('Analyst notes', { exact: true })).toHaveValue('PRIVATE readable primary');
+    if (typeof captureReport === 'function') await captureReport(page, bundle, text);
+  });
+
   test('explicit OEM CSV mapping targets baseline only with separate checked replacement and cancel preservation', async ({ page }) => {
     await page.getByRole('button', { name: 'Scenario Lab', exact: true }).click(); await page.getByRole('button', { name: 'FLIGHT LOG REPLAY', exact: true }).click(); await page.getByText('Load synthetic sample', { exact: true }).click(); await page.getByLabel('Analyst notes', { exact: true }).fill('PRIMARY kept'); await page.getByLabel('Replay position', { exact: true }).fill('8');
     const pair = page.getByRole('article', { name: 'Two-flight comparison', exact: true }); await pair.getByText('Load synthetic baseline', { exact: true }).click(); await pair.getByLabel('Comparison notes', { exact: true }).fill('BASELINE kept');

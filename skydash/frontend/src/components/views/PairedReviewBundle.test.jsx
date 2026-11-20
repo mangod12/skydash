@@ -29,3 +29,8 @@ it('rejects invalid or oversized data and blocks actions while source work is bu
   const { rerender } = view({ workspaceBusy: true }); expect(screen.getByLabelText('Open paired review bundle JSON').disabled).toBe(true); rerender(<PairedReviewBundle hasSource getSnapshot={getSnapshot} onOpen={onOpen} onPause={onPause} />);
   const arrayBuffer = vi.fn(); fireEvent.change(screen.getByLabelText('Open paired review bundle JSON'), { target: { files: [{ size: 4 * 1024 * 1024 + 1, arrayBuffer }] } }); await screen.findByRole('alert'); expect(arrayBuffer).not.toHaveBeenCalled(); expect(onOpen).not.toHaveBeenCalled();
 });
+
+it('downloads a readable snapshot only on explicit request with the same source guards as JSON', async () => {
+  view(); fireEvent.click(screen.getByText('Download paired review handoff report')); await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledOnce()); expect(getSnapshot).toHaveBeenCalledOnce(); const blob = URL.createObjectURL.mock.calls[0][0]; expect(blob.type).toBe('text/plain;charset=utf-8'); expect(onPause).toHaveBeenCalledOnce();
+  getSnapshot.mockImplementationOnce(() => { throw Error('Finish comparison anchors'); }); fireEvent.click(screen.getByText('Download paired review handoff report')); await screen.findByRole('alert'); expect(URL.createObjectURL).toHaveBeenCalledOnce();
+});
