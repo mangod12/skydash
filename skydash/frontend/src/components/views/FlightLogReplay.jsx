@@ -1,3 +1,5 @@
+import RecordedExitPreview from './RecordedExitPreview';
+import { useUIStore } from '../../stores/uiStore';
 import SourceStepping from './SourceStepping';
 import SourceReplacementPreview from './SourceReplacementPreview';
 import RecordedBlocks from './RecordedBlocks';
@@ -55,6 +57,7 @@ async function verifiedRecord(data) {
 
 export default function FlightLogReplay({ onBack }) {
   const canWrite = useCan('analyst');
+  const pendingExit = useUIStore(state => state.pendingRecordedExit);
   const debriefRef = useRef(null);
   const actionsRef = useRef(null), checklistRef = useRef(null);
   const [followupSeed, setFollowupSeed] = useState(null), [followupRevision, setFollowupRevision] = useState(0);
@@ -63,6 +66,14 @@ export default function FlightLogReplay({ onBack }) {
   const [notebookSeed,setNotebookSeed]=useState(null),[sourceRevision,setSourceRevision]=useState(0);
   const [reviewRevision, setReviewRevision] = useState(0);
   const [log, setLog] = useState(null);
+  const sourceOpen = Boolean(log);
+  useEffect(() => {
+    useUIStore.getState().setRecordedSourceOpen(sourceOpen);
+    if (!sourceOpen) return undefined;
+    const warn = event => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => { window.removeEventListener('beforeunload', warn); useUIStore.getState().setRecordedSourceOpen(false); };
+  }, [sourceOpen]);
   const [pendingSource, setPendingSource] = useState(null);
   const [rawOpenRevision, setRawOpenRevision] = useState(0);
   const [panelFocus, setPanelFocus] = useState('all');
@@ -77,6 +88,7 @@ export default function FlightLogReplay({ onBack }) {
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [playbackWindow,setPlaybackWindow]=useState(null);
+  useEffect(() => { if (pendingExit) { setPlaying(false); setPlaybackWindow(null); } }, [pendingExit]);
   const [basemapEnabled, setBasemapEnabled] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [archive, setArchive] = useState([]);
@@ -99,7 +111,7 @@ export default function FlightLogReplay({ onBack }) {
     return () => clearInterval(timer);
   }, [replaying, speed, summary, playbackWindow]);
   const playWindow=(first,last,label,repeat)=>{if(busy||!log)return;try{const range=windowPlaybackRange(log,first,last,label,repeat);setPlaybackWindow(range);setTime(range.start);setPlaying(true);setError('');setMessage('Selected-window primary playback started at original source time. No gap skipping or source edits. Comparison playback and reviews unchanged.');}catch(failure){setError(failure.message||'Selected-window playback could not start.');}};
-  const select = data => { setPendingSource(null); setSourceRevision(value=>value+1); setNotebookSeed(null); setPanelFocus('all'); setPendingSection(null); setFollowupSeed(null); setBasemapEnabled(false); if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setPlaybackWindow(null); setConfirmDelete(false); };
+  const select = data => { useUIStore.getState().cancelRecordedExit(); setPendingSource(null); setSourceRevision(value=>value+1); setNotebookSeed(null); setPanelFocus('all'); setPendingSection(null); setFollowupSeed(null); setBasemapEnabled(false); if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setPlaybackWindow(null); setConfirmDelete(false); };
   const applyCheckedSource = data => {
     select(data); setRawOpenRevision(value => value + 1); setReviewSeed(null); setReviewRevision(value => value + 1);
   };
@@ -177,8 +189,9 @@ export default function FlightLogReplay({ onBack }) {
 
   return <section aria-label="Flight log replay" className="h-full overflow-y-auto overflow-x-hidden bg-zinc-950 p-4">
     <div className="mx-auto max-w-7xl space-y-4">
-      <button disabled={busy} onClick={onBack} className="inline-flex items-center gap-2 text-xs text-zinc-400"><ArrowLeft size={14} /> Back to Scenario Lab</button>
+      <button disabled={busy} onClick={() => { if (log) useUIStore.getState().requestRecordedBack(); else onBack?.(); }} className="inline-flex items-center gap-2 text-xs text-zinc-400"><ArrowLeft size={14} /> Back to Scenario Lab</button>
       <header><p className="text-[10px] tracking-widest text-cyan-300">IMPORT / REPLAY / DEBRIEF</p><h1 className="mt-1 text-2xl font-semibold text-zinc-100">Flight Log Replay</h1><p className="mt-2 text-xs leading-relaxed text-zinc-400">{LOG_SCOPE}</p></header>
+      <RecordedExitPreview pending={pendingExit} disabled={busy} onKeep={() => useUIStore.getState().cancelRecordedExit()} onLeave={() => { if (busy) return; if (useUIStore.getState().confirmRecordedExit() === 'back') onBack?.(); }} />
       <SourceReplacementPreview current={log} candidate={pendingSource} disabled={busy} onCancel={() => { if (busy) return; setPendingSource(null); setError(''); setMessage('Source replacement canceled. Current recorded workspace kept; playback stays under manual control.'); }} onConfirm={() => { if (busy || !pendingSource) return; const checked = pendingSource; applyCheckedSource(checked); setError(''); setMessage('Checked source opened at zero. Previous local reviews and comparison cleared after confirmation. No server record changed or created.'); }} />
       {log && <ReviewFocus focus={panelFocus} onChange={changeFocus} onNavigate={navigateSection} disabled={busy} />}
       <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><CSVColumnMapping key={`mapper-${rawOpenRevision}`} workspaceBusy={busy} onOpen={openMapped} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>

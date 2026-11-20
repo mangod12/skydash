@@ -5,6 +5,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import FlightLogReplay from './FlightLogReplay';
 import { SAMPLE_LOG, LOG_VERSION, flightCSVHash } from '../../utils/flightLog';
+import { useUIStore } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
 vi.mock('react-leaflet', () => ({ MapContainer: ({ children }) => <div>{children}</div>, TileLayer: () => null, Polyline: () => null, CircleMarker: ({ children }) => <div>{children}</div>, Tooltip: ({ children }) => <span>{children}</span>, useMap: () => ({ fitBounds: vi.fn() }) }));
 vi.mock('../../utils/api', () => ({ apiFetch: (...args) => globalThis.fetch(...args) }));
@@ -13,6 +14,7 @@ let saved;
 beforeEach(async () => {
   vi.stubGlobal('TextEncoder', TextEncoder); vi.stubGlobal('TextDecoder', TextDecoder); vi.stubGlobal('crypto', webcrypto);
   URL.createObjectURL = vi.fn(() => 'blob:flight'); URL.revokeObjectURL = vi.fn(); vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  useUIStore.setState({ activeView: 'scenario', workspace: 'operator', recordedSourceOpen: false, pendingRecordedExit: null });
   useAuthStore.setState({ authEnabled: false, user: null });
   saved = { id: 'saved-1', title: 'Saved training', filename: 'source.csv', notes: 'Fixed notes', csv_text: SAMPLE_LOG, sha256: await flightCSVHash(SAMPLE_LOG), model_version: LOG_VERSION, sample_count: 6, duration_s: 16, created_at: '2026-11-18T12:00:00Z' };
   vi.stubGlobal('fetch', vi.fn(async () => response([])));
@@ -116,7 +118,7 @@ describe('flight-log import, replay, debrief and archive workflow', () => {
   it('reports download errors and returns to the lab', async () => {
     const onBack = vi.fn(); render(<FlightLogReplay onBack={onBack} />); await sample();
     URL.createObjectURL.mockImplementationOnce(() => { throw Error('blocked'); }); fireEvent.click(screen.getByText('Download source CSV'));
-    expect(screen.getByRole('alert').textContent).toContain('Download could not start'); fireEvent.click(screen.getByText('Back to Scenario Lab')); expect(onBack).toHaveBeenCalledOnce();
+    expect(screen.getByRole('alert').textContent).toContain('Download could not start'); fireEvent.click(screen.getByText('Back to Scenario Lab')); expect(onBack).not.toHaveBeenCalled(); fireEvent.click(screen.getByText('Leave and discard recorded session')); expect(onBack).toHaveBeenCalledOnce();
   });
 });
 
@@ -271,4 +273,34 @@ it('checks archive bytes before proposing an open and cancel never changes the c
   expect(screen.getByLabelText('Analyst notes').value).toBe('Fixed notes');
   expect(screen.getByText('Save to server').disabled).toBe(true);
   expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+});
+
+describe('source-open exit guard integration', () => {
+  it('does not guard an empty workspace and unregisters the loaded-source browser warning on unmount', async () => {
+    const onBack = vi.fn(); const view = render(<FlightLogReplay onBack={onBack} />);
+    const empty = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(empty); expect(empty.defaultPrevented).toBe(false);
+    fireEvent.click(screen.getByText('Back to Scenario Lab')); expect(onBack).toHaveBeenCalledOnce(); await sample();
+    const loaded = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(loaded); expect(loaded.defaultPrevented).toBe(true);
+    expect(useUIStore.getState().recordedSourceOpen).toBe(true); view.unmount(); expect(useUIStore.getState().recordedSourceOpen).toBe(false);
+    const gone = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(gone); expect(gone.defaultPrevented).toBe(false);
+  });
+  it('keeps analyst/window drafts, comparison and current source after cancelled view/workspace/back requests', async () => {
+    const onBack = vi.fn(); render(<FlightLogReplay onBack={onBack} />); await sample();
+    fireEvent.change(screen.getByLabelText('Analyst notes'), { target: { value: 'Keep private notes' } });
+    fireEvent.change(screen.getByLabelText('Window label'), { target: { value: 'Keep unsaved label' } });
+    fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByLabelText('Comparison time');
+    fireEvent.change(screen.getByLabelText('Comparison time'), { target: { value: '6' } });
+    for (const request of [() => useUIStore.getState().setActiveView('map'), () => useUIStore.getState().setWorkspace('analyst'), () => useUIStore.getState().requestRecordedBack()]) {
+      act(request); expect(useUIStore.getState().activeView).toBe('scenario'); expect(useUIStore.getState().workspace).toBe('operator');
+      expect(screen.getByRole('heading', { name: 'Keep or leave this recorded workspace?' })).toBe(document.activeElement);
+      fireEvent.click(screen.getByText('Keep recorded workspace open'));
+      expect(screen.getByLabelText('Analyst notes').value).toBe('Keep private notes'); expect(screen.getByLabelText('Window label').value).toBe('Keep unsaved label'); expect(screen.getByLabelText('Comparison time').value).toBe('6');
+      expect(screen.queryByLabelText('Leave recorded workspace preview')).toBeNull(); expect(onBack).not.toHaveBeenCalled();
+    }
+  });
+  it('pauses only primary replay on a pending exit and clears stale exit proposals on source open', async () => {
+    render(<FlightLogReplay />); await sample(); fireEvent.click(screen.getByText('Play replay'));
+    act(() => useUIStore.getState().setActiveView('telemetry')); expect(screen.getByText('Play replay')).toBeTruthy();
+    await sample(); expect(screen.queryByLabelText('Leave recorded workspace preview')).toBeNull(); expect(useUIStore.getState().activeView).toBe('scenario');
+  });
 });
