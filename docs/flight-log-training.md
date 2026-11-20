@@ -640,3 +640,12 @@ The receipt binds the exact manifest bytes and reports per-entry validation rece
 
 
 The batch receipt also lists `repeated_sources` by exact CSV fingerprint and ordinal/primary-or-baseline role, including identical A/B within one bundle. `repeated_artifacts` lists exact whole-bundle duplicates by digest and ordinals. Identical source bytes can occur in different bundle bytes after notes or formatting changes, so these checks are separate. They do not infer aircraft, student or flight identity. No combined samples, duration, grade or completion totals are produced. Use this index to notice reused evidence, not to certify independent flights.
+
+
+## Optional expected artifact digests in browser previews
+
+Paired-review and notebook-source-bundle file inputs accept an optional separately obtained complete-file SHA-256 before selecting JSON. This is the exact raw-file digest printed by the offline verifiers, not an embedded CSV/source fingerprint. Uppercase hex is accepted. The optional value is locked during file validation and while a preview is pending; cancel to change it. Blank explicitly skips this external byte check.
+
+The app checks declared and actual size, computes SHA-256 over the complete raw bytes, compares an expected value if supplied, strictly decodes UTF-8 and runs existing nested source/model/review validators before preview. A changed note or JSON whitespace changes the complete-file digest even when CSV bytes are unchanged. Invalid expected hex, digest mismatch, malformed UTF-8 or nested validation failure leaves the current workspace intact and provides no replacement preview. Nothing opens automatically. The preview shows the computed complete-file digest and whether an expected value was actually checked. Matching a digest is agreement with that expectation, not proof of authenticity, authorship, a signature or training readiness.
+
+Existing explicit replacement/cancel boundaries and sensitive full-source/private-note warnings remain. Device-local notebook-shelf previews are a separate path and explicitly state that no complete-file expected digest was checked; they do not inherit the file input's optional expectation. No expected digest, file or receipt is automatically stored, uploaded or shared. Other import formats are unchanged.
