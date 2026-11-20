@@ -96,3 +96,11 @@ The most useful safety critique is specific:
 - Which real-drone integration step is safe enough to implement first?
 - Which data import/export path would make the project more credible without
   increasing risk?
+
+### Unsupported environment displays
+
+The GPS mini-panel reports only the selected source's received satellite count (including genuine zero), or unknown when unsupported/missing. A count is not per-satellite geometry, signal measurements, fix quality, accuracy or navigation integrity. No satellite sky plot is generated from the count. Received values may be stale; disconnection is explicit. No source authenticity or navigation fitness is inferred.
+
+The weather dashboard widget has no supplied weather observation and now reports unknown wind, visibility, temperature, location and observation time instead of choosing random conditions. It is not a forecast or flight-weather/go-no-go briefing. Obtain current location-specific weather separately. These display changes do not add a weather service or access an account.
+
+On narrow screens the optional widget dashboard stacks full-width widgets in existing array order. Desktop grid coordinates and saved layout data remain unchanged across viewport changes. A small desktop weather widget scrolls for its full limitations instead of hiding overflow without a way to read it. No server settings, source telemetry, commands or device-local layout records are changed by these display corrections.
