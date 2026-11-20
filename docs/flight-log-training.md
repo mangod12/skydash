@@ -553,3 +553,29 @@ Busy source/notebook/bundle/import/annotation work and pending discussion-field 
 The scoped notebook handoff preview can also produce a readable text packet for only those selected copies, in applied notebook order. Labels and private notes follow the same independent choices, off by default. After preview, explicitly allow exact selected coordinates/readings before downloading the packet. Unlike the JSON handoff, text includes every selected original coordinate/channel reading with original row numbers/times and source fingerprint. Source filename and internal copy IDs are excluded; generic labels retain original notebook positions. This is not anonymization. No outside-row readings, full-source row map or exact CSV is embedded. Overlaps repeat independently, never add spans/distances or infer completion, grades or readiness.
 
 Selection or annotation changes clear preview and coordinate permission. Busy work blocks export. Source/choices/selected bounds revalidate before download; notebook mutations reset the panel. Current dirty fields, applied notebook and independent comparison stay unchanged. This editable human-readable packet cannot reopen a notebook and is not signed/authenticated evidence. Keep exact source CSV and scoped notebook JSON separately. No automatic sharing/upload/backend writes or new saved schema.
+
+## Checked raw-source replacement
+
+Choosing another primary CSV, the synthetic sample, or a server archive record
+now checks its bytes/model/hash before offering a replacement preview when a
+source is already open. The first source still opens directly. Server reads
+retain their existing access rules; no record is written by this preview.
+
+The preview shows current/proposed exact source fingerprints, unverified
+filename, sample count and original timestamp span. Source authenticity is not
+verified. It does not apply a source, seek, transfer annotations, upload or save.
+Primary playback pauses for checking; comparison remains independent. Cancel
+keeps current source, notes, reviews, notebook/recovery, comparison and drafts.
+Current work can still be edited or downloaded, but the replacement proposal
+never updates to include those edits. Cancel first before finishing current work.
+A later source choice supersedes the proposal. A failed check offers no
+replacement; any completed source-opening workflow discards the old proposal.
+
+Explicit confirmation opens the checked in-memory bytes at zero and clears all
+current local review state and comparison, including for identical source bytes.
+It also resets pending case/library/mapping import previews. This prevents hidden
+reviews from surviving an intentional new raw-source open. Download current work
+separately first. Existing server records, device-local snapshots and downloaded
+files are not deleted or updated. This confirmation does not add autosave,
+recovery across source replacement, browser-close protection, verified identity,
+training completion, grades or aircraft commands.
