@@ -23,7 +23,8 @@
     "verify-training-lineage": "node scripts/verify-training-lineage.mjs",
     "compare-notebook-reviews": "node scripts/compare-notebook-reviews.mjs",
     "verify-review-case": "node scripts/verify-review-case.mjs",
-    "report-training-intake": "node scripts/report-training-intake.mjs"
+    "report-training-intake": "node scripts/report-training-intake.mjs",
+    "compare-training-packages": "node scripts/compare-training-packages.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",
