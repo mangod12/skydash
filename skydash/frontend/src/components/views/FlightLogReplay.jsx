@@ -1,4 +1,5 @@
 import SourceStepping from './SourceStepping';
+import SourceReplacementPreview from './SourceReplacementPreview';
 import RecordedBlocks from './RecordedBlocks';
 import RecordedChannelRanks from './RecordedChannelRanks';
 import ReviewFocus from './ReviewFocus';
@@ -62,6 +63,8 @@ export default function FlightLogReplay({ onBack }) {
   const [notebookSeed,setNotebookSeed]=useState(null),[sourceRevision,setSourceRevision]=useState(0);
   const [reviewRevision, setReviewRevision] = useState(0);
   const [log, setLog] = useState(null);
+  const [pendingSource, setPendingSource] = useState(null);
+  const [rawOpenRevision, setRawOpenRevision] = useState(0);
   const [panelFocus, setPanelFocus] = useState('all');
   const [pendingSection, setPendingSection] = useState(null);
   const changeFocus = value => { setPlaying(false); setPlaybackWindow(null); setPanelFocus(value); setPendingSection(null); };
@@ -96,7 +99,19 @@ export default function FlightLogReplay({ onBack }) {
     return () => clearInterval(timer);
   }, [replaying, speed, summary, playbackWindow]);
   const playWindow=(first,last,label,repeat)=>{if(busy||!log)return;try{const range=windowPlaybackRange(log,first,last,label,repeat);setPlaybackWindow(range);setTime(range.start);setPlaying(true);setError('');setMessage('Selected-window primary playback started at original source time. No gap skipping or source edits. Comparison playback and reviews unchanged.');}catch(failure){setError(failure.message||'Selected-window playback could not start.');}};
-  const select = data => { setSourceRevision(value=>value+1); setNotebookSeed(null); setPanelFocus('all'); setPendingSection(null); setFollowupSeed(null); setBasemapEnabled(false); if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setPlaybackWindow(null); setConfirmDelete(false); };
+  const select = data => { setPendingSource(null); setSourceRevision(value=>value+1); setNotebookSeed(null); setPanelFocus('all'); setPendingSection(null); setFollowupSeed(null); setBasemapEnabled(false); if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setPlaybackWindow(null); setConfirmDelete(false); };
+  const applyCheckedSource = data => {
+    select(data); setRawOpenRevision(value => value + 1); setReviewSeed(null); setReviewRevision(value => value + 1);
+  };
+  const proposeSource = (data, archived = false) => {
+    if (log) {
+      setPendingSource(data);
+      setMessage('Source checked locally. Review the replacement preview above; current source and reviews kept.');
+    } else {
+      applyCheckedSource(data);
+      setMessage(archived ? 'Saved source checksum verified and replay reset to the first observation.' : 'Local preview loaded. CSV and notes have not been uploaded.');
+    }
+  };
   const followupSnapshot = () => { if (busy || !log || !actionsRef.current || !checklistRef.current) throw new Error('Wait for source and follow-up panels to finish loading.'); return { actions: actionsRef.current.snapshot(), checklist: checklistRef.current.snapshot() }; };
   const applyFollowup = packet => { setFollowupSeed({ sha256: log.sha256, reviewRevision, packet }); setFollowupRevision(value => value + 1); };
   const currentFollowup = followupSeed?.sha256 === log?.sha256 && followupSeed?.reviewRevision === reviewRevision ? followupSeed.packet : null;
@@ -116,15 +131,14 @@ export default function FlightLogReplay({ onBack }) {
   };
   const run = async operation => {
     if (busy) return;
-    setBusy(true); setPlaying(false); setPlaybackWindow(null); setError(''); setMessage('');
+    setBusy(true); setPendingSource(null); setPlaying(false); setPlaybackWindow(null); setError(''); setMessage('');
     try { await operation(); } catch (failure) { setError(failure.message || 'Operation failed.'); }
     finally { setBusy(false); }
   };
   const preview = (csv_text, filename) => run(async () => {
     const samples = parseFlightCSV(csv_text);
     const sha256 = await flightCSVHash(csv_text);
-    select({ title: filename.replace(/\.csv$/i, ''), filename, notes: '', csv_text, samples, sha256, model_version: LOG_VERSION });
-    setMessage('Local preview loaded. CSV and notes have not been uploaded. Previous draft was replaced.');
+    proposeSource({ title: filename.replace(/\.csv$/i, ''), filename, notes: '', csv_text, samples, sha256, model_version: LOG_VERSION });
   });
   const fileChosen = event => {
     const file = event.target.files?.[0]; event.target.value = '';
@@ -134,8 +148,7 @@ export default function FlightLogReplay({ onBack }) {
       const csv_text = new globalThis.TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(await file.arrayBuffer());
       const samples = parseFlightCSV(csv_text);
       const sha256 = await flightCSVHash(csv_text);
-      select({ title: file.name.replace(/\.csv$/i, '').slice(0, 120), filename: file.name.slice(0, 120), notes: '', csv_text, samples, sha256, model_version: LOG_VERSION });
-      setMessage('Local preview loaded. CSV and notes have not been uploaded. Previous draft was replaced.');
+      proposeSource({ title: file.name.replace(/\.csv$/i, '').slice(0, 120), filename: file.name.slice(0, 120), notes: '', csv_text, samples, sha256, model_version: LOG_VERSION });
     });
   };
   const save = () => run(async () => {
@@ -146,7 +159,7 @@ export default function FlightLogReplay({ onBack }) {
     setArchive(previous => [data, ...previous.filter(item => item.id !== data.id)]);
   });
   const refresh = () => run(async () => { setArchiveReady(false); setArchive(await request()); setArchiveReady(true); setMessage('Server archive refreshed. Open a record to replay its source and fixed notes.'); });
-  const open = id => run(async () => { select(await verifiedRecord(await request(`/${encodeURIComponent(id)}`))); setMessage('Saved source checksum verified and replay reset to the first observation.'); });
+  const open = id => run(async () => { proposeSource(await verifiedRecord(await request(`/${encodeURIComponent(id)}`)), true); });
   const remove = () => run(async () => {
     await request(`/${encodeURIComponent(log.id)}`, { method: 'DELETE' });
     setArchive(previous => previous.filter(item => item.id !== log.id)); select({ ...log, id: undefined, created_at: undefined });
@@ -166,16 +179,17 @@ export default function FlightLogReplay({ onBack }) {
     <div className="mx-auto max-w-7xl space-y-4">
       <button disabled={busy} onClick={onBack} className="inline-flex items-center gap-2 text-xs text-zinc-400"><ArrowLeft size={14} /> Back to Scenario Lab</button>
       <header><p className="text-[10px] tracking-widest text-cyan-300">IMPORT / REPLAY / DEBRIEF</p><h1 className="mt-1 text-2xl font-semibold text-zinc-100">Flight Log Replay</h1><p className="mt-2 text-xs leading-relaxed text-zinc-400">{LOG_SCOPE}</p></header>
+      <SourceReplacementPreview current={log} candidate={pendingSource} disabled={busy} onCancel={() => { if (busy) return; setPendingSource(null); setError(''); setMessage('Source replacement canceled. Current recorded workspace kept; playback stays under manual control.'); }} onConfirm={() => { if (busy || !pendingSource) return; const checked = pendingSource; applyCheckedSource(checked); setError(''); setMessage('Checked source opened at zero. Previous local reviews and comparison cleared after confirmation. No server record changed or created.'); }} />
       {log && <ReviewFocus focus={panelFocus} onChange={changeFocus} onNavigate={navigateSection} disabled={busy} />}
-      <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><CSVColumnMapping workspaceBusy={busy} onOpen={openMapped} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
-      <details className="rounded-xl border border-fuchsia-500/20 p-3"><summary className="cursor-pointer text-xs text-fuchsia-200">Device-local review library (explicit storage, not a backup)</summary><div className="mt-3"><LocalReviewLibrary hasSource={Boolean(log)} workspaceBusy={busy} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
+      <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><CSVColumnMapping key={`mapper-${rawOpenRevision}`} workspaceBusy={busy} onOpen={openMapped} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
+      <details className="rounded-xl border border-fuchsia-500/20 p-3"><summary className="cursor-pointer text-xs text-fuchsia-200">Device-local review library (explicit storage, not a backup)</summary><div className="mt-3"><LocalReviewLibrary key={`library-${rawOpenRevision}`} hasSource={Boolean(log)} workspaceBusy={busy} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
       <NotebookSourceBundle key={`notebook-bundle-${sourceRevision}-${reviewRevision}`} workspaceBusy={busy} onOpen={openNotebookBundle} onPause={()=>{setPlaying(false);setPlaybackWindow(null);}} />
-      <ReviewCase workspaceBusy={busy} log={busy ? null : log} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} />
+      <ReviewCase key={`case-${rawOpenRevision}`} workspaceBusy={busy} log={busy ? null : log} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} />
       <div className="grid gap-4 lg:grid-cols-3">
         <aside className="min-w-0 space-y-4">
           <div className="rounded-xl border border-white/10 p-4 space-y-3">
             <h2 className="text-sm font-semibold text-zinc-200">1. Preview a single-aircraft CSV</h2>
-            <p className="text-xs leading-relaxed text-zinc-400">CSV and notes stay in this browser until you choose Save to server. External background map tiles are off by default. Enabling a recorded-review basemap discloses the viewed area to its provider. A new preview or opening a record replaces your unsaved draft. Direct binary MAVLink and PX4 ULog imports are not supported. Use the explicit column mapper above for other numeric CSVs, or convert offline into this schema.</p>
+            <p className="text-xs leading-relaxed text-zinc-400">CSV and notes stay in this browser until you choose Save to server. External background map tiles are off by default. Enabling a recorded-review basemap discloses the viewed area to its provider. With an existing source, a checked replacement preview requires confirmation before clearing the current workspace, even for an identical CSV. Cancel to finish or download current work first. Direct binary MAVLink and PX4 ULog imports are not supported. Use the explicit column mapper above for other numeric CSVs, or convert offline into this schema.</p>
             <code className="block break-all text-[10px] text-cyan-300">{LOG_HEADER}</code>
             <p className="text-xs text-zinc-500">UTF-8, unquoted numeric cells, 2 to 10,000 rows, 1MiB, up to 6 hours starting at 0s. Latitude within 85°; no dateline crossing. Optional altitude, speed and battery cells may be blank (unknown). Coordinates and time cannot be blank.</p>
             <label className="block text-xs text-zinc-300"><Upload size={14} className="inline mr-2" />Choose CSV<input aria-label="Choose flight CSV" type="file" accept=".csv,text/csv" disabled={busy} onChange={fileChosen} className="mt-2 block w-full min-w-0 text-xs text-zinc-400 file:mr-2 file:rounded file:border-0 file:bg-cyan-950 file:p-2 file:text-cyan-200" /></label>

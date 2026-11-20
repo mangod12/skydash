@@ -18,11 +18,11 @@ beforeEach(async () => {
   vi.stubGlobal('fetch', vi.fn(async () => response([])));
 });
 afterEach(() => { vi.useRealTimers(); cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
-const sample = async () => { const button = screen.getByText('Load synthetic sample'); await waitFor(() => expect(button.disabled).toBe(false)); fireEvent.click(button); await waitFor(() => expect(button.disabled).toBe(false)); await screen.findByLabelText('Current recorded observation'); };
+const sample = async () => { const button = screen.getByText('Load synthetic sample'); await waitFor(() => expect(button.disabled).toBe(false)); fireEvent.click(button); await waitFor(() => expect(button.disabled).toBe(false)); if (screen.queryByText('Replace recorded workspace with checked source')) fireEvent.click(screen.getByText('Replace recorded workspace with checked source')); await screen.findByLabelText('Current recorded observation'); };
 const refreshAndOpen = async () => {
   globalThis.fetch.mockResolvedValueOnce(response([saved])).mockResolvedValueOnce(response(saved));
   fireEvent.click(screen.getByText('Refresh server archive')); await screen.findByText('Saved training');
-  fireEvent.click(screen.getByText('Saved training')); await screen.findByText(/checksum verified/);
+  const replacing = Boolean(screen.queryByLabelText('Current recorded observation')); fireEvent.click(screen.getByText('Saved training')); if (replacing) fireEvent.click(await screen.findByText('Replace recorded workspace with checked source')); else await screen.findByText(/checksum verified/); await screen.findByLabelText('Current recorded observation');
 };
 const selectPlaybackWindow=(first,last)=>{fireEvent.change(screen.getByLabelText('Window start data row'),{target:{value:String(first)}});fireEvent.change(screen.getByLabelText('Window end data row'),{target:{value:String(last)}});fireEvent.change(screen.getByLabelText('Window label'),{target:{value:'Instructor playback'}});fireEvent.click(screen.getByText('Review selected samples'));};
 describe('bounded primary replay integration',()=>{
@@ -106,12 +106,12 @@ describe('flight-log import, replay, debrief and archive workflow', () => {
     render(<FlightLogReplay />); await sample(); fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByLabelText('Comparison time');
     const changed = SAMPLE_LOG.replace('28.61390', '28.61391');
     fireEvent.change(screen.getByLabelText('Choose flight CSV'), { target: { files: [{ name: 'different.csv', size: changed.length, arrayBuffer: async () => new TextEncoder().encode(changed).buffer }] } });
-    await screen.findByText(/Source: different.csv/); expect(screen.queryByLabelText('Comparison time')).toBeNull();
+    fireEvent.click(await screen.findByText('Replace recorded workspace with checked source')); await screen.findByText(/Source: different.csv/); expect(screen.queryByLabelText('Comparison time')).toBeNull();
   });
   it('clears source-bound instructor markers when a different primary CSV loads', async () => {
     render(<FlightLogReplay />); await sample(); fireEvent.change(screen.getByLabelText('Instructor marker note'), { target: { value: 'Old source marker' } }); fireEvent.click(screen.getByText('Add marker at cursor')); expect(screen.getByLabelText('Instructor review markers').textContent).toContain('Old source marker');
     const changed = SAMPLE_LOG.replace('28.61390', '28.61391'); fireEvent.change(screen.getByLabelText('Choose flight CSV'), { target: { files: [{ name: 'different.csv', size: changed.length, arrayBuffer: async () => new TextEncoder().encode(changed).buffer }] } });
-    await screen.findByText(/Source: different.csv/); expect(screen.queryByText('Old source marker')).toBeNull();
+    fireEvent.click(await screen.findByText('Replace recorded workspace with checked source')); await screen.findByText(/Source: different.csv/); expect(screen.queryByText('Old source marker')).toBeNull();
   });
   it('reports download errors and returns to the lab', async () => {
     const onBack = vi.fn(); render(<FlightLogReplay onBack={onBack} />); await sample();
@@ -181,4 +181,94 @@ describe('review workspace presentation focus', () => {
     expect(screen.getByText('Load synthetic sample').disabled).toBe(true); expect(screen.getByLabelText('Visible review panel group').value).toBe('debrief');
     releaseHash(); await reloading; expect(screen.getByLabelText('Visible review panel group').value).toBe('all');
   });
+});
+
+describe('checked recorded source replacement', () => {
+  const candidate = async (csv = SAMPLE_LOG, filename = 'candidate.csv') => {
+    fireEvent.change(screen.getByLabelText('Choose flight CSV'), { target: { files: [{ name: filename, size: csv.length, arrayBuffer: async () => new TextEncoder().encode(csv).buffer }] } });
+    await screen.findByLabelText('Recorded source replacement preview');
+    await waitFor(() => expect(screen.getByText('Replace recorded workspace with checked source').disabled).toBe(false));
+  };
+  it('keeps current notes, saved copies, dirty window and independent comparison until cancel or confirmation', async () => {
+    render(<FlightLogReplay />); await sample();
+    fireEvent.change(screen.getByLabelText('Review title'), { target: { value: 'Keep current title' } });
+    fireEvent.change(screen.getByLabelText('Analyst notes'), { target: { value: 'PRIVATE unsaved notes' } });
+    selectPlaybackWindow(2, 3); fireEvent.click(screen.getByText('Save reviewed window copy to notebook'));
+    fireEvent.change(screen.getByLabelText('Window label'), { target: { value: 'UNSAVED window' } });
+    fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByLabelText('Comparison time');
+    fireEvent.change(screen.getByLabelText('Comparison time'), { target: { value: '6' } });
+    fireEvent.change(screen.getByLabelText('Replay position'), { target: { value: '8' } });
+    await candidate(SAMPLE_LOG.replace('28.61390', '28.61391'));
+    expect(screen.getByLabelText('Review title').value).toBe('Keep current title');
+    expect(screen.getByLabelText('Analyst notes').value).toBe('PRIVATE unsaved notes');
+    expect(screen.getByLabelText('Window label').value).toBe('UNSAVED window');
+    expect(screen.getByLabelText('Replay position').value).toBe('8');
+    expect(screen.getByLabelText('Comparison time').value).toBe('6');
+    expect(screen.getByText('Load saved selection: Instructor playback')).toBeTruthy();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Keep current recorded workspace'));
+    expect(screen.queryByLabelText('Recorded source replacement preview')).toBeNull();
+    expect(screen.getByLabelText('Window label').value).toBe('UNSAVED window');
+    expect(screen.getByLabelText('Comparison time').value).toBe('6');
+    await candidate(SAMPLE_LOG.replace('28.61390', '28.61391'));
+    fireEvent.click(screen.getByText('Replace recorded workspace with checked source'));
+    expect(screen.getByLabelText('Review title').value).toBe('candidate');
+    expect(screen.getByLabelText('Analyst notes').value).toBe('');
+    expect(screen.getByLabelText('Window label').value).toBe('');
+    expect(screen.getByLabelText('Replay position').value).toBe('0');
+    expect(screen.queryByLabelText('Comparison time')).toBeNull();
+    expect(screen.queryByText('Load saved selection: Instructor playback')).toBeNull();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+  it('warns and clears source-bound work even for an identical source, rather than carrying hidden reviews across a new open', async () => {
+    render(<FlightLogReplay />); await sample();
+    fireEvent.change(screen.getByLabelText('Instructor marker note'), { target: { value: 'PRIVATE old marker' } });
+    fireEvent.click(screen.getByText('Add marker at cursor')); selectPlaybackWindow(2, 3);
+    await candidate();
+    expect(screen.getByLabelText('Recorded source replacement preview').textContent).toContain('fingerprint is identical');
+    expect(screen.getByText('PRIVATE old marker')).toBeTruthy();
+    fireEvent.click(screen.getByText('Replace recorded workspace with checked source'));
+    expect(screen.queryByText('PRIVATE old marker')).toBeNull();
+    expect(screen.getByLabelText('Window label').value).toBe('');
+  });
+  it('does not offer replacement for malformed input and preserves the current source, notes and cursor', async () => {
+    render(<FlightLogReplay />); await sample();
+    fireEvent.change(screen.getByLabelText('Analyst notes'), { target: { value: 'Preserved' } });
+    fireEvent.change(screen.getByLabelText('Replay position'), { target: { value: '8' } });
+    fireEvent.change(screen.getByLabelText('Choose flight CSV'), { target: { files: [{ name: 'bad.csv', size: 3, arrayBuffer: async () => new TextEncoder().encode('bad').buffer }] } });
+    await screen.findByRole('alert');
+    expect(screen.queryByLabelText('Recorded source replacement preview')).toBeNull();
+    expect(screen.getByLabelText('Analyst notes').value).toBe('Preserved');
+    expect(screen.getByLabelText('Replay position').value).toBe('8');
+  });
+  it('opens the checked candidate bytes, not a later change to the file object', async () => {
+    render(<FlightLogReplay />); await sample(); let text = SAMPLE_LOG.replace('28.61390', '28.61391');
+    const file = { name: 'checked.csv', size: text.length, arrayBuffer: async () => new TextEncoder().encode(text).buffer };
+    fireEvent.change(screen.getByLabelText('Choose flight CSV'), { target: { files: [file] } });
+    await screen.findByLabelText('Recorded source replacement preview');
+    text = 'bad'; fireEvent.click(screen.getByText('Replace recorded workspace with checked source'));
+    expect(screen.getByLabelText('Current recorded observation').textContent).toContain('28.61391');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});
+
+it('checks archive bytes before proposing an open and cancel never changes the current source or writes a record', async () => {
+  render(<FlightLogReplay />); await sample();
+  fireEvent.change(screen.getByLabelText('Analyst notes'), { target: { value: 'Keep current analyst context' } });
+  globalThis.fetch.mockResolvedValueOnce(response([saved])).mockResolvedValueOnce(response(saved));
+  fireEvent.click(screen.getByText('Refresh server archive')); await screen.findByText('Saved training');
+  fireEvent.click(screen.getByText('Saved training')); await screen.findByLabelText('Recorded source replacement preview');
+  expect(screen.getByLabelText('Review title').value).toBe('synthetic-training-sample');
+  expect(screen.getByLabelText('Analyst notes').value).toBe('Keep current analyst context');
+  fireEvent.click(screen.getByText('Keep current recorded workspace'));
+  expect(screen.getByLabelText('Analyst notes').value).toBe('Keep current analyst context');
+  expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  for (const call of globalThis.fetch.mock.calls) expect(call[1]?.method).toBeUndefined();
+  globalThis.fetch.mockResolvedValueOnce(response(saved));
+  fireEvent.click(screen.getByText('Saved training')); await screen.findByLabelText('Recorded source replacement preview');
+  fireEvent.click(screen.getByText('Replace recorded workspace with checked source'));
+  expect(screen.getByLabelText('Review title').value).toBe('Saved training');
+  expect(screen.getByLabelText('Analyst notes').value).toBe('Fixed notes');
+  expect(screen.getByText('Save to server').disabled).toBe(true);
+  expect(globalThis.fetch).toHaveBeenCalledTimes(3);
 });
