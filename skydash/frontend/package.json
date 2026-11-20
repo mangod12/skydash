@@ -13,7 +13,8 @@
     "lint": "eslint src/",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "verify-paired-review": "node scripts/verify-paired-review.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",
