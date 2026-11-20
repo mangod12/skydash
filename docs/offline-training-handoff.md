@@ -73,3 +73,17 @@ The report separates complete-manifest byte equality, ordered kind/exact-artifac
 Left/right are selected snapshots, never verified earlier/later revisions, aircraft, flights, people or completion records. No guessed pairing, annotation diff/transfer, additions/deletions, combined samples/durations/flight totals, merged package, patch or conversion-lineage check is provided. An absent exact occurrence means only those bytes do not appear on that side. This report does not identify what changed inside a review. For an explicitly selected pair of case originals, the separate case-comparison command retains its own scope.
 
 HTML has no scripts or external assets. It omits private paths/filenames/titles/notes/marker text and IDs/criteria/coordinates/readings, but hashes, counts and reuse patterns can still identify sensitive work. Review the audience before sharing; the command never uploads, shares, changes originals or writes files itself. Generated expectations and editable unsigned reports are not independent authentication, custody, source truth, source backups, complete handoff/workspace certificates, completion, grades or readiness.
+
+## Read section-level flags for two explicit case originals
+
+When an instructor deliberately selects two case originals, a separate command shows privacy-limited section flags:
+
+```sh
+node scripts/report-review-case-comparison.mjs LEFT-CASE.json RIGHT-CASE.json > case-comparison.html
+```
+
+This is separate from package occurrence matching: cases are never paired automatically by package order, filename, labels or local IDs. Both complete cases must pass the actual current case validators before any static HTML prints. Same regular UTF-8 file limit2MiB/case and optional independent `--expect-left-sha256 HEX` / `--expect-right-sha256 HEX` complete-artifact pins as `compare-review-cases`. Imported receipts cannot replace originals. Check exit status; redirection may leave an empty file on failure.
+
+The report separates exact complete JSON byte equality, validated normalized-content equality, exact embedded source CSV equality and source filename metadata equality. Only exact source CSV equality allows changed/unchanged flags for title, analyst notes, whole instructor marker array, instructor discussion, envelope profile and envelope notes. Changed source bytes suppress every review flag, even with identical note text or IDs. Filename metadata never authenticates a source. Marker arrays compare whole after validator normalization; no per-event matching. Whitespace in private text remains content, while JSON formatting/object-key order alone can differ without normalized-content changes. Envelope changes do not create a grade.
+
+The static offline report omits private text/paths/filenames/IDs/criteria values/coordinates/readings. Hashes and change patterns remain sensitive. Desktop/mobile/print retain the source gate and scope; there are no scripts/external assets, writes except explicit shell redirection, upload, sharing, patches, merges, annotation transfer or source repairs. It neither proves a revision chronology or authenticated edits/authorship/custody nor identifies who changed what private words. Preserve originals separately. No backup, flight/student identity, completion, certification or readiness claim.
