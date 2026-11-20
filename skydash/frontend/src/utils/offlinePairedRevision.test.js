@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { webcrypto } from 'node:crypto';
+import { webcrypto, createHash } from 'node:crypto';
 import { createPairedReviewBundle } from './pairedReviewBundle';
 import { SAMPLE_LOG, parseFlightCSV, flightCSVHash, LOG_VERSION } from './flightLog';
 let dir, left, right, text, snapshot, pair;
@@ -44,4 +44,18 @@ it('offers scope help and refuses missing, extra, nonexistent and non-file input
 it('does not rematch swapped source roles and compares markers after shared validator normalization, not inferred event history',async()=>{
   const csv=SAMPLE_LOG.replace('28.61390','28.61391'),other={...snapshot.log,csv_text:csv,sha256:await flightCSVHash(csv),samples:parseFlightCSV(csv)};pair.baseline=other;await writeFile(left,await createPairedReviewBundle(snapshot,pair));pair.baseline=snapshot.log;snapshot.log=other;await saveRight();let data=compare();expect(data.source_roles).toEqual({primary_bytes_equal:false,baseline_bytes_equal:false,ordered_pair_bytes_equal:false});expect(data.primary_review.instructor_markers).toBe('not_compared_source_changed');expect(data.comparison_review.notes).toBe('not_compared_source_changed');
   snapshot.debrief.markers.push({id:'PRIVATE-second',time_s:4,kind:'Question',text:'PRIVATE second',discussed:false});await writeFile(left,await createPairedReviewBundle(snapshot,pair));const reordered=JSON.parse(await readFile(left,'utf8'));reordered.primary_case.debrief.markers.reverse();await writeFile(right,JSON.stringify(reordered));data=compare();expect(data.source_roles.ordered_pair_bytes_equal).toBe(true);expect(data.primary_review.instructor_markers).toBe('unchanged');expect(data.validated_content_equal).toBe(true);expect(data.exact_artifact_bytes_equal).toBe(false);expect(data).not.toHaveProperty('added_markers');
+});
+
+it('checks independently expected full-artifact hashes per side before parsing without changing source-based revision semantics', async()=>{
+ const pin=bytes=>createHash('sha256').update(bytes).digest('hex'), raw=await readFile(left), expected=pin(raw);
+ let result=run(left,right,'--expect-right-sha256',expected.toUpperCase(),'--expect-left-sha256',expected), receipt=JSON.parse(result.stdout);
+ expect(result.status,result.stderr).toBe(0);expect(receipt.left.expected_bundle_digest_matched).toBe(true);expect(receipt.right.expected_bundle_digest_matched).toBe(true);
+ result=run(left,right,'--expect-right-sha256',expected);expect(result.status).toBe(0);receipt=JSON.parse(result.stdout);expect(receipt.left.expected_bundle_digest_matched).toBe(false);expect(receipt.right.expected_bundle_digest_matched).toBe(true);
+ await writeFile(right,Buffer.concat([raw,Buffer.from('\n')]));result=run(left,right,'--expect-right-sha256',expected);expect(result.status).toBe(1);expect(result.stdout).toBe('');expect(result.stderr).not.toContain('PRIVATE');
+ for(const args of [['--expect-left-sha256','f'.repeat(64)],['--expect-left-sha256','bad'],['--expect-right-sha256'],['--unknown',expected],['--expect-left-sha256',expected,'--expect-left-sha256',expected]]){result=run(left,right,...args);expect(result.status).toBe(1);expect(result.stdout).toBe('');expect(result.stderr).not.toContain('PRIVATE');}
+});
+
+it('does not bypass nested artifact validation merely because a supplied full-file expectation matches', async()=>{
+ const malformed=Buffer.from('PRIVATE malformed JSON');await writeFile(right,malformed);const expected=createHash('sha256').update(malformed).digest('hex');
+ const result=run(left,right,'--expect-right-sha256',expected);expect(result.status).toBe(1);expect(result.stdout).toBe('');expect(result.stderr).not.toContain('PRIVATE');
 });

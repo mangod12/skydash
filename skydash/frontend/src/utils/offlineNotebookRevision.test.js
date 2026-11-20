@@ -2,7 +2,7 @@ import { beforeEach,afterEach,expect,it,vi } from 'vitest';
 import { mkdtemp,readFile,writeFile,rm,readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve,join } from 'node:path';
-import { webcrypto } from 'node:crypto';
+import { webcrypto, createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { SAMPLE_LOG,LOG_VERSION,flightCSVHash,parseFlightCSV } from './flightLog';
 import { createNotebookSourceBundle } from './notebookSourceBundle';
@@ -20,3 +20,17 @@ it('suppresses all copy matching when exact source bytes differ even if local ID
 it('separates metadata-only changes from same-source notebook review',async()=>{log.filename='CHANGED.csv';await save();const data=compare();expect(data.source_filename_changed).toBe(true);expect(data.source_bytes_equal).toBe(true);expect(data.review.matched_by_local_id.every(copy=>!copy.inclusive_bounds_changed&&!copy.label_changed&&!copy.notes_changed)).toBe(true);});
 it.each(['bad_json','bad_utf8','nested_hash','row_bounds','oversize'])('rejects either %s artifact without partial output',async kind=>{const bad=JSON.parse(text);bad.source.sha256='b'.repeat(64);const rows=JSON.parse(text);rows.notebook.windows[0].last_row=10000;const content={bad_json:'PRIVATE bad',bad_utf8:Buffer.from([0xff]),nested_hash:JSON.stringify(bad),row_bounds:JSON.stringify(rows),oversize:'x'.repeat(2*1024*1024+1)}[kind];await writeFile(right,content);for(const args of[[left,right],[right,left]]){const r=run(...args);expect(r.status).toBe(1);expect(r.stdout).toBe('');expect(r.stderr).not.toContain('PRIVATE');}});
 it('offers help and refuses missing/extra/non-file paths',()=>{expect(run('--help').status).toBe(0);for(const args of[[],[left],[left,right,'extra'],[dir,right],[left,join(dir,'missing')]]){const r=run(...args);expect(r.status).toBe(1);expect(r.stdout).toBe('');}});
+
+it('checks independently expected full-artifact hashes per side before parsing without changing source-based revision semantics', async()=>{
+ const pin=bytes=>createHash('sha256').update(bytes).digest('hex'), raw=await readFile(left), expected=pin(raw);
+ let result=run(left,right,'--expect-right-sha256',expected.toUpperCase(),'--expect-left-sha256',expected), receipt=JSON.parse(result.stdout);
+ expect(result.status,result.stderr).toBe(0);expect(receipt.left.expected_bundle_digest_matched).toBe(true);expect(receipt.right.expected_bundle_digest_matched).toBe(true);
+ result=run(left,right,'--expect-right-sha256',expected);expect(result.status).toBe(0);receipt=JSON.parse(result.stdout);expect(receipt.left.expected_bundle_digest_matched).toBe(false);expect(receipt.right.expected_bundle_digest_matched).toBe(true);
+ await writeFile(right,Buffer.concat([raw,Buffer.from('\n')]));result=run(left,right,'--expect-right-sha256',expected);expect(result.status).toBe(1);expect(result.stdout).toBe('');expect(result.stderr).not.toContain('PRIVATE');
+ for(const args of [['--expect-left-sha256','f'.repeat(64)],['--expect-left-sha256','bad'],['--expect-right-sha256'],['--unknown',expected],['--expect-left-sha256',expected,'--expect-left-sha256',expected]]){result=run(left,right,...args);expect(result.status).toBe(1);expect(result.stdout).toBe('');expect(result.stderr).not.toContain('PRIVATE');}
+});
+
+it('does not bypass nested artifact validation merely because a supplied full-file expectation matches', async()=>{
+ const malformed=Buffer.from('PRIVATE malformed JSON');await writeFile(right,malformed);const expected=createHash('sha256').update(malformed).digest('hex');
+ const result=run(left,right,'--expect-right-sha256',expected);expect(result.status).toBe(1);expect(result.stdout).toBe('');expect(result.stderr).not.toContain('PRIVATE');
+});
