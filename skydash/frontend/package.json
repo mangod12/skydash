@@ -16,7 +16,9 @@
     "test:coverage": "vitest run --coverage",
     "verify-paired-review": "node scripts/verify-paired-review.mjs",
     "verify-paired-manifest": "node scripts/verify-paired-manifest.mjs",
-    "compare-paired-reviews": "node scripts/compare-paired-reviews.mjs"
+    "compare-paired-reviews": "node scripts/compare-paired-reviews.mjs",
+    "verify-notebook-review": "node scripts/verify-notebook-review.mjs",
+    "verify-training-manifest": "node scripts/verify-training-manifest.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",

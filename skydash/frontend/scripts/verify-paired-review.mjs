@@ -7,12 +7,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from 'vite';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const LIMIT = 4 * 1024 * 1024;
-export async function loadPairedValidator() {
-  const output = await build({ configFile: false, root, logLevel: 'silent', build: { ssr: resolve(root, 'src/utils/pairedReviewBundle.js'), write: false, minify: false, sourcemap: false } });
+async function loadValidator(entry) {
+  const output = await build({ configFile: false, root, logLevel: 'silent', build: { ssr: resolve(root, entry), write: false, minify: false, sourcemap: false } });
   const chunks = output.output.filter(item => item.type === 'chunk');
   if (chunks.length !== 1 || chunks[0].imports.length || chunks[0].dynamicImports.length) throw new Error('Expected a single offline validation module.');
   return import('data:text/javascript;base64,' + Buffer.from(chunks[0].code).toString('base64'));
 }
+export const loadPairedValidator = () => loadValidator('src/utils/pairedReviewBundle.js');
+export const loadNotebookValidator = () => loadValidator('src/utils/notebookSourceBundle.js');
 export async function verifyPairedFile(filename, { reportPath = null, expectedSha256 = null } = {}) {
   if (expectedSha256 !== null && !/^[a-fA-F0-9]{64}$/.test(expectedSha256)) throw new Error('Expected bundle SHA-256 must contain exactly64hexadecimal characters.');
   const input = resolve(filename);
