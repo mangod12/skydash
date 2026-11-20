@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { createRef } from 'react';
 import { TextEncoder, TextDecoder } from 'node:util';
 import { webcrypto } from 'node:crypto';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -172,4 +173,10 @@ describe('checked baseline replacement', () => {
     fireEvent.change(screen.getByLabelText('Choose baseline CSV'), { target: { files: [{ name: 'different.csv', size: SAMPLE_LOG.length, arrayBuffer }] } }); await screen.findByText(/fingerprint differs/); expect(screen.getByText(/B \/ synthetic-baseline.csv/)).toBeTruthy(); expect(arrayBuffer).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByText('Replace baseline with checked source')); expect(screen.getByText(/B \/ different.csv/)).toBeTruthy(); expect(arrayBuffer).toHaveBeenCalledOnce(); expect(primary.csv_text).toBe(SAMPLE_LOG);
   });
+});
+
+it('initializes a checked paired comparison at zero and exposes only applied state through a guarded snapshot', async () => {
+  const ref = createRef(); const seed = { baseline: primary, notes: 'Imported paired comparison', alignment: { primaryIndex: 3, baselineIndex: 2, label: 'Applied pair' } }; render(<FlightComparison ref={ref} primary={primary} openedReview={seed} />);
+  expect(screen.getByLabelText('Comparison notes').value).toBe('Imported paired comparison'); expect(screen.getByLabelText('Comparison time').value).toBe('0'); expect(screen.getByLabelText('Applied comparison alignment').textContent).toContain('Applied pair'); expect(ref.current.snapshot()).toEqual(seed);
+  fireEvent.change(screen.getByLabelText('Review anchor label'), { target: { value: 'unfinished' } }); expect(() => ref.current.snapshot()).toThrow(/anchor edits/); fireEvent.click(screen.getByText('Discard anchor edits')); fireEvent.click(screen.getByText('Load synthetic baseline')); await screen.findByLabelText('Recorded baseline replacement preview'); expect(() => ref.current.snapshot()).toThrow(/replacement/);
 });

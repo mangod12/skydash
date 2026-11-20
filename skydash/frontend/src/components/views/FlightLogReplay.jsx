@@ -1,3 +1,4 @@
+import PairedReviewBundle from './PairedReviewBundle';
 import RecordedExitPreview from './RecordedExitPreview';
 import { useUIStore } from '../../stores/uiStore';
 import SourceStepping from './SourceStepping';
@@ -58,7 +59,8 @@ async function verifiedRecord(data) {
 export default function FlightLogReplay({ onBack }) {
   const canWrite = useCan('analyst');
   const pendingExit = useUIStore(state => state.pendingRecordedExit);
-  const debriefRef = useRef(null);
+  const debriefRef = useRef(null), comparisonRef = useRef(null);
+  const [comparisonSeed, setComparisonSeed] = useState(null);
   const actionsRef = useRef(null), checklistRef = useRef(null);
   const [followupSeed, setFollowupSeed] = useState(null), [followupRevision, setFollowupRevision] = useState(0);
   const envelopeRef = useRef(null);
@@ -111,7 +113,7 @@ export default function FlightLogReplay({ onBack }) {
     return () => clearInterval(timer);
   }, [replaying, speed, summary, playbackWindow]);
   const playWindow=(first,last,label,repeat)=>{if(busy||!log)return;try{const range=windowPlaybackRange(log,first,last,label,repeat);setPlaybackWindow(range);setTime(range.start);setPlaying(true);setError('');setMessage('Selected-window primary playback started at original source time. No gap skipping or source edits. Comparison playback and reviews unchanged.');}catch(failure){setError(failure.message||'Selected-window playback could not start.');}};
-  const select = data => { useUIStore.getState().cancelRecordedExit(); setPendingSource(null); setSourceRevision(value=>value+1); setNotebookSeed(null); setPanelFocus('all'); setPendingSection(null); setFollowupSeed(null); setBasemapEnabled(false); if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setPlaybackWindow(null); setConfirmDelete(false); };
+  const select = data => { setComparisonSeed(null); useUIStore.getState().cancelRecordedExit(); setPendingSource(null); setSourceRevision(value=>value+1); setNotebookSeed(null); setPanelFocus('all'); setPendingSection(null); setFollowupSeed(null); setBasemapEnabled(false); if (data.sha256 !== log?.sha256) setReviewSeed(null); setLog(data); setTitle(data.title); setNotes(data.notes || ''); setTime(0); setPlaying(false); setPlaybackWindow(null); setConfirmDelete(false); };
   const applyCheckedSource = data => {
     select(data); setRawOpenRevision(value => value + 1); setReviewSeed(null); setReviewRevision(value => value + 1);
   };
@@ -134,6 +136,10 @@ export default function FlightLogReplay({ onBack }) {
   const openCase = opened => {
     select(opened.log); setReviewSeed(opened.data); setReviewRevision(value => value + 1);
     setMessage('Portable case opened in this browser only. No server archive record created.');
+  };
+  const openPairedBundle = opened => {
+    select(opened.primary.log); setRawOpenRevision(value => value + 1); setReviewSeed(opened.primary.data); setReviewRevision(value => value + 1); setComparisonSeed(opened.comparison);
+    setMessage('Paired review opened locally with both exact sources and listed primary/comparison review sections. Both clocks reset to zero. Other reviews and notebook cleared. No server record changed.');
   };
   const openNotebookBundle=opened=>{select(opened.log);setReviewSeed(null);setReviewRevision(value=>value+1);setNotebookSeed(opened.data.notebook);setMessage('Notebook bundle opened locally with exact full source and saved copies only. Other reviews/comparison cleared. Load a saved selection and review explicitly; no backend record created.');};
   const openMapped = converted => {
@@ -197,6 +203,7 @@ export default function FlightLogReplay({ onBack }) {
       <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><CSVColumnMapping key={`mapper-${rawOpenRevision}`} workspaceBusy={busy} onOpen={openMapped} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
       <details className="rounded-xl border border-fuchsia-500/20 p-3"><summary className="cursor-pointer text-xs text-fuchsia-200">Device-local review library (explicit storage, not a backup)</summary><div className="mt-3"><LocalReviewLibrary key={`library-${rawOpenRevision}`} hasSource={Boolean(log)} workspaceBusy={busy} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
       <NotebookSourceBundle key={`notebook-bundle-${sourceRevision}-${reviewRevision}`} workspaceBusy={busy} onOpen={openNotebookBundle} onPause={()=>{setPlaying(false);setPlaybackWindow(null);}} />
+      <PairedReviewBundle key={`paired-bundle-${sourceRevision}-${reviewRevision}`} hasSource={Boolean(log)} workspaceBusy={busy} getSnapshot={() => { const primary = caseSnapshot(); if (!comparisonRef.current) throw new Error('Load both sources before exporting a paired review.'); return { primary, comparison: comparisonRef.current.snapshot() }; }} onOpen={openPairedBundle} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} />
       <ReviewCase key={`case-${rawOpenRevision}`} workspaceBusy={busy} log={busy ? null : log} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} />
       <div className="grid gap-4 lg:grid-cols-3">
         <aside className="min-w-0 space-y-4">
@@ -275,7 +282,7 @@ export default function FlightLogReplay({ onBack }) {
             <div hidden={!reviewPanelVisible(panelFocus, 'debrief')} data-review-panel="DebriefFollowup"><DebriefFollowup onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} key={`followup-${log.sha256}-${reviewRevision}`} log={log} workspaceBusy={busy} getSnapshot={followupSnapshot} onApply={applyFollowup} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div>
             <div hidden={!reviewPanelVisible(panelFocus, 'debrief')} data-review-panel="DebriefActions"><DebriefActions ref={actionsRef} initialReview={currentFollowup?.actions || null} key={`actions-${log.sha256}-${reviewRevision}-${followupRevision}`} log={log} time={time} disabled={busy} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} /></div>
             <div hidden={!reviewPanelVisible(panelFocus, 'debrief')} data-review-panel="DebriefChecklist"><DebriefChecklist ref={checklistRef} initialReview={currentFollowup?.checklist || null} key={`checklist-${log.sha256}-${reviewRevision}-${followupRevision}`} log={log} time={time} disabled={busy} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} /></div>
-            <FlightComparison key={`comparison-${log.sha256}-${reviewRevision}`} primary={{ ...log, title: title.trim(), notes }} />
+            <FlightComparison ref={comparisonRef} openedReview={comparisonSeed} key={`comparison-${log.sha256}-${reviewRevision}`} primary={{ ...log, title: title.trim(), notes }} />
           </> : <div className="rounded-xl border border-dashed border-white/10 p-8 text-sm text-zinc-500">Choose a CSV, load the synthetic sample, or reopen a server record to replay and debrief. This view does not change the live fleet or Scenario Lab scores.</div>}
         </div>
       </div>
