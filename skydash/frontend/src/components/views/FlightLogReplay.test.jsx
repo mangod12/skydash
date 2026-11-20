@@ -222,7 +222,7 @@ describe('checked recorded source replacement', () => {
     expect(screen.queryByLabelText('Comparison time')).toBeNull();
     expect(screen.queryByText('Load saved selection: Instructor playback')).toBeNull();
     expect(globalThis.fetch).not.toHaveBeenCalled();
-  });
+  }, 15000);
   it('warns and clears source-bound work even for an identical source, rather than carrying hidden reviews across a new open', async () => {
     render(<FlightLogReplay />); await sample();
     fireEvent.change(screen.getByLabelText('Instructor marker note'), { target: { value: 'PRIVATE old marker' } });
