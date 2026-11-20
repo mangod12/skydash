@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import NotebookRemoval from './NotebookRemoval';
+import {notebookRemoval} from '../../utils/notebookRemoval';
 import NotebookSelectedImport from './NotebookSelectedImport';
 import NotebookQuality from './NotebookQuality';
 import NotebookHandoff from './NotebookHandoff';
@@ -68,6 +70,12 @@ export default function WindowNotebook({ log, result, dirty, onLoad, onPause, on
     if(reading||bundleBusy||editing||pending||playbackDisabled)return;onPause();setError('');setMessage('');
     try{setEntries(moveNotebookCopy(log,entries,id,direction));setRevision(value=>value+1);setRemoveId(null);setMessage('Saved copy moved one notebook position only. Copy IDs/annotations/bounds unchanged. Map ordinals and future exports use this applied order, not flight chronology. Current window/source/clock/comparison unchanged.');}catch(failure){setError(failure.message||'Saved copy could not move. Notebook unchanged.');}
   };
+  const removeSelected=(ids,preview)=>{
+    if(reading||bundleBusy||editing||pending||playbackDisabled||removeId)return;onPause();setError('');setMessage('');
+    const checked=notebookRemoval(log,entries,ids);
+    if(JSON.stringify(checked)!==JSON.stringify(preview))throw Error('Notebook changed. Preview selected removal again.');
+    setEntries(checked.kept.map(row=>row.entry));setRevision(value=>value+1);setRemoveId(null);setMessage(`Removed ${checked.removed.length} previewed saved copies from the session notebook only; ${checked.kept.length} kept in original relative order. No undo here. Current window/source/clock/comparison, previous downloads and stored snapshots unchanged.`);
+  };
   const samples = log.samples, model = log.model_version;
   const summaries = useMemo(() => {
     const source = { samples, model_version: model };
@@ -104,6 +112,6 @@ export default function WindowNotebook({ log, result, dirty, onLoad, onPause, on
     <div hidden={!visible('discussion')} data-notebook-tool="discussion">
     <NotebookDiscussion key={`discussion-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)} onPause={onPause} onLoad={onLoad} />
     </div>
-    <div hidden={!visible('manage')} data-notebook-tool="saved-copies">{list(entries)}</div>{error && <p role="alert" className="text-xs text-amber-300">{error}</p>}{message && <p role="status" className="text-xs text-sky-200">{message}</p>}
+    <div hidden={!visible('manage')} data-notebook-tool="saved-copies" className="space-y-3"><NotebookRemoval key={`removal-${revision}`} log={log} entries={entries} disabled={playbackDisabled||reading||bundleBusy||Boolean(editing)||Boolean(pending)||Boolean(removeId)} onPause={onPause} onRemove={removeSelected} />{list(entries)}</div>{error && <p role="alert" className="text-xs text-amber-300">{error}</p>}{message && <p role="status" className="text-xs text-sky-200">{message}</p>}
   </section>;
 }
