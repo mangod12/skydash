@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import { SAMPLE_LOG, LOG_VERSION, parseFlightCSV, flightCSVHash } from './flightLog';
-import { createPairedReviewBundle, readPairedReviewBundle, MAX_PAIRED_BUNDLE_BYTES, PAIRED_BUNDLE_VERSION } from './pairedReviewBundle';
+import { pairedReviewBundleReport, createPairedReviewBundle, readPairedReviewBundle, MAX_PAIRED_BUNDLE_BYTES, PAIRED_BUNDLE_VERSION } from './pairedReviewBundle';
 let snapshot, pair;
 beforeEach(async () => {
   vi.stubGlobal('crypto', webcrypto);
@@ -26,4 +26,18 @@ describe('two-source paired review bundle', () => {
     x => { x.format = 'future'; }, x => { x.extra = 'unsupported'; }, x => { delete x.comparison; }, x => { x.primary_case.source.sha256 = 'b'.repeat(64); }, x => { x.comparison.primary_sha256 = 'c'.repeat(64); }, x => { x.comparison.baseline.sha256 = 'd'.repeat(64); }, x => { x.comparison.baseline.csv_text = 'bad'; }, x => { x.comparison.alignment.primaryIndex = 500; }, x => { x.primary_case.debrief.markers[0].time_s = 999; }, x => { x.primary_case.envelope.profile.maxAltitude = '30'; }, x => { x.comparison.notes = 'x'.repeat(4001); }, x => { x.comparison.command = 'unsupported'; }, x => { x.primary_case.replay_model = 'future'; }, x => { x.comparison.comparison_model = 'future'; }, x => { x.comparison.baseline = null; },
   ])('validates nested fingerprints, roles, models, bounds and annotations before returning either source', async mutate => { const item = await data(); mutate(item); await expect(readPairedReviewBundle(JSON.stringify(item))).rejects.toThrow(); });
   it('refuses missing pair or metadata that does not match the actual source bytes', async () => { await expect(createPairedReviewBundle(snapshot, null)).rejects.toThrow(); snapshot.log.sha256 = 'b'.repeat(64); await expect(createPairedReviewBundle(snapshot, pair)).rejects.toThrow(); });
+});
+
+it('produces an ordered readable handoff with recomputed evidence, included private review sections and explicit artifact/section limits', async () => {
+  const text = await createPairedReviewBundle(snapshot, pair), report = await pairedReviewBundleReport(text);
+  for (const value of ['READABLE SNAPSHOT ONLY', 'SECTION SCOPES', 'cannot reopen', snapshot.log.sha256, pair.baseline.sha256, 'PRIVATE analyst notes', 'PRIVATE comparison notes', 'PRIVATE instructor notes', 'PRIVATE envelope notes', 'Unverified association', 'MANUAL REVIEW ANCHORS', 'A CSV data row 4', 'B CSV data row 3', 'not better/worse', 'No cursor-specific instantaneous deltas', 'original OEM', 'No automatic upload']) expect(report.toLowerCase()).toContain(value.toLowerCase());
+  expect(report.indexOf('=== PRIMARY A')).toBeLessThan(report.indexOf('=== ORDERED A / B'));
+  expect(report).not.toContain('not-portable'); expect(report).not.toContain('"csv_text"');
+});
+it('revalidates both source identities and nested content before producing any readable report', async () => {
+  const item = await data(); item.comparison.baseline.sha256 = 'd'.repeat(64); await expect(pairedReviewBundleReport(JSON.stringify(item))).rejects.toThrow(/fingerprint mismatch/);
+  item.comparison.baseline.sha256 = pair.baseline.sha256; item.primary_case.envelope.imported_result = 'passed'; await expect(pairedReviewBundleReport(JSON.stringify(item))).rejects.toThrow();
+});
+it('reports identical sources explicitly and missing optional channels as unknown, never importing cached summaries', async () => {
+  pair.baseline = snapshot.log; snapshot.log.samples = [{ altitude_m: 99999 }]; const report = await pairedReviewBundleReport(await createPairedReviewBundle(snapshot, pair)); expect(report).toContain('IDENTICAL SOURCE CHECKSUMS'); expect(report).not.toContain('99999'); expect(report).toContain('Altitude observations: A 5/6, B 5/6');
 });
