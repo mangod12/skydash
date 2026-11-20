@@ -53,7 +53,7 @@ describe('explicit CSV conversion workflow', () => {
 
 it('labels baseline destination explicitly and never claims that primary reviews will be replaced', async () => {
   render(<CSVColumnMapping destination="baseline" onOpen={onOpen} onPause={onPause} />);
-  fireEvent.change(screen.getByLabelText('Choose baseline CSV for mapping'), { target: { files: [{ name: 'oem.csv', size: csv.length, arrayBuffer: async () => new TextEncoder().encode(csv).buffer }] } });
+  fireEvent.change(screen.getByLabelText('Choose numeric CSV for baseline mapping'), { target: { files: [{ name: 'oem.csv', size: csv.length, arrayBuffer: async () => new TextEncoder().encode(csv).buffer }] } });
   await screen.findByLabelText('Map time_s'); for (const [field, index] of [['time_s', 0], ['latitude', 1], ['longitude', 2]]) select(`Map ${field}`, String(index)); select('Input time unit', 'ms'); select('Input time origin', 'subtract-first'); fireEvent.click(screen.getByLabelText('Confirm WGS84 decimal-degree source coordinates')); fireEvent.click(screen.getByText('Preview mapped conversion')); await screen.findByLabelText('Mapped conversion preview'); fireEvent.click(screen.getByText('Review before opening mapped CSV'));
   expect(screen.getByText(/Primary A and its reviews\/clock remain unchanged/)).toBeTruthy(); fireEvent.click(screen.getByText('Keep current baseline mapping')); expect(onOpen).not.toHaveBeenCalled(); fireEvent.click(screen.getByText('Review before opening mapped CSV')); fireEvent.click(screen.getByText('Use mapped CSV as baseline')); expect(onOpen).toHaveBeenCalledOnce(); expect(onOpen.mock.calls[0][0].samples[1].time_s).toBe(2); expect(globalThis.fetch).not.toHaveBeenCalled();
 });
