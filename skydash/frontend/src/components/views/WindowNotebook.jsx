@@ -1,3 +1,4 @@
+import { downloadBlob } from '../../utils/downloadBlob';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import NotebookRecovery from './NotebookRecovery';
 import NotebookCopyFinder from './NotebookCopyFinder';
@@ -47,21 +48,20 @@ export default function WindowNotebook({ log, result, dirty, onLoad, onPause, on
   };
   const download = () => {
     if(reading||bundleBusy||editing||pending)return;
-    let url; setError(''); setMessage(''); onPause();
-    try { const data = windowNotebook(log, entries); url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `skydash-window-notebook-${log.sha256.slice(0, 12)}.json`; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); setMessage('Notebook download requested. Only saved copies included, not the current window draft. Contains source fingerprint, row bounds, labels and private notes, no CSV or coordinates. Keep exact source CSV separately.'); }
-    catch (failure) { if (url) URL.revokeObjectURL(url); setError(failure.message || 'Notebook download could not start. Notebook unchanged.'); }
+    setError(''); setMessage(''); onPause();
+    try { const data = windowNotebook(log, entries); downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), `skydash-window-notebook-${log.sha256.slice(0, 12)}.json`); setMessage('Notebook download requested. Only saved copies included, not the current window draft. Contains source fingerprint, row bounds, labels and private notes, no CSV or coordinates. Keep exact source CSV separately.'); }
+    catch (failure) { setError(failure.message || 'Notebook download could not start. Notebook unchanged.'); }
   };
   const packet = () => {
     if (!entries.length || playbackDisabled || reading || bundleBusy || Boolean(editing) || pending) return;
-    let url; onPause(); setError(''); setMessage('');
-    try { const contents=notebookDiscussionPacket(log,entries); url=URL.createObjectURL(new Blob([contents],{type:'text/plain;charset=utf-8'})); const anchor=document.createElement('a'); anchor.href=url; anchor.download=`skydash-notebook-packet-${log.sha256.slice(0,12)}.txt`; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); setMessage('Saved-window discussion packet download requested. Includes every applied saved copy, exact selected coordinates and private saved notes, not current unsaved fields or pending preview. Repeated rows appear in each copy; do not add spans/distances. Keep exact CSV and notebook JSON separately. No automatic sharing.'); }
-    catch { if(url)URL.revokeObjectURL(url); setError('Discussion packet download could not start. Source, notebook and current window unchanged.'); }
+    onPause(); setError(''); setMessage('');
+    try { const contents=notebookDiscussionPacket(log,entries); downloadBlob(new Blob([contents],{type:'text/plain;charset=utf-8'}), `skydash-notebook-packet-${log.sha256.slice(0,12)}.txt`); setMessage('Saved-window discussion packet download requested. Includes every applied saved copy, exact selected coordinates and private saved notes, not current unsaved fields or pending preview. Repeated rows appear in each copy; do not add spans/distances. Keep exact CSV and notebook JSON separately. No automatic sharing.'); }
+    catch { setError('Discussion packet download could not start. Source, notebook and current window unchanged.'); }
   };
   const bundle = async () => {
     if(!entries.length || playbackDisabled || reading || bundleBusy || Boolean(editing) || pending)return;
-    onPause();setBundleBusy(true);setError('');setMessage('');let url;
-    try{const text=await createNotebookSourceBundle(log,entries);if(!active.current)return;url=URL.createObjectURL(new Blob([text],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`skydash-notebook-source-${log.sha256.slice(0,12)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);setMessage('Notebook source bundle download requested. Contains entire exact CSV including outside-window coordinates/readings and private saved labels/notes, not unsaved current window or other reviews. Reopen from Portable notebook source bundle after explicit replacement confirmation. No automatic sharing or save.');}
-    catch(failure){if(url)URL.revokeObjectURL(url);setError(failure.message||'Notebook source bundle download could not start. Notebook/source unchanged.');}
+    onPause();setBundleBusy(true);setError('');setMessage('');try{const text=await createNotebookSourceBundle(log,entries);if(!active.current)return;downloadBlob(new Blob([text],{type:'application/json'}), `skydash-notebook-source-${log.sha256.slice(0,12)}.json`);setMessage('Notebook source bundle download requested. Contains entire exact CSV including outside-window coordinates/readings and private saved labels/notes, not unsaved current window or other reviews. Reopen from Portable notebook source bundle after explicit replacement confirmation. No automatic sharing or save.');}
+    catch(failure){setError(failure.message||'Notebook source bundle download could not start. Notebook/source unchanged.');}
     finally{setBundleBusy(false);}
   };
   const saveShelf=async()=>{
