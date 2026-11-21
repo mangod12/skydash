@@ -34,14 +34,14 @@ The received-package UI groups third-party modules into one `vendor` chunk while
 
 ## Instructor sidecar inspection budget
 
-The total-JavaScript gzip guard is now755KiB, not the historical750KiB figures
-above. The instructor replacement preview/report adds about1.9KiB gzip to the
-existing lazy Scenario Lab chunk (about150.4 to152.3KiB). The queue baseline
-measured749.96KiB total; with the inspection feature it is about751.9KiB.
-The initial application chunk stays about119.0KiB and the shared vendor chunk
-about445.7KiB. This is a measured allowance for the lazy review workflow, not
+The total-JavaScript gzip guard is now 755 KiB, not the historical 750 KiB figures
+above. The instructor replacement preview/report adds about 1.9 KiB gzip to the
+existing lazy Scenario Lab chunk (about 150.4 to 152.3 KiB). The queue baseline
+measured 749.96 KiB total; with the inspection feature it is about 751.9 KiB.
+The initial application chunk stays about 119.0 KiB and the shared vendor chunk
+about 445.7 KiB. This is a measured allowance for the lazy review workflow, not
 permission to grow startup payload or weaken checks. The same guard still sums
 all JavaScript, including lazy chunks, and fails over the cap. No minifier,
 chunk partition, dependency or browser-target changes are included. These local
 figures use no deployment endpoints; configured builds can differ slightly and
-must pass the same755KiB cap. No latency or frame-rate improvement is claimed.
+must pass the same 755 KiB cap. No latency or frame-rate improvement is claimed.
