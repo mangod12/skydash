@@ -1137,3 +1137,41 @@ explicit confirmation. Protect unsaved work first. Keep all originals/excluded
 work separately; the pair excludes analyst notes, envelope, notebook, comparison,
 mapping originals/recipe, unadded drafts, recovery and device library. No complete
 backup, authenticated authorship/custody, source truth, completion or readiness.
+
+
+## Explicit same-source instructor review combination
+
+The standalone site's handoff task chooser now offers "Combine two instructor
+reviews explicitly". Select the complete original CSV and two instructor sidecars,
+with separate optional independent raw-file hashes. Explicit private-preview
+acknowledgement is required before reads, consumed on every check. Current models,
+raw pins, strict UTF-8 and source/marker/summary bounds validate all three originals
+before any preview. Both sidecars must bind to this exact source. Left/right never
+mean authenticated author, authority or earlier/later version.
+
+The private preview shows every original ID, note, time/kind/discussed checkbox and
+whole summary. Same IDs are compared only by exact fields. Different IDs remain
+separate even for identical notes/times; missing on one side is not a deletion
+instruction. Nothing is selected automatically. An explicit bulk button selects
+only still-unresolved unique/equal annotations from both sides, preserves prior
+explicit omissions and leaves every same-ID disagreement unresolved. For every ID,
+choose one whole present-side marker unchanged or omit it from the new candidate.
+No field blend, OR-ing discussion state, guessing chronology, new IDs or automatic
+renaming. Select one whole summary or explicitly empty; no concatenation/consensus.
+
+A new sidecar is prepared only after all choices and summary are resolved and the
+existing100-marker/256KiB bounds pass. A200-ID union is never truncated. The candidate
+shows all retained markers/summary and omitted count. Download is explicit; its
+existing sidecar schema contains no CSV or decision/provenance audit history.
+Protect and keep the exact original CSV plus both originals separately. Manually
+preview/import the candidate in replay only if wanted. Preparing/downloading does
+not read/change active replay, clocks, comparison or originals.
+
+All file/hash/ack edits discard private preview/decisions/candidate even if reverted;
+decision edits stale the candidate. Closing hides state, clear affects only this
+tool, and refresh/tab close drops it. Sensitive editable unencrypted preview/output,
+not redacted, consensus, authentication/custody, complete backup, grade, completion
+or readiness. Review audience and secure transport separately. No network, upload,
+sharing, storage, automatic import, source repair or aircraft commands. Excludes
+analyst notes, envelope, notebook, comparison, mapping originals, unadded drafts,
+recovery and device library. Same-time annotations retain separate exact IDs.
