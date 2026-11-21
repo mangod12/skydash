@@ -211,7 +211,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   await downloadZip.click();
   await (await zipDownload).saveAs(testInfo.outputPath('sensitive-originals.zip'));
   await expect(panel).toContainText(pin(testInfo.outputPath('sensitive-originals.zip')));
-  await panel.getByRole('status').scrollIntoViewIfNeeded();
+  await panel.locator(':scope > [role=status]').scrollIntoViewIfNeeded();
   await p.screenshot({
     path: testInfo.outputPath('sensitive-archive-desktop.png')
   });
@@ -225,7 +225,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   await p.screenshot({
     path: testInfo.outputPath('sensitive-archive-mobile-consent.png')
   });
-  await panel.getByRole('status').scrollIntoViewIfNeeded();
+  await panel.locator(':scope > [role=status]').scrollIntoViewIfNeeded();
   await p.screenshot({
     path: testInfo.outputPath('sensitive-archive-mobile.png')
   });
@@ -233,13 +233,68 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     width: 1440,
     height: 1050
   });
+  const received = panel.getByRole('region', {
+    name: 'Received original ZIP check',
+    exact: true
+  });
+  await received.getByLabel('Received original handoff ZIP').setInputFiles(testInfo.outputPath('sensitive-originals.zip'));
+  const receivedPin = received.getByLabel('Received ZIP expected archive SHA-256'),
+    receivedManifestPin = received.getByLabel('Received ZIP expected manifest SHA-256'),
+    receivedDownload = received.getByRole('button', {
+      name: 'Download rechecked archive intake HTML',
+      exact: true
+    });
+  await receivedPin.fill(pin(testInfo.outputPath('sensitive-originals.zip')));
+  await receivedManifestPin.fill(pin(src + '/training.json'));
+  await received.getByRole('button', {
+    name: 'Check received original ZIP',
+    exact: true
+  }).click();
+  await expect(receivedDownload).toBeEnabled();
+  await expect(downloadZip).toBeEnabled();
+  const recheckedDownload = p.waitForEvent('download');
+  await receivedDownload.click();
+  await (await recheckedDownload).saveAs(testInfo.outputPath('rechecked-archive.html'));
+  await received.getByRole('status').scrollIntoViewIfNeeded();
+  await p.screenshot({
+    path: testInfo.outputPath('received-archive-desktop.png')
+  });
+  await p.setViewportSize({
+    width: 390,
+    height: 1000
+  });
+  await received.getByText('Check a received browser original ZIP before manual extraction',{exact:true}).scrollIntoViewIfNeeded();
+  await p.screenshot({path:testInfo.outputPath('received-archive-mobile-inputs.png')});
+  await received.getByRole('status').scrollIntoViewIfNeeded();
+  await p.screenshot({
+    path: testInfo.outputPath('received-archive-mobile.png')
+  });
+  await p.setViewportSize({
+    width: 1440,
+    height: 1050
+  });
+  await receivedPin.fill('a'.repeat(64));
+  await expect(receivedDownload).toBeDisabled();
+  await received.getByRole('button', {
+    name: 'Check received original ZIP',
+    exact: true
+  }).click();
+  await expect(received.getByRole('status')).toContainText('Original ZIP refused');
+  await expect(downloadZip).toBeEnabled();
+  await receivedPin.fill(pin(testInfo.outputPath('sensitive-originals.zip')));
+  await expect(receivedDownload).toBeDisabled();
+  await received.getByRole('button', {
+    name: 'Check received original ZIP',
+    exact: true
+  }).click();
+  await expect(receivedDownload).toBeEnabled();
   // Editing even the same pin away and back invalidates ZIP and consumes consent.
   const intakePin = panel.getByLabel('Intake print expected manifest SHA-256');
   await intakePin.fill('a'.repeat(64));
   await expect(downloadZip).toBeDisabled();
   await ack.check();
   await prepareZip.click();
-  await expect(panel.getByRole('status')).toContainText('Original ZIP refused');
+  await expect(panel.locator(':scope > [role=status]')).toContainText('Original ZIP refused');
   await expect(ack).not.toBeChecked();
   await expect(downloadZip).toBeDisabled();
   await intakePin.fill(pin(src + '/training.json'));
@@ -326,7 +381,10 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     await expect(panel.getByRole('button', {
       name: buttons[kind]
     })).toBeEnabled();
-    if (kind === 'intake') await expect(downloadZip).toBeEnabled();
+    if (kind === 'intake') {
+      await expect(downloadZip).toBeEnabled();
+      await expect(receivedDownload).toBeEnabled();
+    }
     expect(await p.locator('main').first().evaluate(e => e.getBoundingClientRect().height > 50 && e.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
   }
   await p.screenshot({
@@ -341,11 +399,14 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     await expect(panel.getByRole('button', {
       name: buttons[kind]
     })).toBeEnabled();
-    if (kind === 'intake') await expect(downloadZip).toBeEnabled();
+    if (kind === 'intake') {
+      await expect(downloadZip).toBeEnabled();
+      await expect(receivedDownload).toBeEnabled();
+    }
     expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
     expect(await p.locator('main').first().evaluate(e => e.getBoundingClientRect().height > 50 && e.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
   }
-  await panel.getByRole('status').scrollIntoViewIfNeeded();
+  await panel.locator(':scope > [role=status]').scrollIntoViewIfNeeded();
   await p.screenshot({
     path: testInfo.outputPath('mobile-tools.png')
   });
@@ -354,6 +415,12 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     name: 'Clear intake print selections'
   }).click();
   await expect(downloadZip).toBeDisabled();
+  await expect(receivedDownload).toBeEnabled();
+  await received.getByRole('button', {
+    name: 'Clear received ZIP check',
+    exact: true
+  }).click();
+  await expect(receivedDownload).toBeDisabled();
   for (const kind of ['private', 'comparison', 'conversion', 'case', 'lineage', 'review']) {
     panel = await open(kind);
     await expect(panel.getByRole('button', {
@@ -416,6 +483,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     })
   };
   for (const [filename, html] of Object.entries(outputs)) expect(fs.readFileSync(testInfo.outputPath(filename), 'utf8')).toBe(html);
+  expect(fs.readFileSync(testInfo.outputPath('rechecked-archive.html'), 'utf8')).toBe(outputs['intake.html']);
   const checked = await (await load('verify-csv-conversion')).verifyCSVConversion(path.join(src, 'lineage', 'original.csv'), path.join(src, 'lineage', 'recipe.json'), path.join(src, 'lineage', 'converted.csv'), {
     confirmedWGS84: true
   });

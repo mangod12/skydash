@@ -4,6 +4,7 @@ import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/re
 import TrainingIntakePrint from './TrainingIntakePrint';
 import { browserTrainingArchive } from '../utils/browserTrainingArchive';
 import { browserTrainingIntake } from '../utils/browserTrainingIntake';
+vi.mock('./ReceivedArchiveCheck',()=>({default:()=>null}));
 vi.mock('../utils/browserTrainingArchive', () => ({ browserTrainingArchive: vi.fn() }));
 vi.mock('../utils/browserTrainingIntake', () => ({ browserTrainingIntake: vi.fn() }));
 afterEach(() => { cleanup(); vi.resetAllMocks(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
