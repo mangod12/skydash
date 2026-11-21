@@ -4,11 +4,12 @@ import { storedZipBytes } from './storedZip';
 import { browserArchiveGuide } from './browserTrainingArchive';
 import { checkBrowserTrainingIntake } from './browserTrainingIntake';
 import { renderTrainingIntake } from './trainingIntakeHtml';
+import { browserPrivateTraining } from './browserPrivateTraining';
 const MAX = 30 * 1024 * 1024;
 const decode = bytes => new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
 const sha = async bytes => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
 const pin = value => value === '' || (typeof value === 'string' && /^[a-fA-F0-9]{64}$/.test(value));
-export async function checkBrowserTrainingArchive(file, { expectedArchiveSha256 = '', expectedManifestSha256 = '' } = {}) {
+async function checkArchiveOriginals(file, { expectedArchiveSha256 = '', expectedManifestSha256 = '' } = {}) {
   if (!file || !Number.isSafeInteger(file.size) || file.size < 22 || file.size > MAX || !pin(expectedArchiveSha256) || !pin(expectedManifestSha256)) throw Error('Invalid archive or independent expectations.');
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (bytes.byteLength !== file.size || bytes.byteLength > MAX) throw Error('Changed archive bytes.');
@@ -35,5 +36,17 @@ export async function checkBrowserTrainingArchive(file, { expectedArchiveSha256 
   const checked = await checkBrowserTrainingIntake(manifest, files, expectedManifestSha256);
   const declared = JSON.parse(decode(entries[0][1])).bundles;
   if (declared.some((item,index)=>item.path !== files[index]?.name)) throw Error('Original archive order differs from manifest.');
-  return { html:renderTrainingIntake(checked), digest:checked.exact_manifest_sha256, archiveDigest, expectedArchiveDigestMatched:Boolean(expectedArchiveSha256), expectedManifestDigestMatched:Boolean(expectedManifestSha256), fileCount:entries.length, bundleCount:checked.bundle_count };
+  return { manifest, files, summary: { html:renderTrainingIntake(checked), digest:checked.exact_manifest_sha256, archiveDigest, expectedArchiveDigestMatched:Boolean(expectedArchiveSha256), expectedManifestDigestMatched:Boolean(expectedManifestSha256), fileCount:entries.length, bundleCount:checked.bundle_count } };
+}
+
+export async function checkBrowserTrainingArchive(file, options = {}) {
+  return (await checkArchiveOriginals(file, options)).summary;
+}
+// Separate opt-in API: no archive bytes are read without explicit private consent.
+// Original slices are kept inside this call, never exposed to UI or used as received report evidence.
+export async function privateBrowserTrainingArchive(file, { includePrivateReview = false, ...options } = {}) {
+  if (includePrivateReview !== true) throw Error('Explicit private acknowledgement required.');
+  const { manifest, files, summary } = await checkArchiveOriginals(file, options);
+  const packet = await browserPrivateTraining(manifest, files, { includePrivateReview: true, expectedSha256: options.expectedManifestSha256 || '' });
+  return { ...summary, privateHtml: packet.html };
 }
