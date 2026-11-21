@@ -277,3 +277,20 @@ Inventory checks invalidate any prior comparison before reading and clear the ol
 The standalone header has a compact **Find a local handoff task** chooser. It opens and focuses one existing tool for fixed fabricated examples, received ZIP checks/private packets, two received ZIP or review comparisons, ZIP preparation from original files, or private original-file debrief printing. It neither adds another report drawer nor starts any check/preparation. The chooser resets after navigation and does not read selected files, load sample data, set consent, select review ordinals, fill expectations, download/open output or import anything into replay.
 
 Navigation closes other direct report drawers but keeps their components mounted, file selections and prepared outputs retained. Manual disclosure navigation remains available and behaves the same. Keyboard focus moves to the chosen section after layout, without invoking its buttons; report areas can scroll while a small replay region remains visible even on shorter mobile viewports. No pause/seek, replay replacement, storage, network, upload, sharing or aircraft commands. The existing tool warnings, validation bounds, consent, stale-result and explicit download requirements still apply. A navigation choice is not a result or proof the handoff completed.
+
+## Print only explicitly selected received-ZIP originals for a discussion
+
+The received ZIP private packet tool defaults to **All listed originals**, preserving the whole-packet flow. To limit chapters, choose **Only explicit manifest ordinals** and enter unique comma-separated original ordinals, such as `1,3`. Nothing is preselected, guessed from filenames or copied from an inventory. Only numbers 1 through 20 are accepted, without duplicates, ranges or leading zeros; every ordinal must exist in the freshly checked manifest. Input order does not change manifest order. Chapters keep their original ordinal numbers, so a `3,1` choice prints Bundle 1 and Bundle 3, not a renumbered two-bundle manifest.
+
+Scope or ordinal edits invalidate both received outputs and consume the private acknowledgement, including edits later reverted. A fresh acknowledgement is required before preparation and consumed by success or refusal. The entire strict ZIP, independent ZIP/manifest expectations and every listed original still pass current validation, including omitted originals. A bad unselected original refuses all output. Only the selected private chapters are rendered. Private expansion remains bounded to 16MiB with no partial report. This does not redact within a selected original: each selected notebook includes every applied saved copy, and each selected paired original includes both sources and its review. Shared source data or private text can still appear through a selected original.
+
+The saved packet prominently identifies the explicit subset, its original ordinals, selected and full original counts, and the unchanged **complete original manifest** digest. Reuse references include only selected source roles/artifacts. Unselected private chapters and their reuse references are omitted. This is neither a new subset manifest nor a complete handoff, workspace backup, independent receipt, authentication, completion or readiness record. The separate fresh intake HTML still covers the whole original manifest. Downloads stay explicit; nothing is extracted, opened into replay, uploaded or shared, and other prepared tools/replay remain unchanged.
+
+The same static packet renderer is available from a trusted checkout:
+
+```sh
+cd skydash/frontend
+node scripts/report-private-training.mjs /approved/training.json --include-private-review --ordinals 1,3 > /approved/selected-discussion.html
+```
+
+Add `--expect-sha256 HEX` only with an independently obtained complete-manifest digest. Check command exit success, inspect the saved packet and print preview, and confirm the audience and transport yourself. Without `--ordinals`, the existing whole-original packet remains unchanged. Keep the complete original package and excluded work separately.
