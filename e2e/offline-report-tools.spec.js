@@ -386,6 +386,23 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   await p.screenshot({path:testInfo.outputPath('received-original-index-mobile.png')});
   expect(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
   await p.setViewportSize({width:1440,height:1050});
+  const recovered=received.getByRole('region',{name:'Received ZIP selected original download',exact:true});
+  const recoveredOrdinal=recovered.getByLabel('Received ZIP download original ordinal'),recoveredAck=recovered.getByLabel('Acknowledge selected received original download'),recoveredCheck=recovered.getByRole('button',{name:'Check chosen original for download',exact:true}),recoveredSave=recovered.getByRole('button',{name:'Download chosen original JSON',exact:true});
+  await expect(recoveredOrdinal).toHaveValue('');
+  await expect(recoveredCheck).toBeDisabled();
+  for(const [index,kind] of ['case','notebook','paired'].entries()){
+    await recoveredOrdinal.fill(String(index+1));
+    await expect(recoveredAck).not.toBeChecked();
+    await recoveredAck.check();
+    await recoveredCheck.click();
+    await expect(recoveredSave).toBeEnabled();
+    await expect(recoveredAck).not.toBeChecked();
+    const save=p.waitForEvent('download');await recoveredSave.click();const output=await save;expect(output.suggestedFilename()).toBe('skydash-received-'+kind+'-original.json');const target=testInfo.outputPath('recovered-'+kind+'.json');await output.saveAs(target);expect(fs.readFileSync(target).equals(fs.readFileSync(path.join(src,kind+'.json')))).toBe(true);
+  }
+  await recoveredSave.scrollIntoViewIfNeeded();
+  await p.screenshot({path:testInfo.outputPath('recovered-original-desktop.png')});
+  await p.setViewportSize({width:390,height:700});await recoveredOrdinal.scrollIntoViewIfNeeded();await p.screenshot({path:testInfo.outputPath('recovered-original-mobile.png')});expect(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);await p.setViewportSize({width:1440,height:1050});
+  await recovered.getByLabel('Received ZIP download expected artifact SHA-256').fill('a'.repeat(64));await expect(recoveredSave).toBeDisabled();await recoveredAck.check();await recoveredCheck.click();await expect(recovered.getByLabel('Chosen original download status')).toContainText('Selected original refused');await expect(recoveredSave).toBeDisabled();await recovered.getByRole('button',{name:'Clear chosen original download',exact:true}).click();await expect(receivedDownload).toBeEnabled();
   const privateScope = received.getByLabel('Received ZIP private packet scope');
   await privateAck.check();
   await privateScope.selectOption('selected');
@@ -720,6 +737,12 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   await p.getByText(titles.review, {
     exact: true
   }).click();
+  const caseOpener=p.getByRole('article',{name:'Portable review case',exact:true});
+  await caseOpener.getByLabel('Open review case JSON',{exact:true}).setInputFiles(testInfo.outputPath('recovered-case.json'));
+  await expect(caseOpener.getByRole('button',{name:'Replace local workspace with case',exact:true})).toBeVisible();
+  await expect(p.getByLabel('Analyst notes',{exact:true})).toHaveValue('PRIVATE active replay notes remain');
+  await caseOpener.getByRole('button',{name:'Keep current workspace',exact:true}).click();
+  await expect(caseOpener).toContainText('Case opening cancelled. Current workspace kept.');
   await expect(p.getByLabel('Analyst notes', {
     exact: true
   })).toHaveValue('PRIVATE active replay notes remain');
