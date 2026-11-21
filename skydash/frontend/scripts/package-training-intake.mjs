@@ -10,23 +10,8 @@ import { reportTrainingIntake } from './report-training-intake.mjs';
 import { reportPrivateTraining } from './report-private-training.mjs';
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const pin = value => typeof value === 'string' && /^[a-fA-F0-9]{64}$/.test(value);
-const crcTable = Array.from({ length: 256 }, (_, index) => { let value = index; for (let bit = 0; bit < 8; bit++) value = value & 1 ? 0xedb88320 ^ value >>> 1 : value >>> 1; return value >>> 0; });
-function crc32(bytes) { let crc = 0xffffffff; for (const byte of bytes) crc = crcTable[(crc ^ byte) & 255] ^ crc >>> 8; return (crc ^ 0xffffffff) >>> 0; }
-export function storedZip(entries) {
-  const locals = [], central = [], names = new Set(); let offset = 0, centralSize = 0;
-  for (const [name, contents] of entries) {
-    if (name.includes('\\') || name.startsWith('/') || name.split('/').some(part => ['', '.', '..'].includes(part) || /[. ]$/.test(part) || /^(con|prn|aux|nul|conin\$|conout\$|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/i.test(part)) || /[\x00-\x1f\x7f:<>"|?*]/.test(name) || names.has(name.normalize('NFC').toLowerCase())) throw Error('Archive paths must be unique safe relative names, including case.');
-    const key = name.normalize('NFC').toLowerCase();
-    if ([...names].some(other => key.startsWith(other + '/') || other.startsWith(key + '/'))) throw Error('Archive file and folder paths conflict.');
-    names.add(key); const filename = Buffer.from(name), bytes = Buffer.from(contents), crc = crc32(bytes);
-    if (filename.length > 65535) throw Error('Archive name too long.');
-    const local = Buffer.alloc(30); local.writeUInt32LE(0x04034b50); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x800, 6); local.writeUInt16LE(33, 12); local.writeUInt32LE(crc, 14); local.writeUInt32LE(bytes.length, 18); local.writeUInt32LE(bytes.length, 22); local.writeUInt16LE(filename.length, 26);
-    const record = Buffer.alloc(46); record.writeUInt32LE(0x02014b50); record.writeUInt16LE(20, 4); record.writeUInt16LE(20, 6); record.writeUInt16LE(0x800, 8); record.writeUInt16LE(33, 14); record.writeUInt32LE(crc, 16); record.writeUInt32LE(bytes.length, 20); record.writeUInt32LE(bytes.length, 24); record.writeUInt16LE(filename.length, 28); record.writeUInt32LE(offset, 42);
-    locals.push(local, filename, bytes); central.push(record, filename); centralSize += record.length + filename.length; offset += local.length + filename.length + bytes.length;
-  }
-  const end = Buffer.alloc(22); end.writeUInt32LE(0x06054b50); end.writeUInt16LE(entries.length, 8); end.writeUInt16LE(entries.length, 10); end.writeUInt32LE(centralSize, 12); end.writeUInt32LE(offset, 16);
-  return Buffer.concat([...locals, ...central, end]);
-}
+import { storedZipBytes } from '../src/utils/storedZip.js';
+export const storedZip = entries => Buffer.from(storedZipBytes(entries));
 async function manifestFile(path, expected) {
   const canonical = await realpath(resolve(path)), info = await stat(canonical); if (!info.isFile() || info.size > 65536) throw Error('Invalid manifest size.');
   const bytes = await readFile(canonical); if (bytes.length > 65536 || sha(bytes) !== expected) throw Error('Manifest changed during archive preparation.');

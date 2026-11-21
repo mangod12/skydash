@@ -192,6 +192,62 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     name: buttons.intake
   })).toBeEnabled();
   await download('intake', panel, 'intake.html');
+  // Whole originals require a separate fresh acknowledgement and explicit download.
+  const prepareZip = panel.getByRole('button', {
+      name: 'Prepare sensitive original ZIP',
+      exact: true
+    }),
+    downloadZip = panel.getByRole('button', {
+      name: 'Download sensitive original ZIP',
+      exact: true
+    }),
+    ack = panel.getByLabel('Acknowledge sensitive whole-original ZIP');
+  await expect(prepareZip).toBeDisabled();
+  await ack.check();
+  await prepareZip.click();
+  await expect(downloadZip).toBeEnabled();
+  await expect(ack).not.toBeChecked();
+  const zipDownload = p.waitForEvent('download');
+  await downloadZip.click();
+  await (await zipDownload).saveAs(testInfo.outputPath('sensitive-originals.zip'));
+  await expect(panel).toContainText(pin(testInfo.outputPath('sensitive-originals.zip')));
+  await panel.getByRole('status').scrollIntoViewIfNeeded();
+  await p.screenshot({
+    path: testInfo.outputPath('sensitive-archive-desktop.png')
+  });
+  await p.setViewportSize({
+    width: 390,
+    height: 1000
+  });
+  await panel.getByText('Keep these checked originals together for manual handoff', {
+    exact: true
+  }).scrollIntoViewIfNeeded();
+  await p.screenshot({
+    path: testInfo.outputPath('sensitive-archive-mobile-consent.png')
+  });
+  await panel.getByRole('status').scrollIntoViewIfNeeded();
+  await p.screenshot({
+    path: testInfo.outputPath('sensitive-archive-mobile.png')
+  });
+  await p.setViewportSize({
+    width: 1440,
+    height: 1050
+  });
+  // Editing even the same pin away and back invalidates ZIP and consumes consent.
+  const intakePin = panel.getByLabel('Intake print expected manifest SHA-256');
+  await intakePin.fill('a'.repeat(64));
+  await expect(downloadZip).toBeDisabled();
+  await ack.check();
+  await prepareZip.click();
+  await expect(panel.getByRole('status')).toContainText('Original ZIP refused');
+  await expect(ack).not.toBeChecked();
+  await expect(downloadZip).toBeDisabled();
+  await intakePin.fill(pin(src + '/training.json'));
+  await expect(downloadZip).toBeDisabled();
+  await expect(prepareZip).toBeDisabled();
+  await ack.check();
+  await prepareZip.click();
+  await expect(downloadZip).toBeEnabled();
   panel = await open('comparison');
   for (const side of ['Left', 'Right']) {
     const source = src;
@@ -270,6 +326,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     await expect(panel.getByRole('button', {
       name: buttons[kind]
     })).toBeEnabled();
+    if (kind === 'intake') await expect(downloadZip).toBeEnabled();
     expect(await p.locator('main').first().evaluate(e => e.getBoundingClientRect().height > 50 && e.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
   }
   await p.screenshot({
@@ -284,6 +341,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     await expect(panel.getByRole('button', {
       name: buttons[kind]
     })).toBeEnabled();
+    if (kind === 'intake') await expect(downloadZip).toBeEnabled();
     expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
     expect(await p.locator('main').first().evaluate(e => e.getBoundingClientRect().height > 50 && e.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
   }
@@ -295,6 +353,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   await panel.getByRole('button', {
     name: 'Clear intake print selections'
   }).click();
+  await expect(downloadZip).toBeDisabled();
   for (const kind of ['private', 'comparison', 'conversion', 'case', 'lineage', 'review']) {
     panel = await open(kind);
     await expect(panel.getByRole('button', {
@@ -368,4 +427,32 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     converted: true
   });
   for (const [key, value] of Object.entries(checked)) if (!['format', 'scope'].includes(key)) expect(receipt[key]).toEqual(value);
+  // Inspect only this test's own bounded downloaded archive. No production extraction.
+  const zip = fs.readFileSync(testInfo.outputPath('sensitive-originals.zip')),
+    archiveEntries = [];
+  let offset = 0;
+  while (zip.readUInt32LE(offset) === 0x04034b50) {
+    const size = zip.readUInt32LE(offset + 22),
+      length = zip.readUInt16LE(offset + 26),
+      start = offset + 30 + length;
+    archiveEntries.push([zip.subarray(offset + 30, start).toString('utf8'), zip.subarray(start, start + size)]);
+    offset = start + size;
+  }
+  const builtZip = (await load('package-training-intake')).storedZip(archiveEntries);
+  expect(zip.equals(builtZip)).toBe(true);
+  const archived = new Map(archiveEntries);
+  expect(archived.size).toBe(7);
+  expect(archived.get('training/training.json').equals(fs.readFileSync(original))).toBe(true);
+  for (const name of ['case.json', 'notebook.json', 'paired.json']) expect(archived.get('training/' + name).equals(fs.readFileSync(path.join(src, name)))).toBe(true);
+  expect(archived.get('reports/intake-report.html').toString('utf8')).toBe(outputs['intake.html']);
+  expect(archived.get('reports/READ-ME.txt').toString()).toContain('unencrypted');
+  const extracted = path.join(folder, 'downloaded-originals');
+  fs.mkdirSync(extracted);
+  for (const [name, bytes] of archiveEntries.filter(([name]) => name.startsWith('training/'))) fs.writeFileSync(path.join(extracted, name.slice(9)), bytes, {
+    flag: 'wx'
+  });
+  const rechecked = await (await load('verify-training-manifest')).verifyTrainingManifest(path.join(extracted, 'training.json'), {
+    expectedSha256
+  });
+  expect(rechecked.bundle_count).toBe(3);
 });
