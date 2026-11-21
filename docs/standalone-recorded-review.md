@@ -181,3 +181,18 @@ Notebook: only exact embedded CSV equality permits saved-copy associations. Shar
 Paired: exact primary CSV bytes alone gate the primary title/notes/whole marker-array/discussion/envelope flags. A baseline-only change does not suppress those primary flags. Both exact primary **and** baseline bytes in their ordered roles are required for comparison notes/applied-anchor flags. Either changed source suppresses those comparison flags, even with matching labels/text. No role swapping, event/row matching, annotation transfer or inferred clock synchronization. Filename/baseline-title flags are metadata only, values omitted, not identity/source truth.
 
 No replay import, pause/seek, source replacement, repairs, patches, merges, discarded work or automatic download/opening/storage/upload/sharing. Output omits filenames, paths, titles, labels, notes, IDs, criteria, anchor values, coordinates, row bounds and readings. Hashes/counts/change patterns remain sensitive, not anonymized. Inspect saved output, audience and print preview yourself. Clear releases only this tool; closing hides prepared results and refresh/tab close drops them. Preserve originals and excluded work separately. Editable unsigned output is not verified chronology/authorship/custody, source truth, aircraft/flight/student identity, completion, grades, certification, readiness, a source backup or complete workspace/handoff certificate. Only the standalone build changes, not the normal hosted app/backend.
+
+
+## Repeatable packaged-site regression check
+
+From the repository root, after installing the root and frontend dependencies and Playwright Chromium:
+
+```sh
+npx playwright test e2e/offline-report-tools.spec.js
+```
+
+This test builds the current production standalone profile, creates fixed fabricated originals with the synthetic starter generator, packages and independently pins that build, checks its exact stored ZIP, and serves only the extracted site on an ephemeral IPv4 loopback port. It needs no backend, normal dev server, external account or real recordings. Only this test's freshly generated and fully checked archive is extracted by its test helper. This is not an arbitrary archive extraction feature.
+
+One Chromium session goes offline after the page loads, then prepares private package, intake, package comparison, conversion, case comparison, lineage, notebook comparison and paired comparison downloads across all seven report drawers. Every HTML download must be byte-identical to the current CLI function on the same originals and independent pins. Conversion receipt reproduction fields must match the CLI, while its browser-specific format, expected-digest fields and scope remain distinct.
+
+The check switches between every prepared drawer at desktop and mobile sizes, checks exclusive expansion and retained results, and clears only intake selections before rechecking the other six tools. Replay notes and independent clocks must remain unchanged. It checks replay geometry and overflow, page errors, external requests, fetch calls, storage writes and IndexedDB opens. Desktop/mobile screenshots and the generated synthetic downloads are Playwright test outputs. The temporary source/archive/site directory and server are cleaned up afterward. Screenshots still require human visual review; these browser checks are not a certified isolation boundary, authenticity, telemetry truth, OEM compatibility or readiness evidence. Existing nested validator/unit tests cover additional malformed originals and changed-source suppression cases.
