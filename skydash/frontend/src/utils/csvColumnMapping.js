@@ -54,7 +54,9 @@ export function validateColumnMapping(source, mapping) {
   return mapping;
 }
 export async function convertMappedCSV(originalText, filename, input) {
-  const source = readMappingCSV(originalText), mapping = validateColumnMapping(source, input);
+  const source = readMappingCSV(originalText), checked = validateColumnMapping(source, input);
+  // Keep the bytes and provenance tied to the same configuration across asynchronous hashing.
+  const mapping = { ...checked, columns: { ...checked.columns } };
   if (typeof filename !== 'string' || !filename.trim() || filename.length > 120) throw new Error('Source filename must be present and at most 120 characters.');
   let firstTime;
   const converted = source.rows.map((cells, row) => MAPPING_FIELDS.map(field => {
