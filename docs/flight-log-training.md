@@ -928,7 +928,7 @@ Remove marker now previews the exact saved ID, original elapsed time, kind, note
 and discussed state. Nothing is removed until Confirm remove instructor marker.
 Keep instructor marker cancels. Confirmation removes only that ID, not other
 notes at the same elapsed time. Source, cursor, summary, unadded draft and all
-other reviews remain unchanged. This is not an undo/history or completed training.
+other reviews remain unchanged. Only the latest saved-review action has the separate session recovery point; no history or completed training.
 
 The preview pauses primary playback and moves keyboard focus to its heading,
 never seeks. Queue changes, other marker actions, own exports/import and portable
@@ -971,3 +971,25 @@ Every sidecar, report and portable snapshot retains all saved markers and summar
 including hidden notes. Clear search and choose All to restore every marker. Search
 waits during import preview, marker edit and removal. Saved notes, source, cursor,
 comparison, drafts and export formats stay unchanged; no automatic storage/network.
+
+
+## Recover one previous saved instructor review
+
+A successful marker add, kind/text edit, discussion toggle, confirmed removal,
+clear or sidecar replacement keeps one prior complete saved timeline and summary.
+Typing summary alone does not create a recovery point. Preview shows the full
+current and previous saved states, independent of queue/search filters. Confirm
+replaces timeline and summary together, including an empty previous state, and
+consumes recovery with no redo/history. Discard only closes the preview.
+
+Current summary edits since the captured action will be replaced. The unadded
+marker draft, source, clock, comparison and other reviews stay unchanged. Active
+filters can hide restored notes. Pending import, marker edit/removal or clear
+confirmation blocks recovery. A changed summary/source/current/previous state
+behind a preview requires another preview; a new timeline action replaces recovery
+and closes its old preview. Existing validators must accept both full states.
+
+Recovery is session-only and disappears on workspace/source replacement or reload.
+Earlier downloads and stored snapshots never update; export exact source and
+sidecar/case backups yourself. No new file format, automatic storage, sharing,
+backend write, verified authorship, training completion or readiness claim.
