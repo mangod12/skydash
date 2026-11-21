@@ -955,3 +955,19 @@ the current saved note for its ID; removing it or replacing the review without
 that ID closes the panel. This session-only inspector adds no saved state, new
 export format, storage, network requests or backend dependency. Existing full
 sidecar/case exports are unchanged.
+
+
+## Find text in the saved instructor timeline
+
+Find saved instructor note text combines literal case-insensitive substring search
+with the explicit Timeline view. Leading/trailing search whitespace is ignored;
+regular expressions are not supported. Search only reads saved marker text, not
+IDs, summary or unadded draft. Each edit pauses primary playback without seeking
+and starts at the first matching page. Original order and separate same-time notes
+are retained. Questions/follow-ups counts still describe the complete timeline.
+
+Search is a session-only view, never a redaction tool or task/completion result.
+Every sidecar, report and portable snapshot retains all saved markers and summary,
+including hidden notes. Clear search and choose All to restore every marker. Search
+waits during import preview, marker edit and removal. Saved notes, source, cursor,
+comparison, drafts and export formats stay unchanged; no automatic storage/network.

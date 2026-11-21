@@ -24,4 +24,11 @@ describe('instructor discussion presentation',()=>{
  it('empty queue is not an empty timeline and unknown filters cannot hide annotations',()=>{
   expect(view(markers.slice(2),'open').items).toEqual([]);expect(view(markers,'__proto__').items).toEqual(markers);
  });
+ it('combines literal trimmed case-insensitive saved-note search with kind views without changing global discussion counts',()=>{
+  expect(view(markers,'all',0,'  SAME TIME  ').items).toEqual([markers[1]]);expect(view(markers,'questions',0,'same time').items).toEqual([]);expect(view(markers,'all',0,'<SCRIPT>').items).toEqual([markers[0]]);expect(view(markers,'all',0,'.*').items).toEqual([]);expect(view(markers,'all',0,'retained')).toMatchObject({questions:1,followups:1,items:[markers[3]]});expect(view(markers,'all',0,'  ').items).toEqual(markers);expect(view(markers,'open',0,'retained').items).toEqual([]);
+ });
+ it('pages every matching original note including identical-time notes and clamps after search',()=>{
+  const list=Array.from({length:100},(_,i)=>({...markers[0],id:String(i),text:i%2?'needle':'other'}));const selected=view(list,'all',3,'NEEDLE');expect(selected).toMatchObject({total:50,pages:5,page:3});expect(selected.items[0]).toBe(list[61]);expect(view(list,'all',9,'needle').page).toBe(4);expect(view(list,'all',9,'no matches')).toMatchObject({total:0,page:0,pages:1,items:[]});
+ });
+
 });

@@ -29,13 +29,14 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
   useEffect(()=>{if(editOpen)editInput.current?.focus();},[editOpen]);
   const [discussionFilter, setDiscussionFilter] = useState('all');
   const [discussionPage, setDiscussionPage] = useState(0);
+  const [discussionQuery,setDiscussionQuery] = useState('');
   const replacement = useMemo(()=>{
     if(!pending)return null;
     try{return instructorReplacement(log,markers,notes,pending);}
     catch{return null;}
   },[log,markers,notes,pending]);
-  const discussion = instructorDiscussionView(markers, discussionFilter, discussionPage);
-  const updateMarkers = next => { setMarkers(next); setDiscussionPage(instructorDiscussionView(next, discussionFilter, discussion.page).page); };
+  const discussion = instructorDiscussionView(markers, discussionFilter, discussionPage, discussionQuery);
+  const updateMarkers = next => { setMarkers(next); setDiscussionPage(instructorDiscussionView(next, discussionFilter, discussion.page, discussionQuery).page); };
   const changeDiscussionView = (filter, page) => { if (busy || pending || editing || removing) return; onPause(); setDiscussionFilter(filter); setDiscussionPage(page); };
   useImperativeHandle(ref, () => ({ snapshot() {
     if (busy || pending) throw new Error('Finish or cancel the debrief import before exporting a case.');
@@ -110,9 +111,11 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
       <h3 className="font-semibold text-cyan-200">Focus the discussion queue</h3>
       <p>{discussion.questions} undiscussed questions / {discussion.followups} undiscussed follow-ups in the full timeline.</p>
       <label className="block">Timeline view<select aria-label="Instructor timeline view" disabled={busy || Boolean(pending) || Boolean(editing || removing)} value={discussionFilter} onChange={e=>changeDiscussionView(e.target.value,0)} className={input}><option value="all">All instructor markers</option><option value="open">Undiscussed questions and follow-ups</option><option value="questions">Undiscussed questions only</option><option value="followups">Undiscussed follow-ups only</option></select></label>
+      <label className="block">Find saved instructor note text<input aria-label="Find saved instructor note text" type="search" maxLength={1000} value={discussionQuery} disabled={busy || Boolean(pending || editing || removing)} onChange={e=>{if(busy || pending || editing || removing)return;onPause();setDiscussionQuery(e.target.value);setDiscussionPage(0);}} className={input} /></label>
+      <p>Literal case-insensitive text within saved notes, combined with Timeline view. Not IDs, summary or unadded draft. Clear search and choose All to restore every marker. All exports still retain the full saved timeline and summary; this is not a redaction tool.</p>
       <p aria-live="polite">Showing {discussion.total ? discussion.page*10+1 : 0} to {Math.min((discussion.page+1)*10,discussion.total)} of {discussion.total} matching markers. Page {discussion.page+1} of {discussion.pages}.</p>
       <div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={busy || Boolean(pending) || Boolean(editing || removing) || discussion.page===0} onClick={()=>changeDiscussionView(discussionFilter,discussion.page-1)}>Previous marker page</button><button type="button" className={button} disabled={busy || Boolean(pending) || Boolean(editing || removing) || discussion.page+1>=discussion.pages} onClick={()=>changeDiscussionView(discussionFilter,discussion.page+1)}>Next marker page</button></div>
-      <details className="text-zinc-500"><summary className="cursor-pointer text-cyan-200">Queue scope and export limits</summary><p className="mt-2">Original order; equal-time notes stay separate. Views only pause primary replay. Jump and Discussed remain explicit. All restores hidden notes. Every export keeps all saved markers and summary. Session-only view, not tasks, completion or readiness.</p></details>
+      <details className="text-zinc-500"><summary className="cursor-pointer text-cyan-200">Queue scope and export limits</summary><p className="mt-2">Original order; equal-time notes stay separate. Views only pause primary replay. Jump and Discussed remain explicit. Clear search and All restore hidden notes. Every export keeps all saved markers and summary. Session-only view, not tasks, completion or readiness.</p></details>
     </section>
     {markers.length>0 && discussion.total===0 && <p className="text-xs text-zinc-400">No markers match this view. Other timeline notes are retained. This is not a completed-review or readiness result.</p>}
     {!markers.length && <p className="text-xs text-zinc-500">Pause or scrub replay above, then add an observation, question or follow-up. Markers are sorted by elapsed time.</p>}
