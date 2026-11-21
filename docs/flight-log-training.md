@@ -1055,3 +1055,27 @@ counts, change patterns and source times remain sensitive. No writes, network,
 storage, merge, patch, sharing, source repair, history, task/completion totals,
 grading or readiness claim. Errors print no partial comparison or private input.
 Keep all three originals; a receipt cannot reopen them or replace revalidation.
+
+
+## Read a privacy-limited instructor sidecar comparison report
+
+From `skydash/frontend` run
+`node scripts/report-instructor-comparison.mjs SOURCE.csv LEFT.json RIGHT.json > comparison.html`.
+The command freshly validates all three complete originals and exact shared source
+before printing one static HTML document. Same strict UTF-8 regular-file limits,
+current model/bounds checks and optional separate `--expect-source-sha256 HEX`,
+`--expect-left-sha256 HEX`, `--expect-right-sha256 HEX` as the JSON comparison.
+Receipts never replace originals. Check exit status; shell redirection can leave
+an empty file on failure, but no partial HTML or private input is printed.
+
+The report separates raw-byte equality, normalized saved-review equality, summary
+flag, directional exact-ID inventory and overlapping same-ID field-change counts.
+No private note/summary words, IDs, paths/filenames, coordinates or individual
+readings print. No guessed time/text matching, chronology, authenticated authorship,
+completion, grading or readiness. Hashes/counts/patterns/times remain sensitive.
+
+Desktop/mobile/print preserve those limits. No scripts, external assets, links,
+forms, network, storage, writes by the command, upload, sharing, merge or repair.
+Open the explicitly saved HTML locally yourself, review its audience and preserve
+the exact CSV and both sidecars separately. Editable unsigned HTML cannot reopen
+reviews, replace revalidation or establish custody, source truth or certification.
