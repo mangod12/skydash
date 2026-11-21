@@ -129,7 +129,7 @@ describe('instructor review timeline', () => {
   it('edits only the selected saved kind/text after explicit Save, retaining source time ID discussed and summary',()=>{
     const first={...marker,discussed:true,text:'Original saved note'},second={...marker,id:'second',time_s:8,text:'Separate note',discussed:false};const ref={current:null};
     render(<InstructorDebrief {...initial} ref={ref} initialReview={{markers:[second,first],notes:'Kept summary'}} />);
-    fireEvent.click(screen.getByText('Edit marker at 12.0s'));expect(screen.getByLabelText('Edited marker note').value).toBe('Original saved note');
+    fireEvent.click(screen.getByText('Edit marker at 12.0s'));expect(screen.getByLabelText('Edited marker note').value).toBe('Original saved note');expect(document.activeElement).toBe(screen.getByLabelText('Edited marker note'));
     expect(initial.onPause).toHaveBeenCalledTimes(1);expect(initial.onSeek).not.toHaveBeenCalled();expect(()=>ref.current.snapshot()).toThrow(/Save or cancel/);
     expect(screen.getByLabelText('Instructor timeline view').disabled).toBe(true);expect(screen.getByLabelText('Import debrief JSON').disabled).toBe(true);expect(screen.getByText('Download debrief JSON').disabled).toBe(true);expect(screen.getByLabelText('Discussed at 8.0s').disabled).toBe(true);expect(screen.getByText('Remove marker at 8.0s').disabled).toBe(true);
     fireEvent.change(screen.getByLabelText('Edited marker kind'),{target:{value:'Follow-up'}});fireEvent.change(screen.getByLabelText('Edited marker note'),{target:{value:'  <b>Corrected saved note</b>  '}});

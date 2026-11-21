@@ -1,7 +1,7 @@
 import InstructorReplacement from './InstructorReplacement';
 import { instructorReplacement, instructorReplacementReport } from '../../utils/instructorReplacement';
 import { instructorDiscussionView } from '../../utils/instructorDiscussionView';
-import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { BookmarkPlus, Download } from 'lucide-react';
 import { recordedObservation } from '../../utils/flightComparison';
 import { MAX_MARKERS, MAX_DEBRIEF_BYTES, MARKER_KINDS, DEBRIEF_SCOPE, createReviewMarker, validateMarkers, debriefSidecar, readDebriefSidecar, instructorReport } from '../../utils/instructorDebrief';
@@ -18,6 +18,9 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
   const [message, setMessage] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
   const [editing,setEditing] = useState(null);
+  const editInput=useRef(null);
+  const editOpen=Boolean(editing);
+  useEffect(()=>{if(editOpen)editInput.current?.focus();},[editOpen]);
   const [discussionFilter, setDiscussionFilter] = useState('all');
   const [discussionPage, setDiscussionPage] = useState(0);
   const replacement = useMemo(()=>{
@@ -109,7 +112,7 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
     {editing&&<section aria-label="Edit saved instructor marker" className="rounded-lg border border-amber-500/30 p-3 space-y-3 text-xs text-zinc-300">
       <h3 className="font-semibold text-amber-200">Edit one saved instructor note</h3><p>Original {editing.time_s}s / ID {editing.id} / discussed {String(editing.discussed)} stay unchanged. Changes below are drafts until Save; Cancel keeps the saved note. Exports, queue navigation, imports and other marker changes wait until Save or Cancel. No source, replay seek, summary or other review changes.</p>
       <label className="block">Edited marker kind<select aria-label="Edited marker kind" className={input} value={editing.kind} onChange={e=>setEditing({...editing,kind:e.target.value})}>{MARKER_KINDS.map(value=><option key={value}>{value}</option>)}</select></label>
-      <label className="block">Edited marker note<textarea aria-label="Edited marker note" rows={3} maxLength={1000} className={input} value={editing.text} onChange={e=>setEditing({...editing,text:e.target.value})}/></label>
+      <label className="block">Edited marker note<textarea ref={editInput} aria-label="Edited marker note" rows={3} maxLength={1000} className={input} value={editing.text} onChange={e=>setEditing({...editing,text:e.target.value})}/></label>
       <div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={busy || !editing.text.trim()} onClick={saveMarkerEdit}>Save marker edit</button><button type="button" className={button} onClick={()=>{onPause();setEditing(null);setError('');setMessage('Marker edit canceled. Saved timeline unchanged.');}}>Cancel marker edit</button></div>
     </section>}
     <ol className="space-y-2" aria-label="Instructor review markers">{discussion.items.map(marker => {
