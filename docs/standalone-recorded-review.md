@@ -310,3 +310,45 @@ The original is sensitive, unsigned and unencrypted. It can contain embedded rec
 Downloading does not open or replace replay. After verifying the saved file, choose it yourself in the existing matching **Open review case JSON**, **Open notebook source bundle JSON** or **Open paired review bundle JSON** control. Inspect its existing original-validation/replacement preview and cancel or confirm there. Existing source/review replacement safeguards remain separate; cancelling preserves the current workspace. No automatic extraction to folders, file opening, storage, upload, sharing, aircraft commands, authentication, flight/student identity, grades, completion or readiness claim.
 
 Every selected-original ordinal/expectation/acknowledgement edit invalidates its output even when reverted. Its own clear affects only that output. ZIP/ZIP-pin/manifest-pin edits and the received check clear also reset its selection, acknowledgement and bytes. Busy work locks received actions to prevent overlapping checks. Whole-packet and subset-packet prepared outputs, the checked inventory, other tools and replay otherwise remain independent. Closing hides this tool; refresh/tab close drops its session-only bytes.
+
+## Private instructor discussion agenda from received originals
+
+The received browser-ZIP checker also offers a separate private agenda. A new
+sensitive-output acknowledgement is consumed on each preparation. It freshly
+checks the entire bounded ZIP, independent ZIP/manifest expectations and every
+listed original, then includes only undiscussed Question and Follow-up markers
+from case or paired primary instructor timelines. Notebook originals still
+validate, but have an explicit not-applicable chapter. No notebook notes,
+Observation/discussed markers, summaries, analyst/envelope/action/checklist or
+baseline/comparison notes are interpreted as tasks. Existing full private packets
+and original recovery are separate and unchanged.
+
+Every original retains its manifest ordinal and artifact hash. Eligible timelines
+also retain source hashes and their own validated chronological positions/seconds. Repeated originals
+are not deduplicated or combined into tasks, flights or a shared clock. Counts
+are annotation counts only. No eligible markers is not verified completion or
+absence of other work. No assignments, notifications, reminders or aircraft
+commands. The HTML adds no coordinate/readings fields, but private note text can
+contain sensitive data. It is escaped as text and never application instructions.
+The static unsigned HTML is bounded to8MiB, not reopenable state, a complete
+review, source backup, authentication, certification or readiness evidence.
+
+Preparation does not download, open or share anything. Save with the separate
+button, inspect saving/audience/exclusions and use secure transport yourself.
+Agenda consent edits and its own clear drop its output only. ZIP/ZIP-pin/manifest
+pin edits or received clear reset it; other packet scope edits retain it. Shared
+busy locks prevent source changes during preparation. Closing hides it;
+refresh/tab close drops it. No automatic storage, upload or sharing.
+
+CLI parity for the same flat browser handoff originals, never received reports:
+
+```sh
+node scripts/report-training-agenda.mjs KIT/training.json --include-private-review --expect-sha256 INDEPENDENT_MANIFEST_SHA256 > NEW-PRIVATE-AGENDA.html
+```
+
+Run from `skydash/frontend`. Optional manifest expectation must come through an
+independent trusted route. Check successful exit before using a redirected file;
+failure can leave an empty file. Strict bounded regular no-symlink originals,
+manifest/artifact pins and all nested validators apply before any HTML is issued.
+The command does not extract a ZIP or write files itself. Preserve exact originals
+and excluded work separately.
