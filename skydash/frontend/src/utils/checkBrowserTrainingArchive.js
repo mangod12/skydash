@@ -40,7 +40,7 @@ async function checkArchiveOriginals(file, { expectedArchiveSha256 = '', expecte
   const checked = await checkBrowserTrainingIntake(manifest, files, expectedManifestSha256);
   const declared = JSON.parse(decode(entries[0][1])).bundles;
   if (declared.some((item,index)=>item.path !== files[index]?.name)) throw Error('Original archive order differs from manifest.');
-  return { manifest, files, summary: { html:renderTrainingIntake(checked), digest:checked.exact_manifest_sha256, archiveDigest, expectedArchiveDigestMatched:Boolean(expectedArchiveSha256), expectedManifestDigestMatched:Boolean(expectedManifestSha256), fileCount:entries.length, bundleCount:checked.bundle_count } };
+  return { manifest, files, summary: { html:renderTrainingIntake(checked), digest:checked.exact_manifest_sha256, archiveDigest, expectedArchiveDigestMatched:Boolean(expectedArchiveSha256), expectedManifestDigestMatched:Boolean(expectedManifestSha256), fileCount:entries.length, bundleCount:checked.bundle_count, originals:declared.map((item,index)=>({ ordinal:index+1, kind:item.kind, sha256:item.sha256.toLowerCase() })) } };
 }
 
 export async function checkBrowserTrainingArchive(file, options = {}) {
@@ -90,7 +90,6 @@ export async function compareBrowserTrainingArchiveReviews(kind, left, right) {
 // This is a fresh validation result, not a selection, independent expectation or cached approval.
 export async function inventoryBrowserTrainingArchive(file, options = {}) {
   const checked = await checkArchiveOriginals(file, options);
-  const manifest = JSON.parse(decode(new Uint8Array(await checked.manifest.arrayBuffer())));
   return { archiveDigest: checked.summary.archiveDigest, manifestDigest: checked.summary.digest, expectedArchiveDigestMatched: checked.summary.expectedArchiveDigestMatched, expectedManifestDigestMatched: checked.summary.expectedManifestDigestMatched,
-    originals: manifest.bundles.map((item,index)=>({ ordinal:index+1, kind:item.kind, sha256:item.sha256.toLowerCase() })) };
+    originals: checked.summary.originals };
 }

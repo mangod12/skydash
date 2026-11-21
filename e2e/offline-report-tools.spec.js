@@ -375,9 +375,21 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await p.setViewportSize({ width: 1440, height: 1050 });
   // Explicit partial instructor packet, never guessed from filenames or UI inventory.
+  const checkedInventory=received.getByRole('region',{name:'Received ZIP checked original inventory',exact:true});
+  await expect(checkedInventory).toContainText('Manifest original 1: case');
+  await expect(checkedInventory).toContainText('Manifest original 2: notebook');
+  await expect(checkedInventory).toContainText('Manifest original 3: paired');
+  await checkedInventory.scrollIntoViewIfNeeded();
+  await p.screenshot({path:testInfo.outputPath('received-original-index-desktop.png')});
+  await p.setViewportSize({width:390,height:700});
+  await checkedInventory.scrollIntoViewIfNeeded();
+  await p.screenshot({path:testInfo.outputPath('received-original-index-mobile.png')});
+  expect(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+  await p.setViewportSize({width:1440,height:1050});
   const privateScope = received.getByLabel('Received ZIP private packet scope');
   await privateAck.check();
   await privateScope.selectOption('selected');
+  await expect(checkedInventory).toContainText('Manifest original 2: notebook');
   await expect(privateAck).not.toBeChecked();
   const privateOrdinals = received.getByLabel('Received ZIP private packet ordinals');
   await privateAck.check();
@@ -386,6 +398,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   await privateAck.check();
   await expect(preparePrivateZip).toBeDisabled();
   await privateOrdinals.fill('3,1');
+  await expect(checkedInventory).toBeVisible();
   await expect(privateAck).not.toBeChecked();
   await privateAck.check();
   await preparePrivateZip.click();
