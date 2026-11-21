@@ -993,3 +993,34 @@ Recovery is session-only and disappears on workspace/source replacement or reloa
 Earlier downloads and stored snapshots never update; export exact source and
 sidecar/case backups yourself. No new file format, automatic storage, sharing,
 backend write, verified authorship, training completion or readiness claim.
+
+
+## Check a standalone instructor sidecar against its original CSV offline
+
+From `skydash/frontend`, run:
+
+```sh
+node scripts/verify-instructor-sidecar.mjs SOURCE.csv SIDECAR.json
+```
+
+This read-only command uses the current app CSV and instructor validators, not
+imported computed results. Both inputs must be regular strict UTF-8 files, source
+up to 1MiB and sidecar up to 256KiB. It checks the exact raw source fingerprint,
+supported replay/sidecar models, unique IDs, original marker times, note/kind/
+discussion/summary bounds. CSV whitespace and BOM bytes remain part of its hash;
+no normalization or repair is performed to make a sidecar match another source.
+
+Optional `--expect-source-sha256 HEX` and `--expect-sidecar-sha256 HEX` independently
+pin each complete original file before parsing. Obtain expectations through a
+separate trusted route. A source-only pin does not cover the sidecar words or
+JSON formatting. A self-declared fingerprint or generated digest is not an
+independent expectation or verified authorship. Each option may appear once.
+
+Success prints one JSON receipt with exact hashes, source sample count/endpoints,
+marker count and kind counts. No private paths/filenames, marker IDs/text, summary,
+coordinates or individual readings print. Hashes/counts/times can still identify
+sensitive work. Failure prints no success receipt and does not echo private inputs.
+The command writes no files, makes no report, requests no network or storage and
+changes neither original. Keep exact CSV and sidecar separately; a receipt cannot
+reopen them or replace revalidation. Annotation inventory is not completion,
+authenticated custody, source truth, certification or readiness.
