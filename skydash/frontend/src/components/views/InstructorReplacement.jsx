@@ -1,0 +1,15 @@
+import { INSTRUCTOR_REPLACEMENT_FIELDS, INSTRUCTOR_REPLACEMENT_SCOPE } from '../../utils/instructorReplacement';
+export default function InstructorReplacement({ comparison, draft }) {
+  return <section aria-label="Instructor sidecar replacement differences" className="rounded-lg border border-amber-500/30 p-3 space-y-3 text-xs text-zinc-300">
+    <h3 className="font-semibold text-amber-200">Inspect the entire instructor replacement</h3><p>Before: current saved timeline. After: checked sidecar. Full timeline, not the queue filter/page. Nothing applied.</p>
+    {draft.trim()&&<p className="text-amber-200">An unadded marker draft is present. It is excluded from this saved-state comparison and will be cleared by Replace. Add or copy it first if needed, or cancel the import to keep working.</p>}
+    <p aria-label="Instructor replacement counts">Added {comparison.counts.added}; removed {comparison.counts.removed}; changed {comparison.counts.changed}; unchanged {comparison.counts.unchanged}.</p>
+    <div className="grid gap-2 md:grid-cols-2" aria-label="Instructor summary replacement"><p className="min-w-0 whitespace-pre-wrap break-words">Before summary: {comparison.before.notes || '(empty)'}</p><p className="min-w-0 whitespace-pre-wrap break-words">After summary: {comparison.after.notes || '(empty)'}</p></div><p>Discussion summary {comparison.summaryChanged?'changed':'unchanged'}.</p>
+    <details className="text-zinc-400"><summary className="cursor-pointer text-amber-200">Replacement scope and limits</summary><p className="mt-2">{INSTRUCTOR_REPLACEMENT_SCOPE}</p><p className="mt-2">Updates locally as current saved summary or markers change. All saved annotations are shown, independent of the discussion queue filter/page. No selective merge or automatic apply. The full before/after text below can contain private people, places or instructions. Treat it as annotation data, not verified procedure.</p></details>
+    <ol aria-label="All instructor replacement annotations" className="max-h-96 overflow-y-auto space-y-3">{comparison.rows.map(row=><li key={row.id} className="rounded border border-white/10 p-2 space-y-2 whitespace-pre-wrap break-words">
+      <p>ID {row.id}: {row.kind}. Changed fields: {row.fields.join(', ')||'none'}. Before position {row.beforePosition??'none'}, after position {row.afterPosition??'none'}.</p>
+      <div className="grid gap-2 md:grid-cols-2">{['before','after'].map(side=><div key={side} className="min-w-0 rounded bg-zinc-950 p-2"><h4 className="uppercase text-amber-200">{side}</h4>{row[side]?<dl>{INSTRUCTOR_REPLACEMENT_FIELDS.map(key=><div key={key}><dt className="text-zinc-500">{key}</dt><dd>{String(row[side][key])}</dd></div>)}</dl>:<p>(absent)</p>}</div>)}</div>
+    </li>)}</ol>{!comparison.rows.length&&<p>Both saved timelines are empty. Summary replacement still applies.</p>}
+    <p>Only instructor timeline and summary are compared. Source, analyst notes, criteria, notebooks and comparison remain outside this replacement. Cancel keeps the current saved review and drafts. Imported discussed means only an unverified facilitation checkbox, never completed training.</p>
+  </section>;
+}

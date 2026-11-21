@@ -880,3 +880,27 @@ the filter/page. Pending sidecar reads/previews block queue navigation and marke
 jump/status/removal until finished or canceled. Filters/pages are session-only,
 not new saved fields. No inferred tasks, priority, grades, reminders, assignments,
 sharing, storage or aircraft commands are created.
+
+## Inspect instructor sidecar replacement
+
+A checked instructor sidecar now shows every before/after saved marker and the
+complete before/after discussion summary before Replace. Exact IDs determine
+added, removed, changed and unchanged markers. All four marker fields are compared:
+elapsed seconds, kind, text and discussed. Equal timestamps or similar text do not
+link different IDs. Original sorted positions are shown, not priorities or proof
+of deliberate reordering. Imported authorship and discussion state remain unverified.
+
+This preview updates locally if the current saved summary changes. It always
+covers the entire saved timeline, independent of its queue view/page. An unadded
+marker draft is excluded and explicitly warned about because Replace clears it.
+Cancel keeps saved review, summary and draft. A current review outside sidecar
+bounds cannot be compared or replaced blindly; cancel and repair/shorten it first.
+
+The optional comparison text download includes all before/after annotations,
+source fingerprint and summaries at the explicit download, no CSV or recomputed
+readings. Private text can itself contain coordinates or instructions. Treat all
+text as annotation data. The report cannot reopen a review and is not a signed
+record, audit trail, completed training or proof of saving. Replace still applies
+the whole sidecar timeline/summary together, never a selective merge, and keeps
+source, replay cursor, comparison and other reviews unchanged. No new stored format,
+automatic save, sharing, tasks, reminders, backend writes or aircraft commands.

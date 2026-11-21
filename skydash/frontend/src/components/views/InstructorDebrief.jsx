@@ -1,5 +1,7 @@
+import InstructorReplacement from './InstructorReplacement';
+import { instructorReplacement, instructorReplacementReport } from '../../utils/instructorReplacement';
 import { instructorDiscussionView } from '../../utils/instructorDiscussionView';
-import { forwardRef, useImperativeHandle, useState } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
 import { BookmarkPlus, Download } from 'lucide-react';
 import { recordedObservation } from '../../utils/flightComparison';
 import { MAX_MARKERS, MAX_DEBRIEF_BYTES, MARKER_KINDS, DEBRIEF_SCOPE, createReviewMarker, validateMarkers, debriefSidecar, readDebriefSidecar, instructorReport } from '../../utils/instructorDebrief';
@@ -17,6 +19,11 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
   const [confirmClear, setConfirmClear] = useState(false);
   const [discussionFilter, setDiscussionFilter] = useState('all');
   const [discussionPage, setDiscussionPage] = useState(0);
+  const replacement = useMemo(()=>{
+    if(!pending)return null;
+    try{return instructorReplacement(log,markers,notes,pending);}
+    catch{return null;}
+  },[log,markers,notes,pending]);
   const discussion = instructorDiscussionView(markers, discussionFilter, discussionPage);
   const updateMarkers = next => { setMarkers(next); setDiscussionPage(instructorDiscussionView(next, discussionFilter, discussion.page).page); };
   const changeDiscussionView = (filter, page) => { if (busy || pending) return; onPause(); setDiscussionFilter(filter); setDiscussionPage(page); };
@@ -45,7 +52,7 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
     } catch (failure) { setError(failure.message || 'Debrief file could not be read.'); }
     finally { setBusy(false); }
   };
-  const apply = () => { updateMarkers(pending.markers); setNotes(pending.notes); setPending(null); setText(''); setConfirmClear(false); setMessage('Debrief imported locally. Sample context is recomputed from the current source; annotation authorship is not verified.'); };
+  const apply = () => { if (busy || !pending || !replacement) return; updateMarkers(pending.markers); setNotes(pending.notes); setPending(null); setText(''); setConfirmClear(false); setMessage('Debrief imported locally. Sample context is recomputed from the current source; annotation authorship is not verified.'); };
   const download = format => {
     let url;
     try {
@@ -55,6 +62,15 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
       const anchor = document.createElement('a'); anchor.href = url; anchor.download = `skydash-instructor-${log.sha256.slice(0, 12)}.${sidecar ? 'json' : 'txt'}`; document.body.appendChild(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); setError('');
       setMessage('Download requested. Keep the JSON sidecar and exact source CSV to reopen this review. Report includes source coordinates and review notes.');
     } catch (failure) { if (url) URL.revokeObjectURL(url); setError(failure.message?.includes('256KiB') ? failure.message : 'Debrief download could not start. Markers and notes remain in this session.'); }
+  };
+  const downloadReplacement = () => {
+    if (busy || !pending || !replacement) return; onPause(); let url;
+    try {
+      const contents = instructorReplacementReport(log,markers,notes,pending);
+      url=URL.createObjectURL(new Blob([contents],{type:'text/plain;charset=utf-8'}));
+      const a=document.createElement('a');a.href=url;a.download=`skydash-instructor-replacement-${log.sha256.slice(0,12)}.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      setError('');setMessage('Private instructor replacement comparison download requested. Snapshot of all saved before/after annotations, not a reopenable sidecar, completed training or proof of saving. No changes applied.');
+    } catch { if(url)URL.revokeObjectURL(url);setError('Replacement comparison download could not start. Current review and import preview kept.'); }
   };
   return <article id="instructor-debrief" aria-label="Instructor debrief timeline" className="rounded-xl border border-emerald-500/25 p-4 space-y-3">
     <header><p className="text-[10px] tracking-widest text-emerald-300">TRAINING / FACILITATED REVIEW</p><h2 className="mt-1 text-lg font-semibold text-zinc-100">Instructor debrief timeline</h2><p className="mt-2 text-xs leading-relaxed text-zinc-400">{DEBRIEF_SCOPE}</p></header>
@@ -91,7 +107,7 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
     <div className="flex flex-wrap gap-2"><button type="button" disabled={busy} onClick={() => download('report')} className={button}><Download size={14} /> Download instructor report</button><button type="button" disabled={busy} onClick={() => download('json')} className={button}><Download size={14} /> Download debrief JSON</button><button type="button" disabled={busy || !markers.length && !notes} onClick={() => setConfirmClear(value => !value)} className={button}>Clear instructor review</button></div>
     {confirmClear && <div className="text-xs text-amber-300">Clear all markers and discussion summary from this session? Download first to keep them.<div className="mt-2 flex flex-wrap gap-2"><button type="button" className={button} onClick={() => { updateMarkers([]); setNotes(''); setText(''); setConfirmClear(false); setPending(null); setMessage('Instructor review cleared locally. Source CSV and saved records are unchanged.'); }}>Confirm clear review</button><button type="button" className={button} onClick={() => setConfirmClear(false)}>Keep review</button></div></div>}
     <div className="border-t border-white/10 pt-3 space-y-2"><h3 className="text-sm font-semibold text-zinc-200">Reopen a debrief sidecar</h3><p className="text-xs text-zinc-500">Load the matching source CSV first. JSON contains notes, marker times and source fingerprint, not the CSV. A valid sidecar still has unverified authorship. Confirm before replacing the current review. Up to 256KiB / 100 markers.</p><input aria-label="Import debrief JSON" type="file" accept=".json,application/json" disabled={busy} onChange={read} className="block w-full min-w-0 text-xs text-zinc-400" /></div>
-    {pending && <div className="rounded-lg border border-amber-500/30 p-3 text-xs text-amber-300">Matching sidecar: {pending.markers.length} markers. Replace current {markers.length} markers and summary? Source CSV is unchanged.<div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={apply} className={button}>Replace with imported review</button><button type="button" onClick={() => { setPending(null); setMessage('Import cancelled. Current review kept.'); }} className={button}>Keep current review</button></div></div>}
+    {pending && <div className="rounded-lg border border-amber-500/30 p-3 text-xs text-amber-300"><p>Matching sidecar: {pending.markers.length} markers. Replace current {markers.length} markers and summary? Source CSV is unchanged. Unadded marker drafts will also be cleared by Replace.</p><>{replacement?<InstructorReplacement comparison={replacement} draft={text} />:<p role="alert">Current saved timeline or summary cannot be compared within sidecar bounds. Cancel the import and shorten or repair current notes before replacing. Current review and checked import are retained.</p>}</><button type="button" disabled={busy || !replacement} className={button} onClick={downloadReplacement}>Download instructor replacement comparison</button><p>Replacement is all-or-nothing, not a merge.</p><div className="mt-2 flex flex-wrap gap-2"><button type="button" disabled={busy || !replacement} onClick={apply} className={button}>Replace with imported review</button><button type="button" onClick={() => { setPending(null); setMessage('Import cancelled. Current review kept.'); }} className={button}>Keep current review</button></div></div>}
   </article>;
 });
 export default InstructorDebrief;
