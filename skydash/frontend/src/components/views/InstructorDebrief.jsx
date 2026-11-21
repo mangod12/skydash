@@ -1,3 +1,4 @@
+import InstructorRecovery from './InstructorRecovery';
 import InstructorMarkerEvidence from './InstructorMarkerEvidence';
 import InstructorReplacement from './InstructorReplacement';
 import { instructorReplacement, instructorReplacementReport } from '../../utils/instructorReplacement';
@@ -13,6 +14,8 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
   const [kind, setKind] = useState('Observation');
   const [text, setText] = useState('');
   const [notes, setNotes] = useState(initialReview?.notes || '');
+  const [previous,setPrevious]=useState(null);
+  const [reviewRevision,setReviewRevision]=useState(0);
   const [pending, setPending] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -36,7 +39,7 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
     catch{return null;}
   },[log,markers,notes,pending]);
   const discussion = instructorDiscussionView(markers, discussionFilter, discussionPage, discussionQuery);
-  const updateMarkers = next => { setMarkers(next); setDiscussionPage(instructorDiscussionView(next, discussionFilter, discussion.page, discussionQuery).page); };
+  const updateMarkers = next => { setPrevious({markers,notes});setReviewRevision(value=>value+1);setMarkers(next); setDiscussionPage(instructorDiscussionView(next, discussionFilter, discussion.page, discussionQuery).page); };
   const changeDiscussionView = (filter, page) => { if (busy || pending || editing || removing) return; onPause(); setDiscussionFilter(filter); setDiscussionPage(page); };
   useImperativeHandle(ref, () => ({ snapshot() {
     if (busy || pending) throw new Error('Finish or cancel the debrief import before exporting a case.');
@@ -119,10 +122,11 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
     </section>
     {markers.length>0 && discussion.total===0 && <p className="text-xs text-zinc-400">No markers match this view. Other timeline notes are retained. This is not a completed-review or readiness result.</p>}
     {!markers.length && <p className="text-xs text-zinc-500">Pause or scrub replay above, then add an observation, question or follow-up. Markers are sorted by elapsed time.</p>}
+    <InstructorRecovery key={reviewRevision} log={log} markers={markers} notes={notes} previous={previous} disabled={busy || Boolean(pending || editing || removing || confirmClear)} onPause={onPause} onRestore={preview=>{const checked=instructorReplacement(log,markers,notes,debriefSidecar(log,previous.markers,previous.notes));if(JSON.stringify(checked)!==JSON.stringify(preview))throw Error('Instructor recovery state changed. Preview again.');onPause();setMarkers(checked.after.markers);setNotes(checked.after.notes);setPrevious(null);setReviewRevision(value=>value+1);setEvidenceId(null);setConfirmClear(false);setError('');setMessage('Previous instructor timeline and summary restored locally. Recovery consumed, no redo. Draft, source, cursor, comparison, other reviews and earlier files unchanged. Active filters may hide restored notes.');}} />
     {evidenceMarker&&<InstructorMarkerEvidence log={log} marker={evidenceMarker} disabled={busy || Boolean(pending || editing || removing)} onPause={onPause} onSeek={onSeek} onClose={()=>setEvidenceId(null)} />}
     {removing&&<section aria-label="Remove saved instructor marker preview" className="rounded-lg border border-amber-500/30 p-3 space-y-3 text-xs text-zinc-300">
       <h3 ref={removeHeading} tabIndex={-1} className="font-semibold text-amber-200">Remove this one saved instructor marker?</h3><p className="break-words">ID {removing.id}, original {removing.time_s}s, {removing.kind}, discussed {String(removing.discussed)}.</p><p className="whitespace-pre-wrap break-words">{removing.text}</p>
-      <p>Confirmation deletes only this saved marker from this session. Same-time notes, source, cursor, summary, unadded draft and other reviews stay unchanged. No undo or update to earlier downloads. Cancel to keep it or export first. Discussion state is not training completion.</p>
+      <p>Confirmation deletes only this saved marker from this session. Same-time notes, source, cursor, summary, unadded draft and other reviews stay unchanged. Only the latest saved-review action has a session recovery point. Earlier downloads never update. Cancel to keep it or export first. Discussion state is not training completion.</p>
       <div className="flex flex-wrap gap-2"><button type="button" className={button} onClick={()=>{if(busy || pending)return;onPause();updateMarkers(markers.filter(item=>item.id!==removing.id));setRemoving(null);setMessage('One instructor marker removed locally. Earlier exported files are unchanged.');}}>Confirm remove instructor marker</button><button type="button" className={button} onClick={()=>{onPause();setRemoving(null);setMessage('Marker removal canceled. Saved timeline unchanged.');}}>Keep instructor marker</button></div>
     </section>}
     {editing&&<section aria-label="Edit saved instructor marker" className="rounded-lg border border-amber-500/30 p-3 space-y-3 text-xs text-zinc-300">
