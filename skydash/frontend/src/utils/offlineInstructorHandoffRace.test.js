@@ -1,0 +1,14 @@
+import {beforeEach,afterEach,expect,it,vi} from 'vitest';
+import {mkdtemp,writeFile,readFile,readdir,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createHash} from 'node:crypto';
+const verify=vi.hoisted(()=>vi.fn());
+vi.mock('../../scripts/verify-instructor-sidecar.mjs',()=>({verifyInstructorSidecar:verify}));
+import {packageInstructorReview} from '../../scripts/package-instructor-review.mjs';
+let dir,source,sidecar,output;
+const hash=v=>createHash('sha256').update(v).digest('hex');
+beforeEach(async()=>{dir=await mkdtemp(join(tmpdir(),'skydash-handoff-race-'));source=join(dir,'source.csv');sidecar=join(dir,'sidecar.json');output=join(dir,'new.zip');await writeFile(source,'source');await writeFile(sidecar,'review');verify.mockReset();});
+afterEach(async()=>{await rm(dir,{recursive:true,force:true});});
+it('rechecks both copied originals against fresh validation before writing any output',async()=>{for(const changed of[source,sidecar]){await writeFile(source,'source');await writeFile(sidecar,'review');verify.mockImplementation(async()=>{const receipt={exact_source_sha256:hash(await readFile(source)),exact_sidecar_sha256:hash(await readFile(sidecar))};await writeFile(changed,'changed after validation');return receipt;});await expect(packageInstructorReview(source,sidecar,output,{includeSensitiveOriginals:true})).rejects.toThrow('Original changed');expect(await readdir(dir)).not.toContain('new.zip');}});
+it('never validates or reads originals without strict explicit acknowledgement',async()=>{for(const value of[undefined,false,'true',1])await expect(packageInstructorReview(source,sidecar,output,{includeSensitiveOriginals:value})).rejects.toThrow('acknowledgement');expect(verify).not.toHaveBeenCalled();expect(await readdir(dir)).not.toContain('new.zip');});
