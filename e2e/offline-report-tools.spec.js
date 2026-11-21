@@ -181,7 +181,16 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     name: buttons.private
   })).toBeEnabled();
   await download('private', panel, 'private.html');
-  panel = await open('intake');
+  await p.getByLabel('Go to local handoff task').selectOption('synthetic');
+  await expect(p.getByRole('region', { name: 'Fixed synthetic handoff starter', exact: true })).toBeFocused();
+  await expect(groups.locator(':scope > details[open]')).toHaveCount(1);
+  await expect(p.getByRole('button', { name: 'Download synthetic starter ZIP', exact: true })).toBeDisabled();
+  await p.getByLabel('Go to local handoff task').selectOption('private');
+  await expect(p.getByRole('region', { name: 'Private original print tool', exact: true })).toBeFocused();
+  await expect(panel.getByRole('button', { name: buttons.private, exact: true })).toBeEnabled();
+  await p.getByLabel('Go to local handoff task').selectOption('originals');
+  panel = p.getByRole('region', { name: 'Privacy-reduced intake print tool', exact: true });
+  await expect(panel).toBeFocused();
   await panel.getByLabel('Intake print original manifest').setInputFiles(src + '/training.json');
   await panel.getByLabel('Intake print original files').setInputFiles(['paired.json', 'case.json', 'notebook.json'].map(f => src + '/' + f));
   await panel.getByLabel('Intake print expected manifest SHA-256').fill(pin(src + '/training.json'));
@@ -556,6 +565,15 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     })).toBeEnabled();
     await download('review', panel, kind + '.html');
   }
+  for (const [task, label] of [['synthetic', 'Fixed synthetic handoff starter'], ['received', 'Received original ZIP check'], ['compare', 'Received ZIP snapshot comparison'], ['originals', 'Privacy-reduced intake print tool'], ['private', 'Private original print tool']]) {
+    await p.getByLabel('Go to local handoff task').selectOption(task);
+    await expect(p.getByRole('region', { name: label, exact: true })).toBeFocused();
+    await expect(groups.locator(':scope > details[open]')).toHaveCount(1);
+    await expect(p.getByLabel('Go to local handoff task')).toHaveValue('');
+  }
+  await p.screenshot({ path: testInfo.outputPath('handoff-navigation-desktop.png') });
+  // Close the current disclosure so existing toggle-based manual navigation still starts closed.
+  await p.getByText(titles.private, { exact: true }).click();
   for (const kind of ['private', 'intake', 'comparison', 'conversion', 'case', 'lineage', 'review']) {
     panel = await open(kind);
     await expect(panel.getByRole('button', {
@@ -573,10 +591,24 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   await p.screenshot({
     path: testInfo.outputPath('desktop-tools.png')
   });
-  await p.setViewportSize({
-    width: 390,
-    height: 1000
-  });
+  await p.setViewportSize({ width: 390, height: 1000 });
+  for (const [task, label] of [['synthetic', 'Fixed synthetic handoff starter'], ['received', 'Received original ZIP check'], ['compare', 'Received ZIP snapshot comparison']]) {
+    await p.getByLabel('Go to local handoff task').selectOption(task);
+    await expect(p.getByRole('region', { name: label, exact: true })).toBeFocused();
+    await expect(groups.locator(':scope > details[open]')).toHaveCount(1);
+    expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  }
+  await p.screenshot({ path: testInfo.outputPath('handoff-navigation-mobile.png') });
+  await p.setViewportSize({ width: 390, height: 700 });
+  for (const [task, label] of [['synthetic', 'Fixed synthetic handoff starter'], ['received', 'Received original ZIP check'], ['compare', 'Received ZIP snapshot comparison'], ['originals', 'Privacy-reduced intake print tool'], ['private', 'Private original print tool']]) {
+    await p.getByLabel('Go to local handoff task').selectOption(task);
+    await expect(p.getByRole('region', { name: label, exact: true })).toBeFocused();
+    expect(await p.locator('main').first().evaluate(e => e.getBoundingClientRect().height >= 95 && e.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
+    expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  }
+  await p.screenshot({ path: testInfo.outputPath('handoff-navigation-small-mobile.png') });
+  await p.setViewportSize({ width: 390, height: 1000 });
+  await p.getByText(titles.private, { exact: true }).click();
   for (const kind of ['private', 'intake', 'comparison', 'conversion', 'case', 'lineage', 'review']) {
     panel = await open(kind);
     await expect(panel.getByRole('button', {

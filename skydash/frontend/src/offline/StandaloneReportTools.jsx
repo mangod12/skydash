@@ -5,5 +5,5 @@ export default function StandaloneReportTools({ children }) {
     if (current.tagName !== 'DETAILS' || current.parentElement !== event.currentTarget || !current.open) return;
     for (const panel of event.currentTarget.children) if (panel !== current && panel.tagName === 'DETAILS') panel.open = false;
   };
-  return <div aria-label="Standalone original report tools" className="max-h-[70svh] shrink-0 overflow-y-auto" onToggleCapture={opened}>{children}</div>;
+  return <div aria-label="Standalone original report tools" className="max-h-[70svh] min-h-0 shrink overflow-y-auto" onToggleCapture={opened}>{children}</div>;
 }
