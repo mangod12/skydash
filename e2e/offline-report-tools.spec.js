@@ -635,11 +635,12 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     })).toBeEnabled();
     await download('review', panel, kind + '.html');
   }
-  for (const [task, label] of [['synthetic', 'Fixed synthetic handoff starter'], ['received', 'Received original ZIP check'], ['compare', 'Received ZIP snapshot comparison'], ['originals', 'Privacy-reduced intake print tool'], ['private', 'Private original print tool']]) {
+  for (const [task, label] of [['synthetic', 'Fixed synthetic handoff starter'], ['received', 'Received original ZIP check'], ['recover', 'Received ZIP selected original download'], ['agenda', 'Received ZIP private discussion agenda'], ['packet', 'Received ZIP private discussion packet'], ['compare', 'Received ZIP snapshot comparison'], ['originals', 'Privacy-reduced intake print tool'], ['private', 'Private original print tool']]) {
     await p.getByLabel('Go to local handoff task').selectOption(task);
     await expect(p.getByRole('region', { name: label, exact: true })).toBeFocused();
     await expect(groups.locator(':scope > details[open]')).toHaveCount(1);
     await expect(p.getByLabel('Go to local handoff task')).toHaveValue('');
+    if(['recover','agenda','packet'].includes(task))await p.screenshot({path:testInfo.outputPath('handoff-'+task+'-desktop.png')});
   }
   await p.screenshot({ path: testInfo.outputPath('handoff-navigation-desktop.png') });
   // Close the current disclosure so existing toggle-based manual navigation still starts closed.
@@ -662,7 +663,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     path: testInfo.outputPath('desktop-tools.png')
   });
   await p.setViewportSize({ width: 390, height: 1000 });
-  for (const [task, label] of [['synthetic', 'Fixed synthetic handoff starter'], ['received', 'Received original ZIP check'], ['compare', 'Received ZIP snapshot comparison']]) {
+  for (const [task, label] of [['synthetic', 'Fixed synthetic handoff starter'], ['received', 'Received original ZIP check'], ['recover', 'Received ZIP selected original download'], ['agenda', 'Received ZIP private discussion agenda'], ['packet', 'Received ZIP private discussion packet'], ['compare', 'Received ZIP snapshot comparison']]) {
     await p.getByLabel('Go to local handoff task').selectOption(task);
     await expect(p.getByRole('region', { name: label, exact: true })).toBeFocused();
     await expect(groups.locator(':scope > details[open]')).toHaveCount(1);
@@ -670,10 +671,11 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   }
   await p.screenshot({ path: testInfo.outputPath('handoff-navigation-mobile.png') });
   await p.setViewportSize({ width: 390, height: 700 });
-  for (const [task, label] of [['synthetic', 'Fixed synthetic handoff starter'], ['received', 'Received original ZIP check'], ['compare', 'Received ZIP snapshot comparison'], ['originals', 'Privacy-reduced intake print tool'], ['private', 'Private original print tool']]) {
+  for (const [task, label] of [['synthetic', 'Fixed synthetic handoff starter'], ['received', 'Received original ZIP check'], ['recover', 'Received ZIP selected original download'], ['agenda', 'Received ZIP private discussion agenda'], ['packet', 'Received ZIP private discussion packet'], ['compare', 'Received ZIP snapshot comparison'], ['originals', 'Privacy-reduced intake print tool'], ['private', 'Private original print tool']]) {
     await p.getByLabel('Go to local handoff task').selectOption(task);
     await expect(p.getByRole('region', { name: label, exact: true })).toBeFocused();
     expect(await p.locator('main').first().evaluate(e => e.getBoundingClientRect().height >= 95 && e.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
+    if(['recover','agenda','packet'].includes(task))await p.screenshot({path:testInfo.outputPath('handoff-'+task+'-small-mobile.png')});
     expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   }
   await p.screenshot({ path: testInfo.outputPath('handoff-navigation-small-mobile.png') });

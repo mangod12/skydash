@@ -1,6 +1,9 @@
 const destinations = {
   synthetic: 'Fixed synthetic handoff starter',
   received: 'Received original ZIP check',
+  recover: 'Received ZIP selected original download',
+  agenda: 'Received ZIP private discussion agenda',
+  packet: 'Received ZIP private discussion packet',
   compare: 'Received ZIP snapshot comparison',
   originals: 'Privacy-reduced intake print tool',
   private: 'Private original print tool'
