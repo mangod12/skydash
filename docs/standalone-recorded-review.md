@@ -352,3 +352,17 @@ failure can leave an empty file. Strict bounded regular no-symlink originals,
 manifest/artifact pins and all nested validators apply before any HTML is issued.
 The command does not extract a ZIP or write files itself. Preserve exact originals
 and excluded work separately.
+
+
+## Direct received-handoff task navigation
+
+The existing local handoff chooser includes direct destinations for recovering
+one original JSON, preparing the private questions/follow-ups agenda, and preparing
+the full/subset private ZIP discussion packet. Each opens the same existing intake
+drawer, scrolls its own section into view and places keyboard focus there. No new
+drawer or workspace replacement is added. Navigation never reads a file, fills an
+ordinal, expectation or consent, checks/prepares anything, downloads an output or
+opens a source into replay. Existing file choices, independent consents, prepared
+outputs and replay stay unchanged. The chooser resets to its prompt each time;
+choose the same destination again to return to it. Refresh/tab close still drops
+session-only selections and output.
