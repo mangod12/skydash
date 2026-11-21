@@ -233,10 +233,61 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     width: 1440,
     height: 1050
   });
+  const starter = panel.getByRole('region', {
+      name: 'Fixed synthetic handoff starter',
+      exact: true
+    }),
+    starterDownload = starter.getByRole('button', {
+      name: 'Download synthetic starter ZIP',
+      exact: true
+    });
+  await expect(starterDownload).toBeDisabled();
+  await starter.getByRole('button', {
+    name: 'Prepare fixed synthetic handoff starter',
+    exact: true
+  }).click();
+  await expect(starterDownload).toBeEnabled();
+  await expect(downloadZip).toBeEnabled();
+  const starterPending = p.waitForEvent('download');
+  await starterDownload.click();
+  await (await starterPending).saveAs(testInfo.outputPath('synthetic-starter.zip'));
+  await expect(starter).toContainText(pin(testInfo.outputPath('synthetic-starter.zip')));
+  await starter.getByRole('status').scrollIntoViewIfNeeded();
+  await p.screenshot({
+    path: testInfo.outputPath('synthetic-starter-desktop.png')
+  });
+  await p.setViewportSize({
+    width: 390,
+    height: 1000
+  });
+  await starter.getByRole('status').scrollIntoViewIfNeeded();
+  await p.screenshot({
+    path: testInfo.outputPath('synthetic-starter-mobile.png')
+  });
+  await p.setViewportSize({
+    width: 1440,
+    height: 1050
+  });
   const received = panel.getByRole('region', {
     name: 'Received original ZIP check',
     exact: true
   });
+  await received.getByLabel('Received original handoff ZIP').setInputFiles(testInfo.outputPath('synthetic-starter.zip'));
+  await received.getByRole('button', {
+    name: 'Check received original ZIP',
+    exact: true
+  }).click();
+  await expect(received.getByRole('button', {
+    name: 'Download rechecked archive intake HTML',
+    exact: true
+  })).toBeEnabled();
+  await expect(received).toContainText('No independent ZIP expectation supplied.');
+  const syntheticChecked = p.waitForEvent('download');
+  await received.getByRole('button', {
+    name: 'Download rechecked archive intake HTML',
+    exact: true
+  }).click();
+  await (await syntheticChecked).saveAs(testInfo.outputPath('synthetic-rechecked.html'));
   await received.getByLabel('Received original handoff ZIP').setInputFiles(testInfo.outputPath('sensitive-originals.zip'));
   const receivedPin = received.getByLabel('Received ZIP expected archive SHA-256'),
     receivedManifestPin = received.getByLabel('Received ZIP expected manifest SHA-256'),
@@ -263,8 +314,12 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     width: 390,
     height: 1000
   });
-  await received.getByText('Check a received browser original ZIP before manual extraction',{exact:true}).scrollIntoViewIfNeeded();
-  await p.screenshot({path:testInfo.outputPath('received-archive-mobile-inputs.png')});
+  await received.getByText('Check a received browser original ZIP before manual extraction', {
+    exact: true
+  }).scrollIntoViewIfNeeded();
+  await p.screenshot({
+    path: testInfo.outputPath('received-archive-mobile-inputs.png')
+  });
   await received.getByRole('status').scrollIntoViewIfNeeded();
   await p.screenshot({
     path: testInfo.outputPath('received-archive-mobile.png')
@@ -384,6 +439,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     if (kind === 'intake') {
       await expect(downloadZip).toBeEnabled();
       await expect(receivedDownload).toBeEnabled();
+      await expect(starterDownload).toBeEnabled();
     }
     expect(await p.locator('main').first().evaluate(e => e.getBoundingClientRect().height > 50 && e.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
   }
@@ -402,6 +458,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     if (kind === 'intake') {
       await expect(downloadZip).toBeEnabled();
       await expect(receivedDownload).toBeEnabled();
+      await expect(starterDownload).toBeEnabled();
     }
     expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
     expect(await p.locator('main').first().evaluate(e => e.getBoundingClientRect().height > 50 && e.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
@@ -421,6 +478,12 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     exact: true
   }).click();
   await expect(receivedDownload).toBeDisabled();
+  await expect(starterDownload).toBeEnabled();
+  await starter.getByRole('button', {
+    name: 'Clear synthetic starter',
+    exact: true
+  }).click();
+  await expect(starterDownload).toBeDisabled();
   for (const kind of ['private', 'comparison', 'conversion', 'case', 'lineage', 'review']) {
     panel = await open(kind);
     await expect(panel.getByRole('button', {
@@ -484,6 +547,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   };
   for (const [filename, html] of Object.entries(outputs)) expect(fs.readFileSync(testInfo.outputPath(filename), 'utf8')).toBe(html);
   expect(fs.readFileSync(testInfo.outputPath('rechecked-archive.html'), 'utf8')).toBe(outputs['intake.html']);
+  expect(fs.readFileSync(testInfo.outputPath('synthetic-rechecked.html'), 'utf8')).toBe(await (await load('report-training-intake')).reportTrainingIntake(original));
   const checked = await (await load('verify-csv-conversion')).verifyCSVConversion(path.join(src, 'lineage', 'original.csv'), path.join(src, 'lineage', 'recipe.json'), path.join(src, 'lineage', 'converted.csv'), {
     confirmedWGS84: true
   });
