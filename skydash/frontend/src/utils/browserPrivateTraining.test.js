@@ -27,8 +27,11 @@ it('explicit subset prints only selected originals with original ordinals and co
   const dir=await mkdtemp(join(tmpdir(),'skydash-private-subset-'));try{await writeFile(join(dir,manifest.name),await manifest.arrayBuffer());for(const f of files)await writeFile(join(dir,f.name),new Uint8Array(await f.arrayBuffer()));expect(r.html).toBe(await reportPrivateTraining(join(dir,manifest.name),{includePrivateReview:true,expectedSha256:pin,selectedOrdinals:[2]}));}finally{await rm(dir,{recursive:true,force:true});}
   const two=await browserPrivateTraining(manifest,files,{includePrivateReview:true,selectedOrdinals:[3,1]});expect(two.html.indexOf('id="bundle-1"')).toBeLessThan(two.html.indexOf('id="bundle-3"'));expect(two.html).not.toContain('PRIVATE copy notes');expect(two.html).toContain('Bundle 3 baseline');expect(two.html).not.toContain('Bundle 2 source');
 });
+it('copies explicit ordinal requests before awaiting original reads',async()=>{
+  const raw=await manifest.arrayBuffer();let release;manifest.arrayBuffer.mockImplementationOnce(()=>new Promise(resolve=>{release=resolve;}));const selectedOrdinals=[1],pending=browserPrivateTraining(manifest,files,{includePrivateReview:true,selectedOrdinals});await vi.waitFor(()=>expect(release).toBeTypeOf('function'));selectedOrdinals[0]=3;release(raw);const result=await pending;expect(result.html).toContain('Bundle 1: case');expect(result.html).not.toContain('Bundle 3: paired');
+});
 it('invalid subset refuses before reads, out-of-manifest ordinals refuse and unselected invalid originals still block all output',async()=>{
-  for(const selectedOrdinals of [[],[1,1],[0],[21],['2']])await expect(browserPrivateTraining(manifest,files,{includePrivateReview:true,selectedOrdinals})).rejects.toThrow();expect(manifest.arrayBuffer).not.toHaveBeenCalled();
+  for(const selectedOrdinals of [[],[1,1],[0],[21],['2'],Array(1)])await expect(browserPrivateTraining(manifest,files,{includePrivateReview:true,selectedOrdinals})).rejects.toThrow();expect(manifest.arrayBuffer).not.toHaveBeenCalled();
   await expect(browserPrivateTraining(manifest,files,{includePrivateReview:true,selectedOrdinals:[4]})).rejects.toThrow();
   const x=JSON.parse(Buffer.from(await files[2].arrayBuffer()).toString());x.comparison.baseline.sha256='a'.repeat(64);const bad=file('paired.json',JSON.stringify(x));save([...entries.slice(0,2),{...entries[2],sha256:hash(await bad.arrayBuffer())}]);await expect(browserPrivateTraining(manifest,[files[0],files[1],bad],{includePrivateReview:true,selectedOrdinals:[1]})).rejects.toThrow();
 });
