@@ -1,3 +1,4 @@
+import { browserTrainingAgenda } from './browserTrainingAgenda';
 // Accept only the exact fixed stored ZIP emitted by the browser original packager.
 // No decompression, extraction, code execution, imported report evidence or filesystem access.
 import { privatePacketOrdinals } from './privatePacketOrdinals';
@@ -106,4 +107,12 @@ export async function selectedBrowserTrainingArchiveOriginal(file, { includeSens
   const bytes = new Uint8Array(await original.arrayBuffer()), artifactDigest = await sha(bytes);
   if (artifactDigest !== item.sha256 || (expectedArtifactSha256 && artifactDigest !== expectedArtifactSha256.toLowerCase())) throw Error('Selected complete-original expectation mismatch.');
   return { bytes:bytes.slice(), kind:item.kind, ordinal, bundleCount:checked.summary.bundleCount, artifactDigest, expectedArtifactDigestMatched:Boolean(expectedArtifactSha256), archiveDigest:checked.summary.archiveDigest, manifestDigest:checked.summary.digest };
+}
+
+// Separate private output. Full original validation happens even for non-agenda kinds.
+export async function agendaBrowserTrainingArchive(file, { includePrivateReview = false, ...options } = {}) {
+  if (includePrivateReview !== true) throw Error('Explicit private acknowledgement required.');
+  const { manifest, files, summary } = await checkArchiveOriginals(file, options);
+  const agenda = await browserTrainingAgenda(manifest, files, { includePrivateReview: true, expectedSha256: options.expectedManifestSha256 || '' });
+  return { html: agenda.html, archiveDigest: summary.archiveDigest, manifestDigest: agenda.digest, bundleCount: agenda.bundleCount };
 }
