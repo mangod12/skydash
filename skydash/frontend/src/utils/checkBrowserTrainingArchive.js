@@ -13,7 +13,7 @@ const MAX = 30 * 1024 * 1024;
 const decode = bytes => new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
 const sha = async bytes => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
 const pin = value => value === '' || (typeof value === 'string' && /^[a-fA-F0-9]{64}$/.test(value));
-async function checkArchiveOriginals(file, { expectedArchiveSha256 = '', expectedManifestSha256 = '' } = {}) {
+async function checkArchiveOriginals(file, { expectedArchiveSha256 = '', expectedManifestSha256 = '' } = {}, selectedExpectation = null) {
   if (!file || !Number.isSafeInteger(file.size) || file.size < 22 || file.size > MAX || !pin(expectedArchiveSha256) || !pin(expectedManifestSha256)) throw Error('Invalid archive or independent expectations.');
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (bytes.byteLength !== file.size || bytes.byteLength > MAX) throw Error('Changed archive bytes.');
@@ -36,6 +36,10 @@ async function checkArchiveOriginals(file, { expectedArchiveSha256 = '', expecte
   if (entries.length < 5 || entries.length > 24 || !/^training\/[^/]+$/.test(entries[0][0]) || entries.slice(0,-3).some(([name])=>!/^training\/[^/]+$/.test(name)) || entries.slice(-3).map(([name])=>name).join('|') !== 'reports/intake-report.html|reports/validation.json|reports/READ-ME.txt' || decode(entries.at(-1)[1]) !== browserArchiveGuide) throw Error('Unsupported browser handoff layout.');
   const original = ([path,data]) => ({ name:path.slice(9), size:data.byteLength, arrayBuffer:async()=>data });
   const manifest = original(entries[0]), files = entries.slice(1,-3).map(original);
+  if (selectedExpectation?.sha256) {
+    const selected = files[selectedExpectation.ordinal-1];
+    if (!selected || await sha(new Uint8Array(await selected.arrayBuffer())) !== selectedExpectation.sha256.toLowerCase()) throw Error('Selected complete-original expectation mismatch.');
+  }
   // Saved reports and receipts are bounded inert bytes, never parsed or accepted as success.
   const checked = await checkBrowserTrainingIntake(manifest, files, expectedManifestSha256);
   const declared = JSON.parse(decode(entries[0][1])).bundles;
@@ -92,4 +96,14 @@ export async function inventoryBrowserTrainingArchive(file, options = {}) {
   const checked = await checkArchiveOriginals(file, options);
   return { archiveDigest: checked.summary.archiveDigest, manifestDigest: checked.summary.digest, expectedArchiveDigestMatched: checked.summary.expectedArchiveDigestMatched, expectedManifestDigestMatched: checked.summary.expectedManifestDigestMatched,
     originals: checked.summary.originals };
+}
+
+// Separate explicit sensitive output. Never return raw originals from checks or inventories.
+export async function selectedBrowserTrainingArchiveOriginal(file, { includeSensitiveOriginal = false, ordinal, expectedArtifactSha256 = '', ...options } = {}) {
+  if (includeSensitiveOriginal !== true || !Number.isSafeInteger(ordinal) || ordinal < 1 || ordinal > 20 || !pin(expectedArtifactSha256)) throw Error('Explicit sensitive acknowledgement, ordinal and supported expectation required.');
+  const checked = await checkArchiveOriginals(file,options,{ordinal,sha256:expectedArtifactSha256}), original = checked.files[ordinal-1], item = checked.summary.originals[ordinal-1];
+  if (!original || !item) throw Error('Original ordinal not listed.');
+  const bytes = new Uint8Array(await original.arrayBuffer()), artifactDigest = await sha(bytes);
+  if (artifactDigest !== item.sha256 || (expectedArtifactSha256 && artifactDigest !== expectedArtifactSha256.toLowerCase())) throw Error('Selected complete-original expectation mismatch.');
+  return { bytes:bytes.slice(), kind:item.kind, ordinal, bundleCount:checked.summary.bundleCount, artifactDigest, expectedArtifactDigestMatched:Boolean(expectedArtifactSha256), archiveDigest:checked.summary.archiveDigest, manifestDigest:checked.summary.digest };
 }
