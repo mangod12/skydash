@@ -59,4 +59,41 @@ describe('instructor review timeline', () => {
     render(<InstructorDebrief {...initial} />); importFile(JSON.stringify(debriefSidecar(log, [{ ...marker, text: '<img src=x onerror=alert(1)>' }]))); await screen.findByText('Replace with imported review'); fireEvent.click(screen.getByText('Replace with imported review'));
     expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeTruthy(); expect(document.querySelector('img')).toBeNull();
   });
+  it('focuses undiscussed kinds without seeking or editing, exports every marker and summary from a filtered page', async () => {
+    const markers=Array.from({length:24},(_,i)=>({id:'marker-'+String(i).padStart(2,'0'),time_s:i/2,kind:i===0?'Observation':i===1?'Follow-up':'Question',text:'Discussion '+i,discussed:i===2}));
+    const ref={current:null};render(<InstructorDebrief {...initial} ref={ref} initialReview={{markers,notes:'Keep full summary'}} />);
+    const before=ref.current.snapshot();expect(screen.getByText(/Showing 1 to 10 of 24/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'open'}});
+    expect(initial.onPause).toHaveBeenCalledTimes(1);expect(initial.onSeek).not.toHaveBeenCalled();expect(ref.current.snapshot()).toEqual(before);
+    expect(screen.queryByText('Discussion 0')).toBeNull();expect(screen.queryByText('Discussion 2')).toBeNull();expect(screen.getByText('Discussion 1')).toBeTruthy();
+    fireEvent.click(screen.getByText('Next marker page'));expect(screen.getByText(/Showing 11 to 20 of 22/)).toBeTruthy();
+    fireEvent.click(screen.getByText('Next marker page'));expect(screen.getByText(/Showing 21 to 22 of 22/)).toBeTruthy();expect(screen.getByText('Next marker page').disabled).toBe(true);
+    fireEvent.click(screen.getByText('Jump to 11.0s'));expect(initial.onSeek).toHaveBeenLastCalledWith(11);
+    fireEvent.click(screen.getByText('Download debrief JSON'));expect(JSON.parse(await blobText(URL.createObjectURL.mock.calls[0][0]))).toEqual(before);
+    fireEvent.click(screen.getByLabelText('Discussed at 11.0s'));expect(screen.queryByText('Discussion 22')).toBeNull();expect(screen.getByText(/Showing 21 to 21 of 21/)).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Discussed at 11.5s'));expect(screen.getByText(/Showing 11 to 20 of 20/)).toBeTruthy();
+    expect(initial.onSeek).toHaveBeenCalledTimes(1);expect(ref.current.snapshot().markers.filter(m=>m.discussed).map(m=>m.id)).toEqual(['marker-02','marker-22','marker-23']);
+    fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'all'}});expect(screen.getByText('Discussion 0')).toBeTruthy();expect(screen.getByText('Discussion 2')).toBeTruthy();
+    expect(ref.current.snapshot().markers.length).toBe(24);expect(ref.current.snapshot().notes).toBe('Keep full summary');expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+  it('shows zero matches without hiding retained annotations permanently and restores discussed markers through All',()=>{
+    render(<InstructorDebrief {...initial} initialReview={{markers:[{...marker,discussed:false,text:'<b>Plain question</b>'}],notes:''}} />);
+    fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'questions'}});
+    expect(screen.getByText('<b>Plain question</b>')).toBeTruthy();expect(document.querySelector('b')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Discussed at 12.0s'));expect(screen.getByText(/No markers match this view/)).toBeTruthy();expect(screen.getByText(/Showing 0 to 0 of 0/)).toBeTruthy();
+    expect(screen.getByText('Previous marker page').disabled).toBe(true);expect(screen.getByText('Next marker page').disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'all'}});expect(screen.getByLabelText('Discussed at 12.0s').checked).toBe(true);
+    fireEvent.click(screen.getByLabelText('Discussed at 12.0s'));fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'followups'}});expect(screen.getByText(/No markers match this view/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'open'}});expect(screen.getByText('<b>Plain question</b>')).toBeTruthy();expect(initial.onSeek).not.toHaveBeenCalled();
+  });
+  it('holds queue navigation and marker changes while a checked sidecar awaits replacement, then keeps filter on cancel',async()=>{
+    render(<InstructorDebrief {...initial} initialReview={{markers:[{...marker,discussed:false}],notes:''}} />);
+    fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'open'}});
+    importFile(JSON.stringify(debriefSidecar(log,[marker],'incoming')));await screen.findByText('Replace with imported review');
+    expect(screen.getByLabelText('Instructor timeline view').disabled).toBe(true);expect(screen.getByLabelText('Discussed at 12.0s').disabled).toBe(true);expect(screen.getByText('Jump to 12.0s').disabled).toBe(true);expect(screen.getByText('Remove marker at 12.0s').disabled).toBe(true);
+    fireEvent.click(screen.getByText('Keep current review'));expect(screen.getByLabelText('Instructor timeline view').value).toBe('open');expect(screen.getByLabelText('Discussed at 12.0s').disabled).toBe(false);
+    importFile(JSON.stringify(debriefSidecar(log,[marker],'incoming')));await screen.findByText('Replace with imported review');fireEvent.click(screen.getByText('Replace with imported review'));
+    expect(screen.getByText(/No markers match this view/)).toBeTruthy();fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'all'}});expect(screen.getByLabelText('Discussion summary').value).toBe('incoming');expect(screen.getByLabelText('Discussed at 12.0s').checked).toBe(true);
+  });
+
 });
