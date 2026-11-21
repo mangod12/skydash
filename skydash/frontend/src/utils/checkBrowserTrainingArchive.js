@@ -5,6 +5,7 @@ import { browserArchiveGuide } from './browserTrainingArchive';
 import { checkBrowserTrainingIntake } from './browserTrainingIntake';
 import { renderTrainingIntake } from './trainingIntakeHtml';
 import { browserPrivateTraining } from './browserPrivateTraining';
+import { browserTrainingComparison } from './browserTrainingComparison';
 const MAX = 30 * 1024 * 1024;
 const decode = bytes => new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
 const sha = async bytes => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -49,4 +50,15 @@ export async function privateBrowserTrainingArchive(file, { includePrivateReview
   const { manifest, files, summary } = await checkArchiveOriginals(file, options);
   const packet = await browserPrivateTraining(manifest, files, { includePrivateReview: true, expectedSha256: options.expectedManifestSha256 || '' });
   return { ...summary, privateHtml: packet.html };
+}
+
+// Each side is independently checked; no private packet rendering or raw-original exposure.
+export async function compareBrowserTrainingArchives(left, right) {
+  const a = await checkArchiveOriginals(left?.file, left?.options);
+  const b = await checkArchiveOriginals(right?.file, right?.options);
+  const compared = await browserTrainingComparison(
+    { manifest: a.manifest, files: a.files, expected: left.options?.expectedManifestSha256 || '' },
+    { manifest: b.manifest, files: b.files, expected: right.options?.expectedManifestSha256 || '' }
+  );
+  return { ...compared, left: { archiveDigest: a.summary.archiveDigest, manifestDigest: a.summary.digest, expectedArchiveDigestMatched: a.summary.expectedArchiveDigestMatched, expectedManifestDigestMatched: a.summary.expectedManifestDigestMatched }, right: { archiveDigest: b.summary.archiveDigest, manifestDigest: b.summary.digest, expectedArchiveDigestMatched: b.summary.expectedArchiveDigestMatched, expectedManifestDigestMatched: b.summary.expectedManifestDigestMatched } };
 }

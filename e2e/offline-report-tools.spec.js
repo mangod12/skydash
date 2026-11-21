@@ -408,6 +408,39 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     name: buttons.comparison
   })).toBeEnabled();
   await download('comparison', panel, 'comparison.html');
+  const zipComparison = panel.getByRole('region', { name: 'Received ZIP snapshot comparison', exact: true }),
+    zipComparisonDownload = zipComparison.getByRole('button', { name: 'Download received ZIP comparison HTML', exact: true }),
+    zipComparisonCheck = zipComparison.getByRole('button', { name: 'Check both received ZIP snapshots', exact: true });
+  for (const [side, name] of [['Left', 'sensitive-originals.zip'], ['Right', 'synthetic-starter.zip']]) {
+    await zipComparison.getByLabel(side + ' ZIP comparison original archive').setInputFiles(testInfo.outputPath(name));
+    await zipComparison.getByLabel(side + ' ZIP comparison expected archive SHA-256').fill(pin(testInfo.outputPath(name)));
+    await zipComparison.getByLabel(side + ' ZIP comparison expected manifest SHA-256').fill(pin(src + '/training.json'));
+  }
+  await zipComparisonCheck.click();
+  await expect(zipComparisonDownload).toBeEnabled();
+  await expect(panel.getByRole('button', { name: buttons.comparison, exact: true })).toBeEnabled();
+  const zipComparisonPending = p.waitForEvent('download');
+  await zipComparisonDownload.click();
+  await (await zipComparisonPending).saveAs(testInfo.outputPath('rechecked-zip-comparison.html'));
+  await zipComparison.getByRole('status').scrollIntoViewIfNeeded();
+  await p.screenshot({ path: testInfo.outputPath('zip-comparison-desktop.png') });
+  await p.setViewportSize({ width: 390, height: 1000 });
+  await zipComparison.getByRole('status').scrollIntoViewIfNeeded();
+  await p.screenshot({ path: testInfo.outputPath('zip-comparison-mobile.png') });
+  expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await p.setViewportSize({ width: 1440, height: 1050 });
+  const rightZipPin = zipComparison.getByLabel('Right ZIP comparison expected archive SHA-256');
+  await rightZipPin.fill('a'.repeat(64));
+  await expect(zipComparisonDownload).toBeDisabled();
+  await zipComparisonCheck.click();
+  await expect(zipComparison.getByRole('status')).toContainText('ZIP snapshot comparison refused');
+  await expect(zipComparisonDownload).toBeDisabled();
+  await expect(panel.getByRole('button', { name: buttons.comparison, exact: true })).toBeEnabled();
+  await rightZipPin.fill(pin(testInfo.outputPath('synthetic-starter.zip')));
+  await expect(zipComparisonDownload).toBeDisabled();
+  await zipComparisonCheck.click();
+  await expect(zipComparisonDownload).toBeEnabled();
+
   panel = await open('conversion');
   const conversion = src + '/lineage';
   for (const role of ['original', 'recipe', 'converted']) {
@@ -472,6 +505,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     await expect(panel.getByRole('button', {
       name: buttons[kind]
     })).toBeEnabled();
+    if (kind === 'comparison') await expect(zipComparisonDownload).toBeEnabled();
     if (kind === 'intake') {
       await expect(downloadZip).toBeEnabled();
       await expect(receivedDownload).toBeEnabled();
@@ -492,6 +526,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     await expect(panel.getByRole('button', {
       name: buttons[kind]
     })).toBeEnabled();
+    if (kind === 'comparison') await expect(zipComparisonDownload).toBeEnabled();
     if (kind === 'intake') {
       await expect(downloadZip).toBeEnabled();
       await expect(receivedDownload).toBeEnabled();
@@ -505,6 +540,20 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   await p.screenshot({
     path: testInfo.outputPath('mobile-tools.png')
   });
+  panel = await open('comparison');
+  await panel.getByRole('button', { name: 'Clear comparison print selections', exact: true }).click();
+  await expect(panel.getByRole('button', { name: buttons.comparison, exact: true })).toBeDisabled();
+  await expect(zipComparisonDownload).toBeEnabled();
+  for (const side of ['Left', 'Right']) {
+    await panel.getByLabel(side + ' comparison original manifest').setInputFiles(src + '/training.json');
+    await panel.getByLabel(side + ' comparison original files').setInputFiles(['paired.json', 'case.json', 'notebook.json'].map(f => src + '/' + f));
+    await panel.getByLabel(side + ' comparison expected manifest SHA-256').fill(pin(src + '/training.json'));
+  }
+  await panel.getByRole('button', { name: 'Check both packages for comparison', exact: true }).click();
+  await expect(zipComparisonDownload).toBeEnabled();
+  await zipComparison.getByRole('button', { name: 'Clear received ZIP comparison', exact: true }).click();
+  await expect(zipComparisonDownload).toBeDisabled();
+  await expect(panel.getByRole('button', { name: buttons.comparison, exact: true })).toBeEnabled();
   panel = await open('intake');
   await panel.getByRole('button', {
     name: 'Clear intake print selections'
@@ -589,6 +638,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   for (const [filename, html] of Object.entries(outputs)) expect(fs.readFileSync(testInfo.outputPath(filename), 'utf8')).toBe(html);
   expect(fs.readFileSync(testInfo.outputPath('rechecked-archive.html'), 'utf8')).toBe(outputs['intake.html']);
   expect(fs.readFileSync(testInfo.outputPath('rechecked-private-archive.html'), 'utf8')).toBe(outputs['private.html']);
+  expect(fs.readFileSync(testInfo.outputPath('rechecked-zip-comparison.html'), 'utf8')).toBe(outputs['comparison.html']);
   expect(fs.readFileSync(testInfo.outputPath('synthetic-rechecked.html'), 'utf8')).toBe(await (await load('report-training-intake')).reportTrainingIntake(original));
   const checked = await (await load('verify-csv-conversion')).verifyCSVConversion(path.join(src, 'lineage', 'original.csv'), path.join(src, 'lineage', 'recipe.json'), path.join(src, 'lineage', 'converted.csv'), {
     confirmedWGS84: true

@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import TrainingComparisonPrint from './TrainingComparisonPrint';
 import { browserTrainingComparison } from '../utils/browserTrainingComparison';
+vi.mock('./ReceivedArchiveComparison',()=>({default:()=> <section aria-label="Separate ZIP comparison"/>}));
 vi.mock('../utils/browserTrainingComparison', () => ({ browserTrainingComparison: vi.fn() }));
 afterEach(() => { cleanup(); vi.resetAllMocks(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const check = () => screen.getByRole('button', { name: 'Check both packages for comparison' }), download = () => screen.getByRole('button', { name: 'Download package comparison HTML' });
