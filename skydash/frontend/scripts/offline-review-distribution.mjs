@@ -61,13 +61,17 @@ export async function writeOfflineDistribution(buildPath, outputPath) {
   try { await file.writeFile(bytes); } finally { await file.close(); }
   return { format: 'skydash-standalone-distribution-write-v1', exact_archive_sha256: hash(bytes), exact_manifest_sha256: hash(manifest), archive_bytes: bytes.length, file_count: entries.length + 1, scope };
 }
-export async function verifyOfflineDistribution(input, expected = '') {
+export async function readVerifiedOfflineSite(input, expected = '') {
   if (expected !== '' && !pin(expected)) throw Error('Invalid independent expectation.');
   const root = await directory(input); await names(root, ['site', 'START.txt', 'distribution.json']); await directory(join(root, 'site'));
   const raw = await boundedFile(root, 'distribution.json', 65536), digest = hash(raw);
   if (expected && digest !== expected.toLowerCase()) throw Error('Independent manifest expectation mismatch.');
   const entries = await siteEntries(join(root, 'site')); entries.push(['START.txt', await boundedFile(root, 'START.txt', 16384)]);
-  return validateDistributionInventory(entries, raw, expected);
+  const receipt = validateDistributionInventory(entries, raw, expected);
+  return { receipt, entries: entries.slice(0, 3) };
+}
+export async function verifyOfflineDistribution(input, expected = '') {
+  return (await readVerifiedOfflineSite(input, expected)).receipt;
 }
 export function validateDistributionInventory(entries, raw, expected = '') {
   if (expected !== '' && !pin(expected)) throw Error('Invalid independent expectation.');
