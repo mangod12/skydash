@@ -20,7 +20,7 @@ async function project(kind, bytes) {
   });
   return { source: source(log), saved_copy_count: copies.length, copies };
 }
-export async function browserTrainingIntake(manifestFile, files, expected = '') {
+export async function checkBrowserTrainingIntake(manifestFile, files, expected = '') {
   const checked = await checkReceivedTrainingPackage(manifestFile, files, expected);
   const raw = new Uint8Array(await manifestFile.arrayBuffer());
   if (raw.byteLength !== manifestFile.size || await digest(raw) !== checked.exact_manifest_sha256) throw Error('Changed manifest bytes.');
@@ -34,5 +34,10 @@ export async function browserTrainingIntake(manifestFile, files, expected = '') 
     for (const role of item.kind === 'paired' ? ['primary', 'baseline'] : ['source']) sources.set(receipt[role].sha256, [...(sources.get(receipt[role].sha256) || []), { ordinal, role }]);
   }
   const data = { format: manifest.format.replace('manifest', 'receipt'), exact_manifest_sha256: checked.exact_manifest_sha256, expected_manifest_digest_matched: checked.expected_manifest_digest_matched, bundle_count: receipts.length, receipts, repeated_sources: [...sources].filter(([, references]) => references.length > 1).map(([sha256, references]) => ({ sha256, references })), repeated_artifacts: [...artifacts].filter(([, ordinals]) => ordinals.length > 1).map(([sha256, ordinals]) => ({ sha256, ordinals })) };
-  return { html: renderTrainingIntake(data), digest: checked.exact_manifest_sha256 };
+  return data;
+}
+
+export async function browserTrainingIntake(manifestFile, files, expected = '') {
+  const data = await checkBrowserTrainingIntake(manifestFile, files, expected);
+  return { html: renderTrainingIntake(data), digest: data.exact_manifest_sha256 };
 }
