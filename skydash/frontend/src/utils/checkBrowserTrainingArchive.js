@@ -1,5 +1,6 @@
 // Accept only the exact fixed stored ZIP emitted by the browser original packager.
 // No decompression, extraction, code execution, imported report evidence or filesystem access.
+import { privatePacketOrdinals } from './privatePacketOrdinals';
 import { storedZipBytes } from './storedZip';
 import { browserArchiveGuide } from './browserTrainingArchive';
 import { checkBrowserTrainingIntake } from './browserTrainingIntake';
@@ -47,11 +48,12 @@ export async function checkBrowserTrainingArchive(file, options = {}) {
 }
 // Separate opt-in API: no archive bytes are read without explicit private consent.
 // Original slices are kept inside this call, never exposed to UI or used as received report evidence.
-export async function privateBrowserTrainingArchive(file, { includePrivateReview = false, ...options } = {}) {
+export async function privateBrowserTrainingArchive(file, { includePrivateReview = false, selectedOrdinals = null, ...options } = {}) {
   if (includePrivateReview !== true) throw Error('Explicit private acknowledgement required.');
+  const requested = privatePacketOrdinals(selectedOrdinals);
   const { manifest, files, summary } = await checkArchiveOriginals(file, options);
-  const packet = await browserPrivateTraining(manifest, files, { includePrivateReview: true, expectedSha256: options.expectedManifestSha256 || '' });
-  return { ...summary, privateHtml: packet.html };
+  const packet = await browserPrivateTraining(manifest, files, { includePrivateReview: true, expectedSha256: options.expectedManifestSha256 || '', selectedOrdinals: requested });
+  return { ...summary, privateHtml: packet.html, privateOrdinals: privatePacketOrdinals(requested, summary.bundleCount) };
 }
 
 // Each side is independently checked; no private packet rendering or raw-original exposure.
