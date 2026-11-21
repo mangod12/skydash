@@ -416,6 +416,19 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     await zipComparison.getByLabel(side + ' ZIP comparison expected archive SHA-256').fill(pin(testInfo.outputPath(name)));
     await zipComparison.getByLabel(side + ' ZIP comparison expected manifest SHA-256').fill(pin(src + '/training.json'));
   }
+  for (const side of ['Left', 'Right']) {
+    await zipComparison.getByRole('button', { name: 'Check ' + side + ' ZIP original inventory', exact: true }).click();
+    await expect(zipComparison.getByRole('region', { name: side + ' checked ZIP ordinal inventory', exact: true })).toContainText('Manifest original 3: paired.');
+    await expect(zipComparisonDownload).toBeDisabled();
+  }
+  await expect(zipComparison.getByLabel('Received ZIP comparison scope')).toHaveValue('package');
+  await zipComparison.getByRole('region', { name: 'Left checked ZIP ordinal inventory', exact: true }).scrollIntoViewIfNeeded();
+  await p.screenshot({ path: testInfo.outputPath('zip-inventory-desktop.png') });
+  await p.setViewportSize({ width: 390, height: 1000 });
+  await zipComparison.getByRole('region', { name: 'Right checked ZIP ordinal inventory', exact: true }).scrollIntoViewIfNeeded();
+  await p.screenshot({ path: testInfo.outputPath('zip-inventory-mobile.png') });
+  expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await p.setViewportSize({ width: 1440, height: 1050 });
   await zipComparisonCheck.click();
   await expect(zipComparisonDownload).toBeEnabled();
   await expect(panel.getByRole('button', { name: buttons.comparison, exact: true })).toBeEnabled();
@@ -443,6 +456,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     await zipComparisonDownload.click();
     await (await pairPending).saveAs(testInfo.outputPath('zip-review-' + kind + '.html'));
   }
+  for (const side of ['Left', 'Right']) await expect(zipComparison.getByRole('region', { name: side + ' checked ZIP ordinal inventory', exact: true })).toContainText('Manifest original 3: paired.');
   await zipComparison.getByLabel('Right ZIP review ordinal').fill('1');
   await expect(zipComparisonDownload).toBeDisabled();
   await zipComparisonCheck.click();
@@ -468,6 +482,12 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   const rightZipPin = zipComparison.getByLabel('Right ZIP comparison expected archive SHA-256');
   await rightZipPin.fill('a'.repeat(64));
   await expect(zipComparisonDownload).toBeDisabled();
+  await expect(zipComparison.getByRole('region', { name: 'Left checked ZIP ordinal inventory', exact: true })).toContainText('Manifest original 1: case.');
+  await expect(zipComparison.getByRole('region', { name: 'Right checked ZIP ordinal inventory', exact: true })).not.toContainText('Manifest original');
+  await zipComparison.getByRole('button', { name: 'Check Right ZIP original inventory', exact: true }).click();
+  await expect(zipComparison.getByRole('status')).toContainText('ZIP original inventory refused');
+  await expect(zipComparison.getByRole('region', { name: 'Right checked ZIP ordinal inventory', exact: true })).not.toContainText('Manifest original');
+
   await zipComparisonCheck.click();
   await expect(zipComparison.getByRole('status')).toContainText('ZIP snapshot comparison refused');
   await expect(zipComparisonDownload).toBeDisabled();
@@ -541,7 +561,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     await expect(panel.getByRole('button', {
       name: buttons[kind]
     })).toBeEnabled();
-    if (kind === 'comparison') await expect(zipComparisonDownload).toBeEnabled();
+    if (kind === 'comparison') { await expect(zipComparisonDownload).toBeEnabled(); await expect(zipComparison.getByRole('region', { name: 'Left checked ZIP ordinal inventory', exact: true })).toContainText('Manifest original 1: case.'); }
     if (kind === 'intake') {
       await expect(downloadZip).toBeEnabled();
       await expect(receivedDownload).toBeEnabled();
@@ -562,7 +582,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     await expect(panel.getByRole('button', {
       name: buttons[kind]
     })).toBeEnabled();
-    if (kind === 'comparison') await expect(zipComparisonDownload).toBeEnabled();
+    if (kind === 'comparison') { await expect(zipComparisonDownload).toBeEnabled(); await expect(zipComparison.getByRole('region', { name: 'Left checked ZIP ordinal inventory', exact: true })).toContainText('Manifest original 1: case.'); }
     if (kind === 'intake') {
       await expect(downloadZip).toBeEnabled();
       await expect(receivedDownload).toBeEnabled();
@@ -589,6 +609,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   await expect(zipComparisonDownload).toBeEnabled();
   await zipComparison.getByRole('button', { name: 'Clear received ZIP comparison', exact: true }).click();
   await expect(zipComparisonDownload).toBeDisabled();
+  for (const side of ['Left', 'Right']) await expect(zipComparison.getByRole('region', { name: side + ' checked ZIP ordinal inventory', exact: true })).not.toContainText('Manifest original');
   await expect(panel.getByRole('button', { name: buttons.comparison, exact: true })).toBeEnabled();
   panel = await open('intake');
   await panel.getByRole('button', {

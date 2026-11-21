@@ -83,3 +83,12 @@ export async function compareBrowserTrainingArchiveReviews(kind, left, right) {
   const compared = await (kind === 'case' ? browserCaseComparison(...sides) : browserReviewComparison(kind,...sides));
   return { ...compared, kind, leftOrdinal: left.ordinal, rightOrdinal: right.ordinal, left: { archiveDigest: a.summary.archiveDigest, manifestDigest: a.summary.digest, expectedArchiveDigestMatched: a.summary.expectedArchiveDigestMatched, expectedManifestDigestMatched: a.summary.expectedManifestDigestMatched }, right: { archiveDigest: b.summary.archiveDigest, manifestDigest: b.summary.digest, expectedArchiveDigestMatched: b.summary.expectedArchiveDigestMatched, expectedManifestDigestMatched: b.summary.expectedManifestDigestMatched } };
 }
+
+// Bounded ordinal/kind/digest inventory, never private paths, labels or model content.
+// This is a fresh validation result, not a selection, independent expectation or cached approval.
+export async function inventoryBrowserTrainingArchive(file, options = {}) {
+  const checked = await checkArchiveOriginals(file, options);
+  const manifest = JSON.parse(decode(new Uint8Array(await checked.manifest.arrayBuffer())));
+  return { archiveDigest: checked.summary.archiveDigest, manifestDigest: checked.summary.digest, expectedArchiveDigestMatched: checked.summary.expectedArchiveDigestMatched, expectedManifestDigestMatched: checked.summary.expectedManifestDigestMatched,
+    originals: manifest.bundles.map((item,index)=>({ ordinal:index+1, kind:item.kind, sha256:item.sha256.toLowerCase() })) };
+}
