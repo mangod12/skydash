@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from 'vite';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-async function readOriginal(filename, limit) {
+export async function readBoundedPrivateOriginal(filename, limit) {
   const path = resolve(filename), canonical = await realpath(path), before = await lstat(path);
   if (canonical !== path || !before.isFile() || before.isSymbolicLink() || before.size < 1 || before.size > limit) throw Error('Invalid bounded original.');
   const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
@@ -22,7 +22,7 @@ async function readOriginal(filename, limit) {
 }
 export async function reportPrivateDebrief(kind, filename, { includePrivateReview = false, expectedSha256 = null } = {}) {
   if (!includePrivateReview || !['case', 'paired', 'notebook'].includes(kind) || (expectedSha256 !== null && !/^[a-fA-F0-9]{64}$/.test(expectedSha256))) throw Error('Explicit kind and private-output acknowledgement required.');
-  const bytes = await readOriginal(filename, (kind === 'paired' ? 4 : 2) * 1024 * 1024), digest = createHash('sha256').update(bytes).digest('hex');
+  const bytes = await readBoundedPrivateOriginal(filename, (kind === 'paired' ? 4 : 2) * 1024 * 1024), digest = createHash('sha256').update(bytes).digest('hex');
   if (expectedSha256 !== null && digest !== expectedSha256.toLowerCase()) throw Error('Independent original expectation mismatch.');
   const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
   const output = await build({ configFile: false, root, logLevel: 'silent', build: { ssr: resolve(root, 'src/utils/privateDebriefReport.js'), write: false, minify: false, sourcemap: false } });

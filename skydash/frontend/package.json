@@ -35,7 +35,8 @@
     "offline-review-distribution": "node scripts/offline-review-distribution.mjs",
     "verify-offline-archive": "node scripts/verify-offline-archive.mjs",
     "report-private-debrief": "node scripts/report-private-debrief.mjs",
-    "serve:offline-review": "node scripts/serve-offline-review.mjs"
+    "serve:offline-review": "node scripts/serve-offline-review.mjs",
+    "report-private-training": "node scripts/report-private-training.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",
