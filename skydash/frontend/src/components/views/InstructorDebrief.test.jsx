@@ -26,7 +26,7 @@ describe('instructor review timeline', () => {
     const view = render(<InstructorDebrief {...initial} />); add('Later point'); view.rerender(<InstructorDebrief {...initial} time={0} />); add('Earlier point');
     const rows = within(screen.getByLabelText('Instructor review markers')).getAllByRole('listitem'); expect(rows[0].textContent).toContain('Earlier point'); expect(rows[1].textContent).toContain('Later point');
     fireEvent.click(screen.getByLabelText('Discussed at 0.0s')); expect(screen.getByLabelText('Discussed at 0.0s').checked).toBe(true);
-    fireEvent.click(screen.getByText('Remove marker at 8.0s')); expect(screen.queryByText('Later point')).toBeNull(); expect(screen.getByText('Earlier point')).toBeTruthy();
+    fireEvent.click(screen.getByText('Remove marker at 8.0s'));expect(within(screen.getByLabelText('Instructor review markers')).getByText('Later point')).toBeTruthy();fireEvent.click(screen.getByText('Confirm remove instructor marker')); expect(screen.queryByText('Later point')).toBeNull(); expect(screen.getByText('Earlier point')).toBeTruthy();
   });
   it('downloads a source-bound sidecar and a report with instructor notes and recomputed context', async () => {
     render(<InstructorDebrief {...initial} />); add('Review gap'); fireEvent.change(screen.getByLabelText('Discussion summary'), { target: { value: 'Follow up with the data owner.' } });
@@ -144,6 +144,14 @@ describe('instructor review timeline', () => {
     fireEvent.change(screen.getByLabelText('Instructor marker note'),{target:{value:''}});expect(ref.current.snapshot().markers).toEqual([saved]);
     fireEvent.click(screen.getByText('Edit marker at 12.0s'));fireEvent.change(screen.getByLabelText('Edited marker kind'),{target:{value:'Observation'}});fireEvent.click(screen.getByText('Save marker edit'));expect(screen.getByText(/No markers match this view/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'all'}});expect(screen.getByText('Keep original')).toBeTruthy();expect(screen.getByLabelText('Discussed at 12.0s').checked).toBe(false);expect(ref.current.snapshot().markers[0]).toEqual({...saved,kind:'Observation'});
+  });
+
+  it('previews exact-ID removal without deleting another equal-time marker, pauses without seeking, and guards export until confirmed/canceled',()=>{
+    const a={...marker,id:'first',discussed:false,text:'<b>First private note</b>'},b={...marker,id:'second',discussed:true,text:'Separate equal-time note'},ref={current:null};render(<InstructorDebrief {...initial} ref={ref} initialReview={{markers:[a,b],notes:'Retained summary'}} />);
+    const list=within(screen.getByLabelText('Instructor review markers'));fireEvent.click(list.getAllByText('Remove marker at 12.0s')[0]);
+    const preview=within(screen.getByLabelText('Remove saved instructor marker preview'));expect(preview.getByText('<b>First private note</b>')).toBeTruthy();expect(document.querySelector('b')).toBeNull();expect(document.activeElement).toBe(preview.getByText('Remove this one saved instructor marker?'));expect(initial.onSeek).not.toHaveBeenCalled();expect(initial.onPause).toHaveBeenCalled();expect(()=>ref.current.snapshot()).toThrow(/Confirm or cancel/);expect(screen.getByLabelText('Instructor timeline view').disabled).toBe(true);expect(screen.getByLabelText('Import debrief JSON').disabled).toBe(true);
+    fireEvent.click(preview.getByText('Keep instructor marker'));expect(ref.current.snapshot().markers).toEqual([a,b]);
+    fireEvent.click(list.getAllByText('Remove marker at 12.0s')[0]);fireEvent.click(screen.getByText('Confirm remove instructor marker'));expect(ref.current.snapshot().markers).toEqual([b]);expect(ref.current.snapshot().notes).toBe('Retained summary');expect(initial.onSeek).not.toHaveBeenCalled();expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
 });
