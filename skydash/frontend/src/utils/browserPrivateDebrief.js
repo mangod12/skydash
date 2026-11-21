@@ -7,5 +7,5 @@ export async function browserPrivateDebrief(kind, file, { includePrivateReview =
   const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), b => b.toString(16).padStart(2, '0')).join('');
   if (expectedSha256 !== '' && digest !== expectedSha256.toLowerCase()) throw Error('Independent complete-original expectation mismatch.');
   const data = await readPrivateDebrief(kind, new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes));
-  return { html: renderPrivateDebrief(kind, data, { digest, expectedSha256: expectedSha256 || null }), digest, kind };
+  return { html: renderPrivateDebrief(kind, data, { digest, expectedSha256: expectedSha256 || null }), digest, kind, sources: data.sources };
 }
