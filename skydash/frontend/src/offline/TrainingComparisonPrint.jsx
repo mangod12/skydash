@@ -1,3 +1,4 @@
+import ReceivedArchiveComparison from './ReceivedArchiveComparison';
 import { useRef, useState } from 'react';
 import { browserTrainingComparison } from '../utils/browserTrainingComparison';
 const empty = () => ({ manifest: null, files: [], expected: '' });
@@ -38,6 +39,7 @@ export default function TrainingComparisonPrint() {
         <button type="button" className="rounded border border-cyan-800 px-3 py-2 disabled:opacity-40" disabled={busy || !result} onClick={download}>Download package comparison HTML</button>
         <button type="button" className="rounded border border-zinc-700 px-3 py-2 disabled:opacity-40" disabled={busy} onClick={clear}>Clear comparison print selections</button>
       </div>
+      <ReceivedArchiveComparison />
       <p role="status" aria-live="polite" className="mt-3 max-w-4xl">{status}</p>
       {result && <div className="mt-2 max-w-4xl break-all font-mono"><p>Left complete-manifest SHA-256: {result.leftDigest}. {left.expected ? 'Caller expectation matched.' : 'No independent expectation supplied.'}</p><p>Right complete-manifest SHA-256: {result.rightDigest}. {right.expected ? 'Caller expectation matched.' : 'No independent expectation supplied.'}</p></div>}
       <p className="mt-2 max-w-4xl text-zinc-400">Report shows exact manifest agreement, ordered artifact sequence and every artifact/source-role occurrence, not annotation edits or guessed pairs. Absent exact bytes do not prove added/deleted or missing work. No combined samples, spans, flights, grades or completion totals, source repair, merge, patch or conversion-lineage check. No source backup or complete handoff certificate. Download is explicit; open saved static HTML yourself and inspect print preview/audience. No scripts/external assets, automatic opening, storage, upload or sharing. Clear releases only these print selections/results, closing the disclosure only hides them. Refresh/tab close drops them; preserve originals and excluded work separately.</p>
