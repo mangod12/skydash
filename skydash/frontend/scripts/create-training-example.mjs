@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 // Fixed synthetic source only. No user input files, original telemetry or folder scans.
-import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from 'vite';
 import { writeTrainingArchive } from './package-training-intake.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const save = (folder, name, bytes) => writeFile(join(folder, name), bytes, { flag: 'wx', mode: 0o600 });
 async function models() {
   const result = await build({ configFile: false, root, logLevel: 'silent', build: { ssr: resolve(root, 'scripts/training-example-models.mjs'), write: false, minify: false, sourcemap: false } });
@@ -16,14 +14,7 @@ async function models() {
   return import('data:text/javascript;base64,' + Buffer.from(chunks[0].code).toString('base64'));
 }
 export async function createTrainingExample(outputPath) {
-  const m = await models(), base = { filename: 'SYNTHETIC-sample.csv', title: 'SYNTHETIC example, not a real flight', notes: '', csv_text: m.SAMPLE_LOG, sha256: await m.flightCSVHash(m.SAMPLE_LOG), model_version: m.LOG_VERSION, samples: m.parseFlightCSV(m.SAMPLE_LOG) };
-  const original = 'clock,lat,lon\n1000,28.6,77.2\n3000,28.61,77.21\n', mapping = { columns: { time_s: 0, latitude: 1, longitude: 2, altitude_m: null, ground_speed_m_s: null, battery_pct: null }, timeUnit: 'ms', timeOrigin: 'subtract-first', altitudeUnit: 'm', speedUnit: 'm/s', coordinateReference: 'WGS84-decimal-degrees' };
-  const recipe = m.exportMappingRecipe(m.readMappingCSV(original).headers, mapping, 'SYNTHETIC fixture, not OEM data'), converted = await m.convertMappedCSV(original, 'SYNTHETIC-original.csv', mapping);
-  const baseline = { ...converted, filename: 'SYNTHETIC-converted.csv', title: 'SYNTHETIC mapped baseline', notes: '', model_version: m.LOG_VERSION, samples: m.parseFlightCSV(converted.csv_text) };
-  const review = { title: base.title, notes: 'SYNTHETIC analyst discussion only. Not a training completion or readiness assessment.' }, debrief = { markers: [{ id: 'synthetic-question', time_s: 8, kind: 'Question', text: 'SYNTHETIC discussion prompt, not an observed real event.', discussed: false }], notes: 'SYNTHETIC instructor example. All data and reviews are fabricated.' };
-  const files = { 'sample.csv': m.SAMPLE_LOG, 'case.json': await m.createReviewCase(base, review, debrief, null), 'notebook.json': await m.createNotebookSourceBundle(base, [{ id: 'synthetic-copy', first_row: 2, last_row: 4, label: 'SYNTHETIC saved copy', notes: 'Overlapping or repeated saved copies would still not be independent flights.' }]), 'paired.json': await m.createPairedReviewBundle({ log: base, review, debrief, envelope: null }, { baseline, notes: 'SYNTHETIC A/B examples. Roles are not flight identities or alignment proof.', alignment: null }) };
-  const training = JSON.stringify({ format: 'skydash-training-intake-manifest-v2', bundles: ['case', 'notebook', 'paired'].map(kind => ({ kind, path: kind + '.json', sha256: sha(files[kind + '.json']) })) }, null, 2);
-  const lineageFiles = { 'original.csv': original, 'recipe.json': recipe, 'converted.csv': converted.csv_text }, lineage = JSON.stringify({ format: 'skydash-training-lineage-manifest-v1', conversions: [{ original: { path: 'original.csv', sha256: sha(original) }, recipe: { path: 'recipe.json', sha256: sha(recipe) }, converted: { path: 'converted.csv', sha256: sha(converted.csv_text) } }] }, null, 2);
+  const { files, training, lineageFiles, lineage } = await (await models()).syntheticTrainingOriginals();
   const folder = resolve(outputPath); await mkdir(folder, { mode: 0o700 });
   for (const [name, bytes] of Object.entries(files)) await save(folder, name, bytes);
   await save(folder, 'training.json', training); await mkdir(join(folder, 'lineage'), { mode: 0o700 });
