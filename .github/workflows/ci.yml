@@ -121,7 +121,7 @@ jobs:
             curl -sf http://localhost:8001/health && curl -sf http://localhost:5173 > /dev/null && break || sleep 2
           done
       - name: Run smoke specs
-        run: npx playwright test e2e/skydash.spec.js e2e/api.spec.js
+        run: npx playwright test e2e/skydash.spec.js e2e/api.spec.js e2e/offline-report-tools.spec.js
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
