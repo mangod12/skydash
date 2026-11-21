@@ -154,4 +154,10 @@ describe('instructor review timeline', () => {
     fireEvent.click(list.getAllByText('Remove marker at 12.0s')[0]);fireEvent.click(screen.getByText('Confirm remove instructor marker'));expect(ref.current.snapshot().markers).toEqual([b]);expect(ref.current.snapshot().notes).toBe('Retained summary');expect(initial.onSeek).not.toHaveBeenCalled();expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
+  it('inspects saved marker source context without changing saved review or unadded drafts and guards jumps during edit/removal',()=>{
+    const ref={current:null};render(<InstructorDebrief {...initial} ref={ref} initialReview={{markers:[{...marker,time_s:8}],notes:'Retain summary'}} />);const before=ref.current.snapshot();fireEvent.change(screen.getByLabelText('Instructor marker note'),{target:{value:'Unadded draft'}});
+    fireEvent.click(screen.getByText('Inspect source at marker 8.0s'));expect(initial.onPause).toHaveBeenCalled();expect(initial.onSeek).not.toHaveBeenCalled();expect(screen.getByLabelText('Instructor marker note').value).toBe('Unadded draft');fireEvent.change(screen.getByLabelText('Instructor marker note'),{target:{value:''}});expect(ref.current.snapshot()).toEqual(before);
+    fireEvent.click(screen.getByText('Edit marker at 8.0s'));expect(screen.getByText('Jump to context row 4 at 12s').disabled).toBe(true);fireEvent.click(screen.getByText('Cancel marker edit'));fireEvent.click(screen.getByText('Remove marker at 8.0s'));expect(screen.getByText('Jump to context row 4 at 12s').disabled).toBe(true);fireEvent.click(screen.getByText('Keep instructor marker'));fireEvent.click(screen.getByText('Close marker source context'));expect(screen.queryByLabelText('Instructor marker source context')).toBeNull();expect(ref.current.snapshot()).toEqual(before);expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
 });

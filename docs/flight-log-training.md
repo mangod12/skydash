@@ -935,3 +935,23 @@ never seeks. Queue changes, other marker actions, own exports/import and portabl
 snapshots wait for confirmation or cancellation. Cancel first to export before
 removing. Earlier downloads are unchanged; re-export to retain the new saved list.
 No automatic storage, backend writes, sharing, tasks or aircraft commands.
+
+
+## Inspect original source rows around an instructor marker
+
+Inspect source opens a read-only context for that exact saved marker ID. It pauses
+primary playback without seeking or changing drafts, summary, discussion state or
+other reviews. The panel recomputes the held/exact row and its immediate previous
+and next source rows, when present, from the current exact CSV. Original data-row
+numbers, elapsed seconds, altitude, ground speed and battery retain unknowns. A
+marker between samples has no observation at its own timestamp, even when the
+spacing is five seconds or less. Longer gaps remain explicit. No interpolation,
+event detection, causality, verified altitude datum or readiness is inferred.
+
+Only an explicit context-row Jump seeks primary replay to that original timestamp;
+comparison and current window fields stay independent. Jumps wait during an
+instructor import preview, edit or removal. Close never seeks. The context follows
+the current saved note for its ID; removing it or replacing the review without
+that ID closes the panel. This session-only inspector adds no saved state, new
+export format, storage, network requests or backend dependency. Existing full
+sidecar/case exports are unchanged.
