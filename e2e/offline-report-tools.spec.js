@@ -857,4 +857,27 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     expectedSha256
   });
   expect(rechecked.bundle_count).toBe(3);
+  // Recovered originals must also reopen and re-export through their real UI, not just compare bytes.
+  // Each test-owned tab starts empty; the active review tab above is never replaced.
+  for (const kind of ['case','notebook','paired']) {
+    await c.setOffline(false);
+    const reopen=await c.newPage(),effects=[],unexpected=[],pageErrors=[];
+    reopen.on('request',r=>{if(!r.url().startsWith(origin)&&!r.url().startsWith('blob:'))unexpected.push(r.url());});reopen.on('pageerror',e=>pageErrors.push(e.message));
+    await reopen.addInitScript(()=>{window.recoveryEffects=[];for(const[proto,key,label]of[[Storage.prototype,'setItem','storage'],[IDBFactory.prototype,'open','idb'],[window,'fetch','fetch']]){const old=proto[key];proto[key]=function(...args){window.recoveryEffects.push(label);return old.apply(this,args);};}});
+    await reopen.goto(origin+'offline-review.html');await c.setOffline(true);
+    const sourceFile=testInfo.outputPath('recovered-'+kind+'.json'),before=JSON.parse(fs.readFileSync(sourceFile,'utf8'));
+    const labels={case:['Portable review case','Open review case JSON','Expected case artifact SHA-256','Replace local workspace with case','Keep current workspace','Download review case JSON'],notebook:['Portable notebook source bundle','Open notebook source bundle JSON','Expected notebook artifact SHA-256','Replace local workspace with notebook bundle','Keep current workspace and notebook','Download notebook source bundle JSON'],paired:['Paired review source bundle','Open paired review bundle JSON','Expected paired artifact SHA-256','Replace workspace with checked paired review','Keep current workspace and sources','Download paired review bundle JSON']}[kind];
+    let opener=reopen.getByRole('article',{name:labels[0],exact:true});
+    await opener.getByLabel(labels[2],{exact:true}).fill('a'.repeat(64));await opener.getByLabel(labels[1],{exact:true}).setInputFiles(sourceFile);await expect(opener.getByRole('alert')).toBeVisible();await expect(reopen.getByLabel('Replay position',{exact:true})).toHaveCount(0);
+    await opener.getByLabel(labels[2],{exact:true}).fill(pin(sourceFile));await opener.getByLabel(labels[1],{exact:true}).setInputFiles(sourceFile);await expect(opener.getByRole('button',{name:labels[3],exact:true})).toBeVisible();await expect(reopen.getByLabel('Replay position',{exact:true})).toHaveCount(0);
+    await opener.getByRole('button',{name:labels[4],exact:true}).click();await expect(reopen.getByLabel('Replay position',{exact:true})).toHaveCount(0);
+    await opener.getByLabel(labels[1],{exact:true}).setInputFiles(sourceFile);await opener.getByRole('button',{name:labels[3],exact:true}).click();await expect(reopen.getByLabel('Replay position',{exact:true})).toHaveValue('0');
+    if(kind==='paired')await expect(reopen.getByLabel('Comparison time',{exact:true})).toHaveValue('0');
+    if(kind==='notebook'){await expect(reopen.getByRole('button',{name:'Load saved selection: '+before.notebook.windows[0].label,exact:true})).toBeVisible();await expect(reopen.getByLabel('Reviewed sample window',{exact:true})).toHaveCount(0);}
+    const saved=reopen.waitForEvent('download');await reopen.getByRole('button',{name:labels[5],exact:true}).click();const target=testInfo.outputPath('roundtrip-'+kind+'.json');await(await saved).saveAs(target);expect(JSON.parse(fs.readFileSync(target,'utf8'))).toEqual(before);
+    await reopen.getByLabel('Replay position',{exact:true}).scrollIntoViewIfNeeded();await reopen.screenshot({path:testInfo.outputPath('roundtrip-'+kind+'-desktop.png')});await reopen.setViewportSize({width:390,height:700});await reopen.getByLabel('Replay position',{exact:true}).scrollIntoViewIfNeeded();await reopen.screenshot({path:testInfo.outputPath('roundtrip-'+kind+'-mobile.png')});expect(await reopen.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+    effects.push(...await reopen.evaluate(()=>window.recoveryEffects));expect(effects).toEqual([]);expect(unexpected).toEqual([]);expect(pageErrors).toEqual([]);await reopen.close();
+  }
+  await expect(p.getByLabel('Replay position',{exact:true})).toHaveValue('8');await expect(pair.getByLabel('Comparison time',{exact:true})).toHaveValue('6');await expect(p.getByLabel('Analyst notes',{exact:true})).toHaveValue('PRIVATE active replay notes remain');
+
 });
