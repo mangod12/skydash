@@ -22,6 +22,7 @@
     "verify-csv-conversion": "node scripts/verify-csv-conversion.mjs",
     "verify-training-lineage": "node scripts/verify-training-lineage.mjs",
     "compare-notebook-reviews": "node scripts/compare-notebook-reviews.mjs",
+    "report-instructor-comparison": "node scripts/report-instructor-comparison.mjs",
     "compare-instructor-sidecars": "node scripts/compare-instructor-sidecars.mjs",
     "verify-instructor-sidecar": "node scripts/verify-instructor-sidecar.mjs",
     "verify-review-case": "node scripts/verify-review-case.mjs",
