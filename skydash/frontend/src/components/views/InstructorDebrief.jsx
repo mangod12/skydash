@@ -17,6 +17,7 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
+  const [editing,setEditing] = useState(null);
   const [discussionFilter, setDiscussionFilter] = useState('all');
   const [discussionPage, setDiscussionPage] = useState(0);
   const replacement = useMemo(()=>{
@@ -26,15 +27,16 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
   },[log,markers,notes,pending]);
   const discussion = instructorDiscussionView(markers, discussionFilter, discussionPage);
   const updateMarkers = next => { setMarkers(next); setDiscussionPage(instructorDiscussionView(next, discussionFilter, discussion.page).page); };
-  const changeDiscussionView = (filter, page) => { if (busy || pending) return; onPause(); setDiscussionFilter(filter); setDiscussionPage(page); };
+  const changeDiscussionView = (filter, page) => { if (busy || pending || editing) return; onPause(); setDiscussionFilter(filter); setDiscussionPage(page); };
   useImperativeHandle(ref, () => ({ snapshot() {
     if (busy || pending) throw new Error('Finish or cancel the debrief import before exporting a case.');
+    if (editing) throw new Error('Save or cancel the instructor marker edit before exporting.');
     if (text.trim()) throw new Error('Add or clear the unadded instructor marker note before exporting a case.');
     return debriefSidecar(log, markers, notes);
   } }));
   const context = recordedObservation(log.samples, time);
   const add = event => {
-    event.preventDefault(); onPause(); setError(''); setMessage('');
+    event.preventDefault(); if (busy || pending || editing) return; onPause(); setError(''); setMessage('');
     try {
       if (markers.length >= MAX_MARKERS) throw new Error('Review is full. At most 100 markers are supported.');
       const marker = createReviewMarker(log, { id: globalThis.crypto.randomUUID(), time_s: time, kind, text });
@@ -43,7 +45,7 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
   };
   const read = async event => {
     const file = event.target.files?.[0]; event.target.value = '';
-    if (!file || busy) return;
+    if (!file || busy || editing) return;
     onPause(); setBusy(true); setPending(null); setError(''); setMessage('');
     try {
       if (file.size > MAX_DEBRIEF_BYTES) throw new Error('Debrief JSON must be at most 256KiB.');
@@ -54,6 +56,7 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
   };
   const apply = () => { if (busy || !pending || !replacement) return; updateMarkers(pending.markers); setNotes(pending.notes); setPending(null); setText(''); setConfirmClear(false); setMessage('Debrief imported locally. Sample context is recomputed from the current source; annotation authorship is not verified.'); };
   const download = format => {
+    if(editing){setError('Save or cancel the instructor marker edit before exporting.');return;}
     let url;
     try {
       const sidecar = format === 'json';
@@ -72,6 +75,16 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
       setError('');setMessage('Private instructor replacement comparison download requested. Snapshot of all saved before/after annotations, not a reopenable sidecar, completed training or proof of saving. No changes applied.');
     } catch { if(url)URL.revokeObjectURL(url);setError('Replacement comparison download could not start. Current review and import preview kept.'); }
   };
+  const editMarker = marker => {
+    if(busy || pending || editing)return;onPause();setConfirmClear(false);setError('');setMessage('');setEditing({...marker});
+  };
+  const saveMarkerEdit = () => {
+    if(busy || pending || !editing)return;onPause();
+    try {
+      const next=validateMarkers(markers.map(marker=>marker.id===editing.id?{...marker,kind:editing.kind,text:editing.text.trim()}:marker),log.samples.at(-1).time_s);
+      updateMarkers(next);setEditing(null);setError('');setMessage('Marker kind and note updated locally. Original ID, elapsed time and discussed state kept. Re-export files to keep the change.');
+    } catch(failure){setError(failure.message || 'Marker edit could not be saved. Existing saved timeline unchanged.');}
+  };
   return <article id="instructor-debrief" aria-label="Instructor debrief timeline" className="rounded-xl border border-emerald-500/25 p-4 space-y-3">
     <header><p className="text-[10px] tracking-widest text-emerald-300">TRAINING / FACILITATED REVIEW</p><h2 className="mt-1 text-lg font-semibold text-zinc-100">Instructor debrief timeline</h2><p className="mt-2 text-xs leading-relaxed text-zinc-400">{DEBRIEF_SCOPE}</p></header>
     <p className="text-xs text-zinc-500 break-all">Source fingerprint: {log.sha256}. Notes are session-only. Changing the source clears this timeline. Save to server stores the CSV review only, not these markers. This is not a signed instructor record.</p>
@@ -79,34 +92,40 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
       <div className="flex flex-wrap items-center justify-between gap-2"><p aria-label="Marker source context" className="text-xs text-zinc-300">Cursor {time.toFixed(1)}s / source sample {context.sample.time_s}s / age {context.ageS.toFixed(1)}s {context.state === 'gap' ? '/ missing interval, held sample' : ''}</p><button type="button" onClick={() => { onPause(); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} className={button}>Seek in replay</button></div>
       <label className="block text-xs text-zinc-400">Marker kind<select aria-label="Marker kind" value={kind} onChange={event => setKind(event.target.value)} className={input}>{MARKER_KINDS.map(value => <option key={value}>{value}</option>)}</select></label>
       <label className="block text-xs text-zinc-400">Instructor marker note<textarea aria-label="Instructor marker note" rows={2} maxLength={1000} value={text} onFocus={onPause} onChange={event => setText(event.target.value)} className={input} /></label>
-      <button type="submit" disabled={busy || !text.trim() || markers.length >= MAX_MARKERS} className={button}><BookmarkPlus size={14} /> Add marker at cursor</button>
+      <button type="submit" disabled={busy || Boolean(pending) || Boolean(editing) || !text.trim() || markers.length >= MAX_MARKERS} className={button}><BookmarkPlus size={14} /> Add marker at cursor</button>
     </form>
     {error && <p role="alert" className="text-xs text-amber-300">{error} Existing review has not been replaced.</p>}{message && <p role="status" className="text-xs text-emerald-200">{message}</p>}
     <h3 className="text-sm font-semibold text-zinc-200">Review timeline ({markers.length}/100)</h3>
     <section aria-label="Instructor discussion queue controls" className="rounded-lg border border-cyan-500/25 p-3 space-y-2 text-xs text-zinc-300">
       <h3 className="font-semibold text-cyan-200">Focus the discussion queue</h3>
       <p>{discussion.questions} undiscussed questions / {discussion.followups} undiscussed follow-ups in the full timeline.</p>
-      <label className="block">Timeline view<select aria-label="Instructor timeline view" disabled={busy || Boolean(pending)} value={discussionFilter} onChange={e=>changeDiscussionView(e.target.value,0)} className={input}><option value="all">All instructor markers</option><option value="open">Undiscussed questions and follow-ups</option><option value="questions">Undiscussed questions only</option><option value="followups">Undiscussed follow-ups only</option></select></label>
+      <label className="block">Timeline view<select aria-label="Instructor timeline view" disabled={busy || Boolean(pending) || Boolean(editing)} value={discussionFilter} onChange={e=>changeDiscussionView(e.target.value,0)} className={input}><option value="all">All instructor markers</option><option value="open">Undiscussed questions and follow-ups</option><option value="questions">Undiscussed questions only</option><option value="followups">Undiscussed follow-ups only</option></select></label>
       <p aria-live="polite">Showing {discussion.total ? discussion.page*10+1 : 0} to {Math.min((discussion.page+1)*10,discussion.total)} of {discussion.total} matching markers. Page {discussion.page+1} of {discussion.pages}.</p>
-      <div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={busy || Boolean(pending) || discussion.page===0} onClick={()=>changeDiscussionView(discussionFilter,discussion.page-1)}>Previous marker page</button><button type="button" className={button} disabled={busy || Boolean(pending) || discussion.page+1>=discussion.pages} onClick={()=>changeDiscussionView(discussionFilter,discussion.page+1)}>Next marker page</button></div>
+      <div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={busy || Boolean(pending) || Boolean(editing) || discussion.page===0} onClick={()=>changeDiscussionView(discussionFilter,discussion.page-1)}>Previous marker page</button><button type="button" className={button} disabled={busy || Boolean(pending) || Boolean(editing) || discussion.page+1>=discussion.pages} onClick={()=>changeDiscussionView(discussionFilter,discussion.page+1)}>Next marker page</button></div>
       <details className="text-zinc-500"><summary className="cursor-pointer text-cyan-200">Queue scope and export limits</summary><p className="mt-2">Original order; equal-time notes stay separate. Views only pause primary replay. Jump and Discussed remain explicit. All restores hidden notes. Every export keeps all saved markers and summary. Session-only view, not tasks, completion or readiness.</p></details>
     </section>
     {markers.length>0 && discussion.total===0 && <p className="text-xs text-zinc-400">No markers match this view. Other timeline notes are retained. This is not a completed-review or readiness result.</p>}
     {!markers.length && <p className="text-xs text-zinc-500">Pause or scrub replay above, then add an observation, question or follow-up. Markers are sorted by elapsed time.</p>}
+    {editing&&<section aria-label="Edit saved instructor marker" className="rounded-lg border border-amber-500/30 p-3 space-y-3 text-xs text-zinc-300">
+      <h3 className="font-semibold text-amber-200">Edit one saved instructor note</h3><p>Original {editing.time_s}s / ID {editing.id} / discussed {String(editing.discussed)} stay unchanged. Changes below are drafts until Save; Cancel keeps the saved note. Exports, queue navigation, imports and other marker changes wait until Save or Cancel. No source, replay seek, summary or other review changes.</p>
+      <label className="block">Edited marker kind<select aria-label="Edited marker kind" className={input} value={editing.kind} onChange={e=>setEditing({...editing,kind:e.target.value})}>{MARKER_KINDS.map(value=><option key={value}>{value}</option>)}</select></label>
+      <label className="block">Edited marker note<textarea aria-label="Edited marker note" rows={3} maxLength={1000} className={input} value={editing.text} onChange={e=>setEditing({...editing,text:e.target.value})}/></label>
+      <div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={busy || !editing.text.trim()} onClick={saveMarkerEdit}>Save marker edit</button><button type="button" className={button} onClick={()=>{onPause();setEditing(null);setError('');setMessage('Marker edit canceled. Saved timeline unchanged.');}}>Cancel marker edit</button></div>
+    </section>}
     <ol className="space-y-2" aria-label="Instructor review markers">{discussion.items.map(marker => {
       const evidence = recordedObservation(log.samples, marker.time_s);
       return <li key={marker.id} className="rounded-lg border border-white/10 p-3 space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2"><button type="button" disabled={busy || Boolean(pending)} onClick={() => onSeek(marker.time_s)} className={button}>Jump to {marker.time_s.toFixed(1)}s</button><span className="text-[10px] text-emerald-300">{marker.kind}</span></div>
-        <p className="whitespace-pre-wrap break-words text-xs text-zinc-300">{marker.text}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2"><button type="button" disabled={busy || Boolean(pending) || Boolean(editing)} onClick={() => onSeek(marker.time_s)} className={button}>Jump to {marker.time_s.toFixed(1)}s</button><span className="text-[10px] text-emerald-300">{marker.kind}</span></div>
+        <p className="whitespace-pre-wrap break-words text-xs text-zinc-300">{marker.text}</p><button type="button" className={button} disabled={busy || Boolean(pending) || Boolean(editing)} onClick={()=>editMarker(marker)}>Edit marker at {marker.time_s.toFixed(1)}s</button>
         <p className={`text-[10px] ${evidence.state === 'gap' ? 'text-amber-300' : 'text-zinc-500'}`}>Source sample {evidence.sample.time_s}s, age {evidence.ageS.toFixed(1)}s. {evidence.state === 'gap' ? 'DATA GAP. No observation at marker time.' : 'Context is the latest observation at or before marker time.'}</p>
-        <div className="flex flex-wrap items-center justify-between gap-2"><label className="inline-flex gap-2 items-center text-xs text-zinc-400"><input type="checkbox" checked={marker.discussed} disabled={busy || Boolean(pending)} onChange={event => updateMarkers(markers.map(item => item.id === marker.id ? { ...item, discussed: event.target.checked } : item))} /> Discussed at {marker.time_s.toFixed(1)}s</label><button type="button" disabled={busy || Boolean(pending)} onClick={() => { updateMarkers(markers.filter(item => item.id !== marker.id)); setMessage('Marker removed locally. Exported files are unchanged.'); }} className="text-xs text-zinc-500 hover:text-zinc-200">Remove marker at {marker.time_s.toFixed(1)}s</button></div>
+        <div className="flex flex-wrap items-center justify-between gap-2"><label className="inline-flex gap-2 items-center text-xs text-zinc-400"><input type="checkbox" checked={marker.discussed} disabled={busy || Boolean(pending) || Boolean(editing)} onChange={event => updateMarkers(markers.map(item => item.id === marker.id ? { ...item, discussed: event.target.checked } : item))} /> Discussed at {marker.time_s.toFixed(1)}s</label><button type="button" disabled={busy || Boolean(pending) || Boolean(editing)} onClick={() => { updateMarkers(markers.filter(item => item.id !== marker.id)); setMessage('Marker removed locally. Exported files are unchanged.'); }} className="text-xs text-zinc-500 hover:text-zinc-200">Remove marker at {marker.time_s.toFixed(1)}s</button></div>
       </li>;
     })}</ol>
     <p className="text-[10px] text-zinc-500">Discussed is a facilitation checkbox, not passed/failed or a competence assessment. Removal changes only this session. A new export is needed after edits.</p>
     <label className="block text-xs text-zinc-400">Discussion summary<textarea aria-label="Discussion summary" rows={3} maxLength={4000} value={notes} onChange={event => setNotes(event.target.value)} className={input} /></label>
-    <div className="flex flex-wrap gap-2"><button type="button" disabled={busy} onClick={() => download('report')} className={button}><Download size={14} /> Download instructor report</button><button type="button" disabled={busy} onClick={() => download('json')} className={button}><Download size={14} /> Download debrief JSON</button><button type="button" disabled={busy || !markers.length && !notes} onClick={() => setConfirmClear(value => !value)} className={button}>Clear instructor review</button></div>
+    <div className="flex flex-wrap gap-2"><button type="button" disabled={busy || Boolean(editing)} onClick={() => download('report')} className={button}><Download size={14} /> Download instructor report</button><button type="button" disabled={busy || Boolean(editing)} onClick={() => download('json')} className={button}><Download size={14} /> Download debrief JSON</button><button type="button" disabled={busy || Boolean(editing) || !markers.length && !notes} onClick={() => setConfirmClear(value => !value)} className={button}>Clear instructor review</button></div>
     {confirmClear && <div className="text-xs text-amber-300">Clear all markers and discussion summary from this session? Download first to keep them.<div className="mt-2 flex flex-wrap gap-2"><button type="button" className={button} onClick={() => { updateMarkers([]); setNotes(''); setText(''); setConfirmClear(false); setPending(null); setMessage('Instructor review cleared locally. Source CSV and saved records are unchanged.'); }}>Confirm clear review</button><button type="button" className={button} onClick={() => setConfirmClear(false)}>Keep review</button></div></div>}
-    <div className="border-t border-white/10 pt-3 space-y-2"><h3 className="text-sm font-semibold text-zinc-200">Reopen a debrief sidecar</h3><p className="text-xs text-zinc-500">Load the matching source CSV first. JSON contains notes, marker times and source fingerprint, not the CSV. A valid sidecar still has unverified authorship. Confirm before replacing the current review. Up to 256KiB / 100 markers.</p><input aria-label="Import debrief JSON" type="file" accept=".json,application/json" disabled={busy} onChange={read} className="block w-full min-w-0 text-xs text-zinc-400" /></div>
+    <div className="border-t border-white/10 pt-3 space-y-2"><h3 className="text-sm font-semibold text-zinc-200">Reopen a debrief sidecar</h3><p className="text-xs text-zinc-500">Load the matching source CSV first. JSON contains notes, marker times and source fingerprint, not the CSV. A valid sidecar still has unverified authorship. Confirm before replacing the current review. Up to 256KiB / 100 markers.</p><input aria-label="Import debrief JSON" type="file" accept=".json,application/json" disabled={busy || Boolean(editing)} onChange={read} className="block w-full min-w-0 text-xs text-zinc-400" /></div>
     {pending && <div className="rounded-lg border border-amber-500/30 p-3 text-xs text-amber-300"><p>Matching sidecar: {pending.markers.length} markers. Replace current {markers.length} markers and summary? Source CSV is unchanged. Unadded marker drafts will also be cleared by Replace.</p><>{replacement?<InstructorReplacement comparison={replacement} draft={text} />:<p role="alert">Current saved timeline or summary cannot be compared within sidecar bounds. Cancel the import and shorten or repair current notes before replacing. Current review and checked import are retained.</p>}</><button type="button" disabled={busy || !replacement} className={button} onClick={downloadReplacement}>Download instructor replacement comparison</button><p>Replacement is all-or-nothing, not a merge.</p><div className="mt-2 flex flex-wrap gap-2"><button type="button" disabled={busy || !replacement} onClick={apply} className={button}>Replace with imported review</button><button type="button" onClick={() => { setPending(null); setMessage('Import cancelled. Current review kept.'); }} className={button}>Keep current review</button></div></div>}
   </article>;
 });

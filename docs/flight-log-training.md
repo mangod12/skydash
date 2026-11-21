@@ -904,3 +904,19 @@ record, audit trail, completed training or proof of saving. Replace still applie
 the whole sidecar timeline/summary together, never a selective merge, and keeps
 source, replay cursor, comparison and other reviews unchanged. No new stored format,
 automatic save, sharing, tasks, reminders, backend writes or aircraft commands.
+
+
+## Correct a saved instructor marker
+
+Edit marker opens a draft for that saved marker's kind and note only. Save trims
+and validates the note, retaining its exact ID, original elapsed seconds and
+existing discussed checkbox. Cancel keeps the saved marker unchanged. A kind
+change can leave the current queue filter; All restores the marker. This is a
+local correction, not an audit history, reassignment or completed training.
+
+While an edit is open, queue changes, marker jumps/status/removal, sidecar imports
+and exports wait for Save or Cancel. Portable case snapshots also refuse the
+unfinished edit. The unadded-marker draft and summary remain separate and are
+not silently cleared. No source/cursor/comparison or other review changes; no
+new saved format, automatic storage, sharing, tasks or aircraft commands. Re-export
+a sidecar/case after saving, existing downloaded files are not updated.

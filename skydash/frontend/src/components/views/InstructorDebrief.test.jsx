@@ -126,4 +126,24 @@ describe('instructor review timeline', () => {
     fireEvent.click(screen.getByText('Keep current review'));expect(screen.getByText(/Review timeline \(100\/100\)/)).toBeTruthy();
   });
 
+  it('edits only the selected saved kind/text after explicit Save, retaining source time ID discussed and summary',()=>{
+    const first={...marker,discussed:true,text:'Original saved note'},second={...marker,id:'second',time_s:8,text:'Separate note',discussed:false};const ref={current:null};
+    render(<InstructorDebrief {...initial} ref={ref} initialReview={{markers:[second,first],notes:'Kept summary'}} />);
+    fireEvent.click(screen.getByText('Edit marker at 12.0s'));expect(screen.getByLabelText('Edited marker note').value).toBe('Original saved note');
+    expect(initial.onPause).toHaveBeenCalledTimes(1);expect(initial.onSeek).not.toHaveBeenCalled();expect(()=>ref.current.snapshot()).toThrow(/Save or cancel/);
+    expect(screen.getByLabelText('Instructor timeline view').disabled).toBe(true);expect(screen.getByLabelText('Import debrief JSON').disabled).toBe(true);expect(screen.getByText('Download debrief JSON').disabled).toBe(true);expect(screen.getByLabelText('Discussed at 8.0s').disabled).toBe(true);expect(screen.getByText('Remove marker at 8.0s').disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Edited marker kind'),{target:{value:'Follow-up'}});fireEvent.change(screen.getByLabelText('Edited marker note'),{target:{value:'  <b>Corrected saved note</b>  '}});
+    expect(screen.getByText('Original saved note')).toBeTruthy();fireEvent.click(screen.getByText('Save marker edit'));
+    expect(ref.current.snapshot().markers).toEqual([second,{...first,kind:'Follow-up',text:'<b>Corrected saved note</b>'}]);expect(ref.current.snapshot().notes).toBe('Kept summary');expect(document.querySelector('b')).toBeNull();expect(initial.onSeek).not.toHaveBeenCalled();expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+  it('cancel keeps original marker and unadded draft; blank edits cannot save and the empty queue remains reversible',()=>{
+    const saved={...marker,discussed:false,text:'Keep original'};const ref={current:null};render(<InstructorDebrief {...initial} ref={ref} initialReview={{markers:[saved],notes:''}} />);
+    fireEvent.change(screen.getByLabelText('Instructor marker note'),{target:{value:'Unadded draft retained'}});fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'questions'}});
+    fireEvent.click(screen.getByText('Edit marker at 12.0s'));fireEvent.change(screen.getByLabelText('Edited marker note'),{target:{value:'   '}});expect(screen.getByText('Save marker edit').disabled).toBe(true);fireEvent.click(screen.getByText('Cancel marker edit'));
+    expect(screen.getByLabelText('Instructor marker note').value).toBe('Unadded draft retained');expect(screen.getByText('Keep original')).toBeTruthy();expect(screen.getByLabelText('Instructor timeline view').value).toBe('questions');
+    fireEvent.change(screen.getByLabelText('Instructor marker note'),{target:{value:''}});expect(ref.current.snapshot().markers).toEqual([saved]);
+    fireEvent.click(screen.getByText('Edit marker at 12.0s'));fireEvent.change(screen.getByLabelText('Edited marker kind'),{target:{value:'Observation'}});fireEvent.click(screen.getByText('Save marker edit'));expect(screen.getByText(/No markers match this view/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'all'}});expect(screen.getByText('Keep original')).toBeTruthy();expect(screen.getByLabelText('Discussed at 12.0s').checked).toBe(false);expect(ref.current.snapshot().markers[0]).toEqual({...saved,kind:'Observation'});
+  });
+
 });
