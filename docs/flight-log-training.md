@@ -1024,3 +1024,34 @@ The command writes no files, makes no report, requests no network or storage and
 changes neither original. Keep exact CSV and sidecar separately; a receipt cannot
 reopen them or replace revalidation. Annotation inventory is not completion,
 authenticated custody, source truth, certification or readiness.
+
+
+## Compare two original instructor sidecars against one exact CSV
+
+From `skydash/frontend` run
+`node scripts/compare-instructor-sidecars.mjs SOURCE.csv LEFT.json RIGHT.json`.
+The command freshly checks three strict UTF-8 regular originals using actual app
+models, source up to 1MiB and each sidecar up to 256KiB. Both sidecars must bind
+to the complete exact CSV fingerprint. A changed source refuses the comparison,
+not a guessed alignment or annotation transfer. Inputs stay unchanged; stdout is
+a privacy-limited JSON receipt, never private notes or a new sidecar.
+
+Separate optional `--expect-source-sha256 HEX`, `--expect-left-sha256 HEX` and
+`--expect-right-sha256 HEX` pin complete raw file bytes before parsing. Each may
+appear once. Obtain independent expectations through a separate trusted route.
+Generated/self-declared digests are not authenticated authorship or custody.
+
+The receipt distinguishes exact sidecar byte equality from normalized saved-review
+equality, counts directional added/removed/changed/unchanged exact annotation IDs,
+and reports same-ID changed-field counts and summary changed/unchanged. Changed
+fields can overlap; additions/removals are excluded from those field counts.
+Same-time notes remain separate; new IDs do not match by similar note text.
+JSON formatting/key order and normalized timeline sorting alone need not change
+saved content, while whitespace in notes and summary remains content. Left/right
+are explicit selected sides, never authenticated earlier/later versions.
+
+No private paths/filenames/IDs/text/summary/coordinates/readings print. Hashes,
+counts, change patterns and source times remain sensitive. No writes, network,
+storage, merge, patch, sharing, source repair, history, task/completion totals,
+grading or readiness claim. Errors print no partial comparison or private input.
+Keep all three originals; a receipt cannot reopen them or replace revalidation.
