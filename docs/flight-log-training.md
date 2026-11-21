@@ -1079,3 +1079,31 @@ forms, network, storage, writes by the command, upload, sharing, merge or repair
 Open the explicitly saved HTML locally yourself, review its audience and preserve
 the exact CSV and both sidecars separately. Editable unsigned HTML cannot reopen
 reviews, replace revalidation or establish custody, source truth or certification.
+
+
+## Keep original CSV and instructor sidecar together for local handoff
+
+From `skydash/frontend` run
+`node scripts/package-instructor-review.mjs SOURCE.csv SIDECAR.json --include-sensitive-originals --output NEW.zip`.
+This explicit acknowledgement is required because the unencrypted ZIP includes
+complete private coordinates/readings/IDs/notes/summary, not a redacted report.
+Confirm the audience and secure transport separately. No upload or sharing occurs.
+
+The command freshly validates originals with actual app source/sidecar models,
+then rechecks every copied raw byte against the fresh hashes. Same strict UTF-8
+regular-file limits, source1MiB and sidecar256KiB, and optional separate independent
+`--expect-source-sha256 HEX` / `--expect-sidecar-sha256 HEX`. No folder scans or
+imported receipts. Fixed archive names `originals/source.csv` and
+`originals/instructor.json` preserve raw bytes but deliberately omit filenames.
+`validation.json` and `HANDOFF.txt` explain checks, exclusions and revalidation.
+
+Output is a new mode0600 file only, never overwrite. Failure prints no success
+receipt; a newly created partial ZIP may remain if writing fails. No extraction,
+execution, source edits, automatic opening, network or storage elsewhere. Extract
+with a trusted tool into a new private folder yourself, then use a separate trusted
+checkout to revalidate both extracted originals. Co-delivered hashes/receipts and
+fixed ZIP timestamps establish no authenticity, custody or chronology.
+
+The pair excludes analyst review, envelope, notebook, comparison, original mapping,
+unadded draft, recovery and local library. Preserve other work separately. This is
+not a full backup, complete handoff certificate, completion or readiness evidence.

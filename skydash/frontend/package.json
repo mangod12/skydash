@@ -24,6 +24,7 @@
     "compare-notebook-reviews": "node scripts/compare-notebook-reviews.mjs",
     "report-instructor-comparison": "node scripts/report-instructor-comparison.mjs",
     "compare-instructor-sidecars": "node scripts/compare-instructor-sidecars.mjs",
+    "package-instructor-review": "node scripts/package-instructor-review.mjs",
     "verify-instructor-sidecar": "node scripts/verify-instructor-sidecar.mjs",
     "verify-review-case": "node scripts/verify-review-case.mjs",
     "report-training-intake": "node scripts/report-training-intake.mjs",
