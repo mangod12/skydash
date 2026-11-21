@@ -36,7 +36,7 @@ describe('instructor review timeline', () => {
   });
   it('imports only after explicit replacement confirmation and can cancel without losing the current review', async () => {
     render(<InstructorDebrief {...initial} />); add('Current marker'); const json = JSON.stringify(debriefSidecar(log, [marker], 'Imported summary'));
-    importFile(json); await screen.findByText('Replace with imported review'); expect(screen.getByText('Current marker')).toBeTruthy(); expect(screen.queryByText('Imported discussion point')).toBeNull();
+    importFile(json); await screen.findByText('Replace with imported review'); expect(within(screen.getByLabelText('Instructor review markers')).getByText('Current marker')).toBeTruthy(); expect(within(screen.getByLabelText('Instructor review markers')).queryByText('Imported discussion point')).toBeNull(); expect(within(screen.getByLabelText('Instructor sidecar replacement differences')).getByText('Imported discussion point')).toBeTruthy();
     fireEvent.click(screen.getByText('Keep current review')); expect(screen.getByText('Current marker')).toBeTruthy();
     importFile(json); await screen.findByText('Replace with imported review'); fireEvent.click(screen.getByText('Replace with imported review'));
     expect(screen.queryByText('Current marker')).toBeNull(); expect(screen.getByText('Imported discussion point')).toBeTruthy(); expect(screen.getByLabelText('Discussion summary').value).toBe('Imported summary'); expect(screen.getByLabelText('Discussed at 12.0s').checked).toBe(true);
@@ -94,6 +94,36 @@ describe('instructor review timeline', () => {
     fireEvent.click(screen.getByText('Keep current review'));expect(screen.getByLabelText('Instructor timeline view').value).toBe('open');expect(screen.getByLabelText('Discussed at 12.0s').disabled).toBe(false);
     importFile(JSON.stringify(debriefSidecar(log,[marker],'incoming')));await screen.findByText('Replace with imported review');fireEvent.click(screen.getByText('Replace with imported review'));
     expect(screen.getByText(/No markers match this view/)).toBeTruthy();fireEvent.change(screen.getByLabelText('Instructor timeline view'),{target:{value:'all'}});expect(screen.getByLabelText('Discussion summary').value).toBe('incoming');expect(screen.getByLabelText('Discussed at 12.0s').checked).toBe(true);
+  });
+
+  it('previews every exact-ID change and summary, warns about draft loss, updates saved-summary comparison and exports without applying',async()=>{
+    const current=[{...marker,discussed:false,text:'Old note'}, {id:'removed',time_s:0,kind:'Observation',text:'Removed note',discussed:false}];
+    const incoming=debriefSidecar(log,[{...marker,time_s:10,kind:'Follow-up',text:'<img onerror=literal>',discussed:true},{id:'added',time_s:2,kind:'Question',text:'Added note',discussed:false}],'Incoming summary');
+    render(<InstructorDebrief {...initial} initialReview={{markers:current,notes:'Current summary'}} />);
+    fireEvent.change(screen.getByLabelText('Instructor marker note'),{target:{value:'Keep draft until explicit Replace'}});
+    importFile(JSON.stringify(incoming));await screen.findByText('Replace with imported review');
+    const preview=within(screen.getByLabelText('Instructor sidecar replacement differences'));
+    expect(preview.getByLabelText('Instructor replacement counts').textContent).toContain('Added 1; removed 1; changed 1; unchanged 0');expect(preview.getByText(/unadded marker draft is present/)).toBeTruthy();
+    expect(preview.getByText('<img onerror=literal>')).toBeTruthy();expect(document.querySelector('img')).toBeNull();expect(preview.getByText('Before summary: Current summary')).toBeTruthy();expect(preview.getByText('After summary: Incoming summary')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Discussion summary'),{target:{value:'Edited current summary'}});expect(preview.getByText('Before summary: Edited current summary')).toBeTruthy();
+    fireEvent.click(screen.getByText('Download instructor replacement comparison'));const output=await blobText(URL.createObjectURL.mock.calls[0][0]);expect(output).toContain('BEFORE summary: Edited current summary');expect(output).toContain('AFTER summary: Incoming summary');expect(output).not.toContain('Keep draft until explicit Replace');expect(output).toContain('Removed note');expect(output).toContain('Added note');
+    expect(screen.getByLabelText('Instructor marker note').value).toBe('Keep draft until explicit Replace');expect(screen.getByLabelText('Discussion summary').value).toBe('Edited current summary');expect(initial.onSeek).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Keep current review'));expect(screen.queryByLabelText('Instructor sidecar replacement differences')).toBeNull();expect(screen.getByLabelText('Instructor marker note').value).toBe('Keep draft until explicit Replace');expect(screen.getByText('Old note')).toBeTruthy();expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+  it('keeps checked import and current review on comparison download failure',async()=>{
+    render(<InstructorDebrief {...initial} initialReview={{markers:[{...marker,discussed:false}],notes:''}} />);
+    importFile(JSON.stringify(debriefSidecar(log,[],'')));await screen.findByText('Replace with imported review');
+    URL.createObjectURL.mockImplementationOnce(()=>{throw Error('blocked')});fireEvent.click(screen.getByText('Download instructor replacement comparison'));
+    expect(screen.getByRole('alert').textContent).toContain('comparison download could not start');expect(screen.getByText('Replace with imported review')).toBeTruthy();expect(screen.getByLabelText('Discussed at 12.0s').checked).toBe(false);
+    fireEvent.click(screen.getByText('Replace with imported review'));expect(screen.queryByLabelText('Discussed at 12.0s')).toBeNull();
+  });
+
+  it('does not crash or offer blind replacement when current saved multibyte annotations exceed sidecar byte bounds',async()=>{
+    const markers=Array.from({length:100},(_,i)=>({id:String(i),time_s:i/10,kind:'Question',text:'界'.repeat(1000),discussed:false}));
+    render(<InstructorDebrief {...initial} initialReview={{markers,notes:''}} />);
+    importFile(JSON.stringify(debriefSidecar(log,[],'')));await screen.findByText('Replace with imported review');
+    expect(screen.getByRole('alert').textContent).toContain('cannot be compared within sidecar bounds');expect(screen.getByText('Replace with imported review').disabled).toBe(true);expect(screen.getByText('Download instructor replacement comparison').disabled).toBe(true);
+    fireEvent.click(screen.getByText('Keep current review'));expect(screen.getByText(/Review timeline \(100\/100\)/)).toBeTruthy();
   });
 
 });
