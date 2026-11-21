@@ -66,16 +66,23 @@ export async function verifyOfflineDistribution(input, expected = '') {
   const root = await directory(input); await names(root, ['site', 'START.txt', 'distribution.json']); await directory(join(root, 'site'));
   const raw = await boundedFile(root, 'distribution.json', 65536), digest = hash(raw);
   if (expected && digest !== expected.toLowerCase()) throw Error('Independent manifest expectation mismatch.');
-  const manifest = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(raw));
-  if (!exact(manifest, ['format', 'files']) || manifest.format !== 'skydash-standalone-distribution-v1' || !Array.isArray(manifest.files) || manifest.files.length !== 4) throw Error('Invalid inventory.');
-  // Enumerate only this fixed layout, never follow paths from an input manifest.
   const entries = await siteEntries(join(root, 'site')); entries.push(['START.txt', await boundedFile(root, 'START.txt', 16384)]);
+  return validateDistributionInventory(entries, raw, expected);
+}
+export function validateDistributionInventory(entries, raw, expected = '') {
+  if (expected !== '' && !pin(expected)) throw Error('Invalid independent expectation.');
+  const digest = hash(raw); if (expected && digest !== expected.toLowerCase()) throw Error('Independent manifest expectation mismatch.');
+  const manifest = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(raw));
+  if (!exact(manifest, ['format', 'files']) || manifest.format !== 'skydash-standalone-distribution-v1' || !Array.isArray(manifest.files) || manifest.files.length !== 4 || entries.length !== 4) throw Error('Invalid inventory.');
+  const assets = entries.slice(1, 3).map(([path]) => path);
+  if (entries[0][0] !== 'site/offline-review.html' || entries[3][0] !== 'START.txt' || assets.some(path => !/^site\/assets\/offline-review-[A-Za-z0-9_-]{8}\.(js|css)$/.test(path)) || assets[0] >= assets[1] || !assets.some(path => path.endsWith('.js')) || !assets.some(path => path.endsWith('.css'))) throw Error('Unsupported fixed layout.');
   if (!entries[3][1].equals(Buffer.from(distributionGuide))) throw Error('Guide mismatch.');
   for (const [i, [path, bytes]] of entries.entries()) {
     const item = manifest.files[i]; if (!exact(item, ['path', 'bytes', 'sha256']) || item.path !== path || item.bytes !== bytes.length || !pin(item.sha256) || item.sha256.toLowerCase() !== hash(bytes)) throw Error('Inventory mismatch.');
   }
   return { format: 'skydash-standalone-distribution-check-v1', exact_manifest_sha256: digest, expected_manifest_digest_matched: Boolean(expected), file_count: entries.length + 1, scope };
 }
+
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const args = process.argv.slice(2), help = 'Usage: node scripts/offline-review-distribution.mjs create BUILD_DIR --output NEW.zip\n       node scripts/offline-review-distribution.mjs verify EXTRACTED_DIR [--expect-manifest-sha256 HEX]\nExplicit bounded current single-JS/single-CSS standalone build only. New mode0600 ZIP, never overwrite; verify extracted files using this separate trusted checkout, never execute or extract them. Reject extra files and symlinks. Keep inputs unchanged. Outputs contain editable executable code, not recordings or a full backup. Independently obtain expected hashes. Byte agreement is not authenticity or trusted code. A failed write may leave an incomplete new output; no success receipt is issued.';
   if (args.length === 1 && ['--help', '-h'].includes(args[0])) console.log(help);
