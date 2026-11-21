@@ -1,4 +1,5 @@
 const destinations = {
+  instructor: 'Instructor original pair handoff',
   synthetic: 'Fixed synthetic handoff starter',
   received: 'Received original ZIP check',
   recover: 'Received ZIP selected original download',

@@ -1107,3 +1107,33 @@ fixed ZIP timestamps establish no authenticity, custody or chronology.
 The pair excludes analyst review, envelope, notebook, comparison, original mapping,
 unadded draft, recovery and local library. Preserve other work separately. This is
 not a full backup, complete handoff certificate, completion or readiness evidence.
+
+
+### Standalone browser original instructor pair handoff
+
+In the packaged standalone review site, use the handoff task chooser's
+"Keep CSV and instructor review together". Select the already exported original
+CSV and instructor sidecar, with optional independent complete-file SHA-256
+expectations for each. The tool never reads the active replay or unadded drafts.
+Fresh explicit sensitive-original acknowledgement is required on each preparation.
+Current CSV and sidecar validators, separate raw-byte pins and copy-time digest
+rechecks run before a ZIP can be manually downloaded. Original raw BOM/line-endings
+and complete instructor words are retained, while archive filenames are fixed.
+
+The preview shows only hashes, sample/span and annotation inventory, never private
+filenames, notes, IDs, coordinates or individual readings. These hashes/counts are
+still sensitive. Download includes all private original content, unencrypted and
+unsigned, plus an editable validation projection and revalidation guide. Every
+file/hash/ack edit stales the output even if reverted. Each preparation consumes
+acknowledgement; no auto-download. Closing hides selections/results, clear affects
+only this tool, and refresh/tab close drops them. Other prepared outputs and active
+replay/cursor/reviews are unchanged. No network, upload, storage or aircraft action.
+
+This pair ZIP is not accepted by the separate received training-package ZIP tool.
+Extract into a new private folder with your own trusted archive tool. Recheck both
+extracted originals using a separate trusted checkout and optional independent
+expectations. Manually choose source CSV then preview/import instructor JSON with
+explicit confirmation. Protect unsaved work first. Keep all originals/excluded
+work separately; the pair excludes analyst notes, envelope, notebook, comparison,
+mapping originals/recipe, unadded drafts, recovery and device library. No complete
+backup, authenticated authorship/custody, source truth, completion or readiness.
