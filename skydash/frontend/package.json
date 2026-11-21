@@ -33,7 +33,8 @@
     "report-review-comparison": "node scripts/report-review-comparison.mjs",
     "build:offline-review": "vite build --config vite.offline-review.config.js",
     "offline-review-distribution": "node scripts/offline-review-distribution.mjs",
-    "verify-offline-archive": "node scripts/verify-offline-archive.mjs"
+    "verify-offline-archive": "node scripts/verify-offline-archive.mjs",
+    "report-private-debrief": "node scripts/report-private-debrief.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",
