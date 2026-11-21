@@ -343,6 +343,42 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     exact: true
   }).click();
   await expect(receivedDownload).toBeEnabled();
+  const privateAck = received.getByLabel('Acknowledge received ZIP private discussion packet'),
+    preparePrivateZip = received.getByRole('button', { name: 'Prepare received ZIP private discussion', exact: true }),
+    privateZipDownload = received.getByRole('button', { name: 'Download received ZIP private discussion HTML', exact: true });
+  await expect(preparePrivateZip).toBeDisabled();
+  await privateAck.check();
+  await expect(receivedDownload).toBeDisabled();
+  await preparePrivateZip.click();
+  await expect(privateZipDownload).toBeEnabled();
+  await expect(privateAck).not.toBeChecked();
+  await expect(receivedDownload).toBeEnabled();
+  const privateZipPending = p.waitForEvent('download');
+  await privateZipDownload.click();
+  await (await privateZipPending).saveAs(testInfo.outputPath('rechecked-private-archive.html'));
+  await preparePrivateZip.scrollIntoViewIfNeeded();
+  await p.screenshot({ path: testInfo.outputPath('received-private-desktop.png') });
+  await p.setViewportSize({ width: 390, height: 1000 });
+  await privateAck.scrollIntoViewIfNeeded();
+  await p.screenshot({ path: testInfo.outputPath('received-private-mobile.png') });
+  await privateZipDownload.scrollIntoViewIfNeeded();
+  await p.screenshot({ path: testInfo.outputPath('received-private-mobile-download.png') });
+  expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await p.setViewportSize({ width: 1440, height: 1050 });
+  await privateAck.check();
+  await receivedPin.fill('a'.repeat(64));
+  await expect(privateAck).not.toBeChecked();
+  await expect(privateZipDownload).toBeDisabled();
+  await privateAck.check();
+  await preparePrivateZip.click();
+  await expect(received.getByRole('status')).toContainText('Original ZIP refused');
+  await expect(privateAck).not.toBeChecked();
+  await expect(privateZipDownload).toBeDisabled();
+  await receivedPin.fill(pin(testInfo.outputPath('sensitive-originals.zip')));
+  await expect(privateZipDownload).toBeDisabled();
+  await privateAck.check();
+  await preparePrivateZip.click();
+  await expect(privateZipDownload).toBeEnabled();
   // Editing even the same pin away and back invalidates ZIP and consumes consent.
   const intakePin = panel.getByLabel('Intake print expected manifest SHA-256');
   await intakePin.fill('a'.repeat(64));
@@ -439,6 +475,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     if (kind === 'intake') {
       await expect(downloadZip).toBeEnabled();
       await expect(receivedDownload).toBeEnabled();
+      await expect(privateZipDownload).toBeEnabled();
       await expect(starterDownload).toBeEnabled();
     }
     expect(await p.locator('main').first().evaluate(e => e.getBoundingClientRect().height > 50 && e.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
@@ -458,6 +495,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
     if (kind === 'intake') {
       await expect(downloadZip).toBeEnabled();
       await expect(receivedDownload).toBeEnabled();
+      await expect(privateZipDownload).toBeEnabled();
       await expect(starterDownload).toBeEnabled();
     }
     expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
@@ -473,11 +511,14 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   }).click();
   await expect(downloadZip).toBeDisabled();
   await expect(receivedDownload).toBeEnabled();
+  await expect(privateZipDownload).toBeEnabled();
   await received.getByRole('button', {
     name: 'Clear received ZIP check',
     exact: true
   }).click();
   await expect(receivedDownload).toBeDisabled();
+  await expect(privateZipDownload).toBeDisabled();
+  await expect(privateAck).not.toBeChecked();
   await expect(starterDownload).toBeEnabled();
   await starter.getByRole('button', {
     name: 'Clear synthetic starter',
@@ -547,6 +588,7 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   };
   for (const [filename, html] of Object.entries(outputs)) expect(fs.readFileSync(testInfo.outputPath(filename), 'utf8')).toBe(html);
   expect(fs.readFileSync(testInfo.outputPath('rechecked-archive.html'), 'utf8')).toBe(outputs['intake.html']);
+  expect(fs.readFileSync(testInfo.outputPath('rechecked-private-archive.html'), 'utf8')).toBe(outputs['private.html']);
   expect(fs.readFileSync(testInfo.outputPath('synthetic-rechecked.html'), 'utf8')).toBe(await (await load('report-training-intake')).reportTrainingIntake(original));
   const checked = await (await load('verify-csv-conversion')).verifyCSVConversion(path.join(src, 'lineage', 'original.csv'), path.join(src, 'lineage', 'recipe.json'), path.join(src, 'lineage', 'converted.csv'), {
     confirmedWGS84: true
