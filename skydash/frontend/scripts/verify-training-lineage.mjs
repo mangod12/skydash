@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { resolve, dirname, relative, isAbsolute, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { linkCheckedTrainingConversions } from '../src/utils/trainingLineageLinks.js';
 import { verifyTrainingManifest } from './verify-training-manifest.mjs';
 import { verifyCSVConversion } from './verify-csv-conversion.mjs';
 const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === keys.length && Object.keys(value).every(key => keys.includes(key));
@@ -42,17 +43,9 @@ export async function verifyTrainingLineage(trainingPath, lineagePath, { confirm
   }
   // Training validator independently checks its own expected full-artifact digests and paths.
   const training = await verifyTrainingManifest(trainingPath, { expectedSha256: expectedTrainingSha256 });
-  const review_sources = [];
-  for (const { ordinal, kind, receipt } of training.receipts) for (const role of kind === 'paired' ? ['primary', 'baseline'] : ['source']) {
-    const source = receipt[role].sha256;
-    review_sources.push({ bundle_ordinal: ordinal, kind, role, source_sha256: source, matching_conversion_ordinals: conversions.filter(item => item.receipt.exact_converted_sha256 === source).map(item => item.ordinal) });
-  }
-  const uncovered = review_sources.filter(item => !item.matching_conversion_ordinals.length);
-  if (requireAllReviewSources && uncovered.length) throw new Error('Some review sources have no exact reproduced conversion link.');
-  return { format: 'skydash-training-lineage-receipt-v1', exact_lineage_manifest_sha256: sha256, expected_lineage_manifest_digest_matched: expectedLineageSha256 !== null, require_all_review_sources: requireAllReviewSources, all_review_sources_linked: uncovered.length === 0, training, conversions, review_sources,
-    unreferenced_conversion_ordinals: conversions.filter(item => !review_sources.some(source => source.matching_conversion_ordinals.includes(item.ordinal))).map(item => item.ordinal),
-    scope: 'Every listed conversion reproduced with actual current adapter validators and all three expected raw-file digests checked; every training artifact independently validated before this one receipt. Links require exact converted CSV bytes in the listed review source role. Multiple conversion relations remain separate: one converted hash does not identify a unique original/recipe, aircraft, flight or person. Unlinked review sources may be native CSV or missing lineage; no conclusion is inferred. Fresh WGS84 confirmation is the caller statement for all listed originals, not manifest data or independent verification. Expected digests need an independent trusted route. No private paths, headers, notes, coordinates or individual readings printed, but hashes/bounds/counts/times can identify sensitive work. Both manifests and receipt are editable, not signatures, custody/authorship, verified OEM compatibility, authentic telemetry, independent flights, completion, grades or readiness. No combined flight/sample/duration totals, files written, network, upload, storage, sharing or aircraft commands. Each manifest owns its own folder and20MiB data budget; combined data bounded40MiB, plus two64KiB manifests. Inputs must remain unchanged during checking. This receipt is not a portable workspace or lineage backup; retain original files separately.' };
+  return linkCheckedTrainingConversions(training, conversions, { lineageDigest: sha256, expectedMatched: expectedLineageSha256 !== null, requireAllReviewSources });
 }
+
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const args = process.argv.slice(2);
   if (args.length === 1 && ['--help', '-h'].includes(args[0])) console.log('Usage: node scripts/verify-training-lineage.mjs TRAINING.json LINEAGE.json --confirm-wgs84 [--require-all-review-sources] [--expect-training-sha256 HEX] [--expect-lineage-sha256 HEX]\nOffline all-or-nothing exact conversion-to-review-source relation check. Lineage format skydash-training-lineage-manifest-v1 contains conversions (1to20), each exact original/recipe/converted objects with path and independently expected sha256. Paths unique canonical files inside lineage manifest folder; original/converted1MiB,recipe64KiB,total20MiB. Existing mixed training manifest limits apply separately. No automatic scan, writes, private data echo, source truth or readiness claim. Fresh confirmation covers every listed original. Default reports unlinked review roles; optional require-all fails if any lack a reproduced exact source link.');
