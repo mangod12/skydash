@@ -429,6 +429,42 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   await p.screenshot({ path: testInfo.outputPath('zip-comparison-mobile.png') });
   expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await p.setViewportSize({ width: 1440, height: 1050 });
+  for (const [kind, ordinal] of [['case', '1'], ['notebook', '2'], ['paired', '3']]) {
+    await zipComparison.getByLabel('Received ZIP comparison scope').selectOption(kind);
+    await expect(zipComparisonDownload).toBeDisabled();
+    for (const side of ['Left', 'Right']) {
+      await zipComparison.getByLabel(side + ' ZIP review ordinal').fill(ordinal);
+      await zipComparison.getByLabel(side + ' ZIP review expected artifact SHA-256').fill(pin(src + '/' + kind + '.json'));
+    }
+    await zipComparisonCheck.click();
+    await expect(zipComparisonDownload).toBeEnabled();
+    await expect(zipComparison).toContainText('Explicit ' + kind + ' pair: Left manifest original ' + ordinal + '; Right manifest original ' + ordinal);
+    const pairPending = p.waitForEvent('download');
+    await zipComparisonDownload.click();
+    await (await pairPending).saveAs(testInfo.outputPath('zip-review-' + kind + '.html'));
+  }
+  await zipComparison.getByLabel('Right ZIP review ordinal').fill('1');
+  await expect(zipComparisonDownload).toBeDisabled();
+  await zipComparisonCheck.click();
+  await expect(zipComparison.getByRole('status')).toContainText('ZIP snapshot comparison refused');
+  await expect(zipComparisonDownload).toBeDisabled();
+  await zipComparison.getByLabel('Right ZIP review ordinal').fill('3');
+  await expect(zipComparisonDownload).toBeDisabled();
+  await zipComparisonCheck.click();
+  await expect(zipComparisonDownload).toBeEnabled();
+  await zipComparison.getByLabel('Received ZIP comparison scope').scrollIntoViewIfNeeded();
+  await p.screenshot({ path: testInfo.outputPath('zip-review-desktop.png') });
+  await p.setViewportSize({ width: 390, height: 1000 });
+  await zipComparison.getByLabel('Right ZIP review ordinal').scrollIntoViewIfNeeded();
+  await p.screenshot({ path: testInfo.outputPath('zip-review-mobile-inputs.png') });
+  await zipComparisonDownload.scrollIntoViewIfNeeded();
+  await p.screenshot({ path: testInfo.outputPath('zip-review-mobile.png') });
+  expect(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await p.setViewportSize({ width: 1440, height: 1050 });
+  await zipComparison.getByLabel('Received ZIP comparison scope').selectOption('package');
+  await expect(zipComparisonDownload).toBeDisabled();
+  await zipComparisonCheck.click();
+  await expect(zipComparisonDownload).toBeEnabled();
   const rightZipPin = zipComparison.getByLabel('Right ZIP comparison expected archive SHA-256');
   await rightZipPin.fill('a'.repeat(64));
   await expect(zipComparisonDownload).toBeDisabled();
@@ -639,6 +675,12 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   expect(fs.readFileSync(testInfo.outputPath('rechecked-archive.html'), 'utf8')).toBe(outputs['intake.html']);
   expect(fs.readFileSync(testInfo.outputPath('rechecked-private-archive.html'), 'utf8')).toBe(outputs['private.html']);
   expect(fs.readFileSync(testInfo.outputPath('rechecked-zip-comparison.html'), 'utf8')).toBe(outputs['comparison.html']);
+  for (const kind of ['case', 'notebook', 'paired']) {
+    const originalFile = src + '/' + kind + '.json', options = { expectedLeftSha256: pin(originalFile), expectedRightSha256: pin(originalFile) };
+    const html = kind === 'case' ? await (await load('report-review-case-comparison')).reportReviewCaseComparison(originalFile, originalFile, options) : await (await load('report-review-comparison')).reportReviewComparison(kind, originalFile, originalFile, options);
+    expect(fs.readFileSync(testInfo.outputPath('zip-review-' + kind + '.html'), 'utf8')).toBe(html);
+  }
+
   expect(fs.readFileSync(testInfo.outputPath('synthetic-rechecked.html'), 'utf8')).toBe(await (await load('report-training-intake')).reportTrainingIntake(original));
   const checked = await (await load('verify-csv-conversion')).verifyCSVConversion(path.join(src, 'lineage', 'original.csv'), path.join(src, 'lineage', 'recipe.json'), path.join(src, 'lineage', 'converted.csv'), {
     confirmedWGS84: true
