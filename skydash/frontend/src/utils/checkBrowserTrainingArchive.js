@@ -5,6 +5,8 @@ import { browserArchiveGuide } from './browserTrainingArchive';
 import { checkBrowserTrainingIntake } from './browserTrainingIntake';
 import { renderTrainingIntake } from './trainingIntakeHtml';
 import { browserPrivateTraining } from './browserPrivateTraining';
+import { browserCaseComparison } from './browserCaseComparison';
+import { browserReviewComparison } from './browserReviewComparison';
 import { browserTrainingComparison } from './browserTrainingComparison';
 const MAX = 30 * 1024 * 1024;
 const decode = bytes => new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
@@ -61,4 +63,23 @@ export async function compareBrowserTrainingArchives(left, right) {
     { manifest: b.manifest, files: b.files, expected: right.options?.expectedManifestSha256 || '' }
   );
   return { ...compared, left: { archiveDigest: a.summary.archiveDigest, manifestDigest: a.summary.digest, expectedArchiveDigestMatched: a.summary.expectedArchiveDigestMatched, expectedManifestDigestMatched: a.summary.expectedManifestDigestMatched }, right: { archiveDigest: b.summary.archiveDigest, manifestDigest: b.summary.digest, expectedArchiveDigestMatched: b.summary.expectedArchiveDigestMatched, expectedManifestDigestMatched: b.summary.expectedManifestDigestMatched } };
+}
+
+// Explicit manifest ordinals and kind are caller choices, never guessed correspondence.
+export async function compareBrowserTrainingArchiveReviews(kind, left, right) {
+  if (!['case','notebook','paired'].includes(kind)) throw Error('Explicit supported original kind required.');
+  for (const side of [left,right]) if (!Number.isSafeInteger(side?.ordinal) || side.ordinal < 1 || side.ordinal > 20 || !pin(side.expectedArtifactSha256 ?? '')) throw Error('Explicit bounded original ordinal and optional independent artifact expectation required.');
+  const a = await checkArchiveOriginals(left.file, left.options), b = await checkArchiveOriginals(right.file, right.options);
+  const select = (checked, side) => {
+    const file = checked.files[side.ordinal - 1];
+    if (!file) throw Error('Selected ordinal not listed.');
+    return file;
+  };
+  // Kind comes only from each freshly checked original manifest, not an input filename.
+  const declared = async checked => JSON.parse(decode(new Uint8Array(await checked.manifest.arrayBuffer()))).bundles;
+  const items = [await declared(a), await declared(b)];
+  if (items[0][left.ordinal - 1]?.kind !== kind || items[1][right.ordinal - 1]?.kind !== kind) throw Error('Both explicit ordinals must have the chosen kind.');
+  const sides = [ { file: select(a,left), expected: left.expectedArtifactSha256 ?? '' }, { file: select(b,right), expected: right.expectedArtifactSha256 ?? '' } ];
+  const compared = await (kind === 'case' ? browserCaseComparison(...sides) : browserReviewComparison(kind,...sides));
+  return { ...compared, kind, leftOrdinal: left.ordinal, rightOrdinal: right.ordinal, left: { archiveDigest: a.summary.archiveDigest, manifestDigest: a.summary.digest, expectedArchiveDigestMatched: a.summary.expectedArchiveDigestMatched, expectedManifestDigestMatched: a.summary.expectedManifestDigestMatched }, right: { archiveDigest: b.summary.archiveDigest, manifestDigest: b.summary.digest, expectedArchiveDigestMatched: b.summary.expectedArchiveDigestMatched, expectedManifestDigestMatched: b.summary.expectedManifestDigestMatched } };
 }
