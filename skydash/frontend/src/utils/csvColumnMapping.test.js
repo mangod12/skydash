@@ -29,6 +29,15 @@ describe('bounded numeric CSV column mapping', () => {
     const original = '\uFEFF' + csv.replaceAll('\n', '\r\n'); const result = await convertMappedCSV(original, 'source.csv', mapping); expect(result.samples).toHaveLength(2); const plain = await convertMappedCSV(csv, 'source.csv', mapping); expect(result.original_sha256).not.toBe(plain.original_sha256); expect(result.sha256).toBe(plain.sha256);
   });
   it('snapshots the mapping instead of retaining mutable caller data', async () => { const copy = structuredClone(mapping), result = await convertMappedCSV(csv, 'source.csv', copy); copy.columns.latitude = 6; expect(result.mapping.columns.latitude).toBe(1); });
+  it('retains the exact conversion recipe when caller configuration changes during asynchronous hashing', async () => {
+    const copy = structuredClone(mapping), pending = convertMappedCSV(csv, 'source.csv', copy);
+    copy.timeUnit = 's'; copy.timeOrigin = 'zero'; copy.altitudeUnit = 'm'; copy.speedUnit = 'm/s'; copy.columns.latitude = 6;
+    const result = await pending;
+    expect(result.mapping).toEqual(mapping);
+    const reproduced = await convertMappedCSV(csv, 'source.csv', result.mapping);
+    expect(reproduced.csv_text).toBe(result.csv_text); expect(reproduced.sha256).toBe(result.sha256);
+    expect(mappingReport(result)).toContain('Time unit: ms; origin: subtract-first');
+  });
   it('exports original/converted identity, exact recipe, factors and explicit lineage limits', async () => {
     const result = await convertMappedCSV(csv, 'source.csv', mapping), report = mappingReport(result); for (const value of [MAPPING_VERSION, LOG_VERSION, result.original_sha256, result.sha256, 'source column 4 (height_ft)', 'milliseconds /1000', 'feet x0.3048', 'km/h /3.6', 'converted CSV only', 'not the original file fingerprint', 'Extra source columns are excluded']) expect(report).toContain(value);
   });
