@@ -883,3 +883,43 @@ test('all seven report drawers preserve prepared downloads and replay in one off
   await expect(p.getByLabel('Replay position',{exact:true})).toHaveValue('8');await expect(pair.getByLabel('Comparison time',{exact:true})).toHaveValue('6');await expect(p.getByLabel('Analyst notes',{exact:true})).toHaveValue('PRIVATE active replay notes remain');
 
 });
+
+test('instructor discussion queue filters and pages without losing full case exports', async ({page:p,context:c},testInfo)=>{
+  test.setTimeout(60000);
+  const input=JSON.parse(fs.readFileSync(src+'/case.json','utf8'));
+  input.debrief.markers=Array.from({length:24},(_,i)=>({id:'queue-'+String(i).padStart(2,'0'),time_s:i/2,kind:i===0?'Observation':i===1?'Follow-up':'Question',text:i===3?'<b>Literal instructor note, not HTML</b>':'Fixed fabricated discussion '+i,discussed:i===2}));
+  input.debrief.notes='Fixed fabricated full discussion summary';
+  const fixture=testInfo.outputPath('queue-case.json');fs.writeFileSync(fixture,JSON.stringify(input));
+  const errors=[],requests=[];p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(!r.url().startsWith(origin)&&!r.url().startsWith('blob:'))requests.push(r.url());});
+  await p.addInitScript(()=>{window.effects=[];for(const[proto,name]of[[Storage.prototype,'setItem'],[IDBFactory.prototype,'open'],[window,'fetch']]){const original=proto[name];proto[name]=function(...args){window.effects.push(name);return original.apply(this,args);};}});
+  await p.goto(origin+'offline-review.html');await c.setOffline(true);
+  const portable=p.getByRole('article',{name:'Portable review case',exact:true});
+  await portable.getByLabel('Open review case JSON',{exact:true}).setInputFiles(fixture);await portable.getByRole('button',{name:'Replace local workspace with case',exact:true}).click();
+  await p.getByLabel('Visible review panel group').selectOption('debrief');
+  const timeline=p.getByRole('article',{name:'Instructor debrief timeline',exact:true}),queue=timeline.getByRole('region',{name:'Instructor discussion queue controls',exact:true});
+  const output=async name=>{const wait=p.waitForEvent('download');await portable.getByRole('button',{name:'Download review case JSON',exact:true}).click();const target=testInfo.outputPath(name);await(await wait).saveAs(target);return JSON.parse(fs.readFileSync(target,'utf8'));};
+  await p.getByLabel('Replay position',{exact:true}).fill('8');
+  await queue.getByLabel('Instructor timeline view').selectOption('open');await expect(queue).toContainText('Showing 1 to 10 of 22');
+  await expect(timeline.getByRole('list',{name:'Instructor review markers',exact:true}).getByRole('listitem')).toHaveCount(10);
+  await expect(p.getByLabel('Replay position',{exact:true})).toHaveValue('8');await expect(p.getByRole('button',{name:'Play replay',exact:true})).toBeVisible();
+  expect(await output('queue-unchanged-case.json')).toEqual(input);
+  await expect(timeline.getByText('<b>Literal instructor note, not HTML</b>',{exact:true})).toBeVisible();await expect(timeline.locator('b')).toHaveCount(0);
+  await queue.getByRole('button',{name:'Next marker page'}).click();await queue.getByRole('button',{name:'Next marker page'}).click();await expect(queue).toContainText('Showing 21 to 22 of 22');
+  await expect(p.getByLabel('Replay position',{exact:true})).toHaveValue('8');
+  await timeline.getByRole('button',{name:'Jump to 11.0s',exact:true}).click();await expect(p.getByLabel('Replay position',{exact:true})).toHaveValue('11');
+  await timeline.getByLabel('Discussed at 11.0s',{exact:true}).click();await timeline.getByLabel('Discussed at 11.5s',{exact:true}).click();await expect(queue).toContainText('Showing 11 to 20 of 20');
+  await expect(p.getByLabel('Replay position',{exact:true})).toHaveValue('11');
+  const edited=await output('queue-edited-case.json');input.debrief.markers[22].discussed=true;input.debrief.markers[23].discussed=true;expect(edited).toEqual(input);
+  await queue.getByLabel('Instructor timeline view').selectOption('followups');await expect(queue).toContainText('Showing 1 to 1 of 1');
+  await timeline.getByLabel('Discussed at 0.5s',{exact:true}).click();await expect(timeline).toContainText('No markers match this view');
+  await queue.getByLabel('Instructor timeline view').selectOption('all');await expect(timeline.getByLabel('Discussed at 0.5s',{exact:true})).toBeChecked();await timeline.getByLabel('Discussed at 0.5s',{exact:true}).uncheck();
+  await queue.getByLabel('Instructor timeline view').selectOption('questions');
+  await p.getByLabel('Visible review panel group').selectOption('source');await p.getByLabel('Visible review panel group').selectOption('debrief');await expect(queue.getByLabel('Instructor timeline view')).toHaveValue('questions');
+  await timeline.getByLabel('Import debrief JSON').setInputFiles({name:'queue-sidecar.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(edited.debrief))});await expect(timeline.getByRole('button',{name:'Replace with imported review',exact:true})).toBeVisible();
+  await expect(queue.getByLabel('Instructor timeline view')).toBeDisabled();await expect(timeline.getByRole('button',{name:'Jump to 1.5s',exact:true})).toBeDisabled();await timeline.getByRole('button',{name:'Keep current review',exact:true}).click();
+  await expect(queue.getByLabel('Instructor timeline view')).toHaveValue('questions');expect(await output('queue-canceled-preview-case.json')).toEqual(edited);
+  for(const[width,height,name]of[[1280,1000,'desktop'],[390,900,'mobile']]){await p.setViewportSize({width,height});await queue.evaluate(e=>e.scrollIntoView({block:'start'}));await p.screenshot({path:testInfo.outputPath('discussion-queue-'+name+'.png')});expect(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);}
+  await portable.getByLabel('Open review case JSON',{exact:true}).setInputFiles(testInfo.outputPath('queue-edited-case.json'));await portable.getByRole('button',{name:'Replace local workspace with case',exact:true}).click();
+  await p.getByLabel('Visible review panel group').selectOption('debrief');await expect(queue.getByLabel('Instructor timeline view')).toHaveValue('all');await expect(p.getByLabel('Replay position',{exact:true})).toHaveValue('0');expect(await output('queue-reopened-case.json')).toEqual(edited);
+  expect(await p.evaluate(()=>window.effects)).toEqual([]);expect(errors).toEqual([]);expect(requests).toEqual([]);
+});

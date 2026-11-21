@@ -862,3 +862,21 @@ The local training package panel also checks a received manifest against separat
 ### Private print-ready instructor debriefs
 
 The offline `report-private-debrief` command renders existing case/paired originals into static instructor-readable HTML only with explicit `--include-private-review`. Complete original validation and optional independent raw-artifact pin precede any output. Fixed chapters recompute existing analyst/source/instructor/envelope/comparison reports; private text/marker coordinates/criteria may appear. It is not the redacted intake report or a reopenable/certified record. See [Offline training handoff](offline-training-handoff.md#print-a-private-instructor-debrief-from-an-original) for exact commands, limits, privacy, preservation and print scope.
+
+
+## Focused instructor discussion queue
+
+The instructor timeline has All, undiscussed Question/Follow-up, Question-only
+and Follow-up-only views, ten matching markers per page. Counts cover the full
+timeline. Original elapsed-time order and separate equal-time notes are retained.
+Changing view or page pauses primary playback without seeking or marking anything.
+Jump and Discussed remain explicit per-marker actions. A discussed marker can
+leave an undiscussed view; All restores access to it and its checkbox. Page bounds
+adjust when annotations change. No matches is not completed training or readiness.
+
+This changes presentation only. Every existing sidecar, case and report export
+still includes all saved markers and the full discussion summary, independent of
+the filter/page. Pending sidecar reads/previews block queue navigation and marker
+jump/status/removal until finished or canceled. Filters/pages are session-only,
+not new saved fields. No inferred tasks, priority, grades, reminders, assignments,
+sharing, storage or aircraft commands are created.
