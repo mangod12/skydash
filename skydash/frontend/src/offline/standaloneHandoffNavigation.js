@@ -1,4 +1,5 @@
 const destinations = {
+  combine: 'Instructor review combination tool',
   instructor: 'Instructor original pair handoff',
   synthetic: 'Fixed synthetic handoff starter',
   received: 'Received original ZIP check',
