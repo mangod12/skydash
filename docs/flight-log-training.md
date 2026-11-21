@@ -920,3 +920,18 @@ unfinished edit. The unadded-marker draft and summary remain separate and are
 not silently cleared. No source/cursor/comparison or other review changes; no
 new saved format, automatic storage, sharing, tasks or aircraft commands. Re-export
 a sidecar/case after saving, existing downloaded files are not updated.
+
+
+## Inspect one instructor marker before removing it
+
+Remove marker now previews the exact saved ID, original elapsed time, kind, note
+and discussed state. Nothing is removed until Confirm remove instructor marker.
+Keep instructor marker cancels. Confirmation removes only that ID, not other
+notes at the same elapsed time. Source, cursor, summary, unadded draft and all
+other reviews remain unchanged. This is not an undo/history or completed training.
+
+The preview pauses primary playback and moves keyboard focus to its heading,
+never seeks. Queue changes, other marker actions, own exports/import and portable
+snapshots wait for confirmation or cancellation. Cancel first to export before
+removing. Earlier downloads are unchanged; re-export to retain the new saved list.
+No automatic storage, backend writes, sharing, tasks or aircraft commands.
