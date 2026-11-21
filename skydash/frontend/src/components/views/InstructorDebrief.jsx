@@ -1,3 +1,4 @@
+import InstructorMarkerEvidence from './InstructorMarkerEvidence';
 import InstructorReplacement from './InstructorReplacement';
 import { instructorReplacement, instructorReplacementReport } from '../../utils/instructorReplacement';
 import { instructorDiscussionView } from '../../utils/instructorDiscussionView';
@@ -19,6 +20,8 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
   const [confirmClear, setConfirmClear] = useState(false);
   const [editing,setEditing] = useState(null);
   const [removing,setRemoving] = useState(null);
+  const [evidenceId,setEvidenceId] = useState(null);
+  const evidenceMarker=markers.find(marker=>marker.id===evidenceId);
   const editInput=useRef(null);
   const editOpen=Boolean(editing);
   const removeHeading=useRef(null);
@@ -113,6 +116,7 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
     </section>
     {markers.length>0 && discussion.total===0 && <p className="text-xs text-zinc-400">No markers match this view. Other timeline notes are retained. This is not a completed-review or readiness result.</p>}
     {!markers.length && <p className="text-xs text-zinc-500">Pause or scrub replay above, then add an observation, question or follow-up. Markers are sorted by elapsed time.</p>}
+    {evidenceMarker&&<InstructorMarkerEvidence log={log} marker={evidenceMarker} disabled={busy || Boolean(pending || editing || removing)} onPause={onPause} onSeek={onSeek} onClose={()=>setEvidenceId(null)} />}
     {removing&&<section aria-label="Remove saved instructor marker preview" className="rounded-lg border border-amber-500/30 p-3 space-y-3 text-xs text-zinc-300">
       <h3 ref={removeHeading} tabIndex={-1} className="font-semibold text-amber-200">Remove this one saved instructor marker?</h3><p className="break-words">ID {removing.id}, original {removing.time_s}s, {removing.kind}, discussed {String(removing.discussed)}.</p><p className="whitespace-pre-wrap break-words">{removing.text}</p>
       <p>Confirmation deletes only this saved marker from this session. Same-time notes, source, cursor, summary, unadded draft and other reviews stay unchanged. No undo or update to earlier downloads. Cancel to keep it or export first. Discussion state is not training completion.</p>
@@ -128,7 +132,7 @@ const InstructorDebrief = forwardRef(function InstructorDebrief({ log, time, onS
       const evidence = recordedObservation(log.samples, marker.time_s);
       return <li key={marker.id} className="rounded-lg border border-white/10 p-3 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2"><button type="button" disabled={busy || Boolean(pending) || Boolean(editing || removing)} onClick={() => onSeek(marker.time_s)} className={button}>Jump to {marker.time_s.toFixed(1)}s</button><span className="text-[10px] text-emerald-300">{marker.kind}</span></div>
-        <p className="whitespace-pre-wrap break-words text-xs text-zinc-300">{marker.text}</p><button type="button" className={button} disabled={busy || Boolean(pending) || Boolean(editing || removing)} onClick={()=>editMarker(marker)}>Edit marker at {marker.time_s.toFixed(1)}s</button>
+        <p className="whitespace-pre-wrap break-words text-xs text-zinc-300">{marker.text}</p><button type="button" className={button} disabled={busy || Boolean(pending) || Boolean(editing || removing)} onClick={()=>editMarker(marker)}>Edit marker at {marker.time_s.toFixed(1)}s</button><button type="button" className={button} disabled={busy || Boolean(pending || editing || removing)} onClick={()=>{if(busy || pending || editing || removing)return;onPause();setEvidenceId(marker.id);}}>Inspect source at marker {marker.time_s.toFixed(1)}s</button>
         <p className={`text-[10px] ${evidence.state === 'gap' ? 'text-amber-300' : 'text-zinc-500'}`}>Source sample {evidence.sample.time_s}s, age {evidence.ageS.toFixed(1)}s. {evidence.state === 'gap' ? 'DATA GAP. No observation at marker time.' : 'Context is the latest observation at or before marker time.'}</p>
         <div className="flex flex-wrap items-center justify-between gap-2"><label className="inline-flex gap-2 items-center text-xs text-zinc-400"><input type="checkbox" checked={marker.discussed} disabled={busy || Boolean(pending) || Boolean(editing || removing)} onChange={event => updateMarkers(markers.map(item => item.id === marker.id ? { ...item, discussed: event.target.checked } : item))} /> Discussed at {marker.time_s.toFixed(1)}s</label><button type="button" disabled={busy || Boolean(pending) || Boolean(editing || removing)} onClick={() => { if(busy || pending || editing || removing)return;onPause();setConfirmClear(false);setError('');setMessage('');setRemoving(marker); }} className="text-xs text-zinc-500 hover:text-zinc-200">Remove marker at {marker.time_s.toFixed(1)}s</button></div>
       </li>;
