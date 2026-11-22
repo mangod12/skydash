@@ -732,3 +732,38 @@ Use `npm run verify-discussion-trial -- /path/to/new-trial [--expect-inventory-s
 The app is checked by the unchanged distribution reader without treating its co-delivered inventory digest as an independent pin. Every example file must be byte-identical to the current trusted checkout's fixed synthetic generator. The three actual selected ZIPs then pass fresh current complete-original intake; their current result must match the fixed synthetic intake. Both guides, all eleven inventory entries, exact order/size/digests, false source-version/independent-expectation markers and the raw inventory's stability are checked. The inventory does not cover itself. This is deliberately a current fixed-fabricated-trial checker, not an arbitrary private-recording or general folder checker; older/incompatible generated templates may be refused rather than silently upgraded.
 
 Exit0 emits a privacy-limited momentary JSON receipt with twelve files, three currently checked fixed examples and separate caller-inventory-pin/app-co-delivery status. App independent-pin and source-version verification remain false. Even a fully repaired changed app and co-delivered inventories establish only structural byte agreement, never code trust, revision agreement, authenticated authorship, malware clearance, actual OEM compatibility or certified isolation. Only the trusted installed checkout's generator/validators execute. Independently trust source/build before any separate explicit server action. Exit1 emits generic diagnostics and no receipt; inspect status because shell redirection can leave an empty output. Inputs are never changed. Keep them unchanged during checking and preserve originals, excluded work and unsaved real reviews. No custody, delivery, training-completion, grade, certification, readiness or flight-clearance claim.
+
+## Focus private combination decisions without losing hidden work
+
+Both instructor and checklist combination tools now offer a view-only decision
+queue after the existing fresh validation and explicit private-preview consent.
+Show all IDs, unresolved IDs, same-ID field disagreements, chosen left/right IDs
+or explicitly omitted IDs. A case-insensitive literal substring can narrow any
+view by row ID or either original's saved note, prompt or reason. Searches do not
+join words across fields and exclude whole titles/summaries, statuses, types,
+times and source readings. At most ten rows are mounted per page. Existing row
+labels and comparison order stay unchanged, including annotation labels on a filtered page. Same-ID field
+changes do not include an order-only checklist difference; original ordinals and
+order differences remain visible in each original item row.
+
+Ranges distinguish matching IDs from the complete checked snapshot. An empty
+view does not mean every decision is resolved, nor agreement or completeness.
+Every original ID, including hidden pages and filtered-out rows, still enters the
+existing unresolved/candidate-size gates. The whole title or summary remains a
+separate explicit decision. The existing bulk action still covers all unresolved
+nonconflicting IDs across the complete snapshot, not only the current view, and
+never overwrites existing omissions or disagreements.
+
+Changing a view or page changes no original, decision, private acknowledgement,
+pending decision plan or prepared candidate. A decision edit still drops the
+candidate and pending plan even when reverted. Changing an original/pin/consent
+still drops the complete private snapshot, decisions and queue view. Close only
+hides session state; reset decision view changes no decisions. Existing sidecar,
+checklist and decision-plan formats, limits and downloads are unchanged. No new
+storage, file reads, automatic choices/downloads, source evidence, replay changes,
+network, sharing, backend writes or aircraft commands. No completion, shared
+authorship, trusted identity, consensus or readiness claims are added.
+
+The normal startup JavaScript and existing755KiB total-JS guard are unchanged;
+this component is only in the explicit standalone recorded-review build. This
+is a bounded rendering change, not a measured latency or frame-rate claim.
