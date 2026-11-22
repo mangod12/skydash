@@ -1,3 +1,4 @@
+import {prepareChecklistCombination} from './checklistCombination';
 import {renderPrivateDiscussionComparison} from './privateDiscussionSnapshotPacket';
 import {prepareInstructorCombination} from './instructorCombination';
 import {discussionSnapshotComparison} from './discussionSnapshotComparison';
@@ -62,3 +63,15 @@ export async function privateDiscussionSnapshotPacket(leftFile,rightFile,{includ
  for(const[result,options]of[[one,left],[two,right]])if(options.validatedArchiveSha256&&options.validatedArchiveSha256.toLowerCase()!==result.summary.archiveDigest)throw Error('Changed checked archive.');
  return renderPrivateDiscussionComparison(one,two);
 }
+
+// Complete checked originals feed explicit private checklist decisions only.
+export async function prepareReceivedChecklistCombination(leftFile,rightFile,{allowPrivateReview=false,left={},right={}}={}){
+ if(allowPrivateReview!==true||!left||!right||typeof left!=='object'||typeof right!=='object'||Array.isArray(left)||Array.isArray(right))throw Error('Explicit private acknowledgement and separate options required.');
+ const one=await checked(leftFile,left),two=await checked(rightFile,right);
+ if(one.summary.originals.source.sha256!==two.summary.originals.source.sha256)throw Error('Same exact raw CSV required.');
+ const file=(archive,name)=>{const bytes=archive.originals.get(name);return {size:bytes.length,arrayBuffer:async()=>bytes};};
+ const expected={source:left.expected?.source||right.expected?.source||'',left:left.expected?.checklist||'',right:right.expected?.checklist||''};
+ const snapshot=await prepareChecklistCombination({source:file(one,'originals/source.csv'),left:file(one,'originals/checklist.json'),right:file(two,'originals/checklist.json')},{allowPrivateReview:true,expected});
+ return {...snapshot,archiveEvidence:{left:one.summary,right:two.summary}};
+}
+
