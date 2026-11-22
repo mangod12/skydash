@@ -1,4 +1,5 @@
 const destinations = {
+  checklistCompare: 'Checklist review comparison tool',
   instructorAgenda: 'Instructor discussion agenda tool',
   combine: 'Instructor review combination tool',
   instructor: 'Instructor original pair handoff',

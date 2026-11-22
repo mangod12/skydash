@@ -1246,3 +1246,40 @@ transport review required. Not approved procedure, operational preflight checkli
 assessment, task assignment, notifications, authentication/custody, complete backup,
 competence/completion or readiness. No network, storage, upload/sharing, aircraft
 commands, source repair, active replay reads/changes or pause/seek.
+
+## Compare two source-bound discussion checklist originals
+
+Use the standalone handoff chooser's "Compare two discussion checklists". Select
+one complete original CSV and two separately exported source-bound checklist JSON
+originals. This is not the reusable template format. Templates are refused, even if
+prompt IDs happen to match. All three originals are checked using current models,
+strict UTF-8, exact source binding and existing bounds (CSV 1 MiB, each review
+128 KiB, 30 prompts each). Optional separate complete-file SHA-256 expectations
+are checked before parsing; get them through an independent trusted route.
+Private-preview consent is required before reads and consumed on validation.
+
+Inspect full original titles and prompt/status/note/row fields side by side. Exact
+IDs only, never similar words, are paired. Matching IDs/words do not establish
+lineage, authorship, identity or revision history, including IDs created separately
+from templates. Results preserve left order, then right-only IDs; both original
+ordinals are shown. Equal means those four fields match, not that order matches.
+Order differences remain separate. Absent is not deleted or completed. Empty
+reviews and 60-row unions are supported without truncation. Union counts are not
+independent task/student totals, scores or review completeness.
+
+Original row references show actual original row/time/previous spacing recomputed
+from the exact CSV. No source readings or coordinates in the preview/report.
+Every between-row interval remains unsampled, no interpolation or proof/causation.
+Reviewer Discussed/Not applicable status remains an unverified human annotation,
+not training performance, competence, completion, applicability truth or readiness.
+No recommendations, merge, prompt/status transfer or new checklist are generated.
+
+Download only by explicit action. The sensitive editable plain-text report contains
+all original private titles/IDs/prompts/notes/status/ordinals, source and complete
+original hashes, and referenced source times. Not anonymized, not a reopenable
+backup or decision audit. Inspect audience and secure transport; keep CSV and both
+original checklist JSON separately. All file/hash/ack edits drop results, even if
+reverted. Inputs lock during validation. Close hides state; clear affects only this
+tool; refresh drops it. No active replay/checklist reads or changes, pause/seek,
+source repair, original overwrite, network, storage, upload/sharing, notifications,
+aircraft commands, approved procedure or authenticated custody.
