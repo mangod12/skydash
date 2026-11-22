@@ -753,11 +753,11 @@ Read `START-HERE.txt`. Verify `app/` using the separate trusted checkout, indepe
 
 ### Read-only whole-trial receiver check
 
-Use `npm run verify-discussion-trial -- /path/to/new-trial [--expect-inventory-sha256 HEX]` from a separate trusted installed checkout. The optional raw `trial.json` expectation is checked before JSON parsing or app/example processing. Obtain it independently; a fingerprint delivered with the folder cannot authenticate itself. The checker requires the exact canonical twelve-file current trial layout, bounded directories/regular files and no symlink aliases. It reads only fixed own paths and the existing app reader's fixed bounded layout, never a path selected by received inventory text. No extraction, writes, server/browser launch, install, import, network or sharing.
+Use `npm run verify-discussion-trial -- /path/to/new-trial [--expect-inventory-sha256 HEX] [--expect-app-manifest-sha256 HEX]` from a separate trusted installed checkout. The optional raw `trial.json` expectation is checked before JSON parsing or app/example processing. Obtain it independently; a fingerprint delivered with the folder cannot authenticate itself. The checker requires the exact canonical twelve-file current trial layout, bounded directories/regular files and no symlink aliases. It reads only fixed own paths and the existing app reader's fixed bounded layout, never a path selected by received inventory text. No extraction, writes, server/browser launch, install, import, network or sharing.
 
 The app is checked by the unchanged distribution reader without treating its co-delivered inventory digest as an independent pin. Every example file must be byte-identical to the current trusted checkout's fixed synthetic generator. The three actual selected ZIPs then pass fresh current complete-original intake; their current result must match the fixed synthetic intake. Both guides, all eleven inventory entries, exact order/size/digests, false source-version/independent-expectation markers and the raw inventory's stability are checked. The inventory does not cover itself. This is deliberately a current fixed-fabricated-trial checker, not an arbitrary private-recording or general folder checker; older/incompatible generated templates may be refused rather than silently upgraded.
 
-Exit0 emits a privacy-limited momentary JSON receipt with twelve files, three currently checked fixed examples and separate caller-inventory-pin/app-co-delivery status. App independent-pin and source-version verification remain false. Even a fully repaired changed app and co-delivered inventories establish only structural byte agreement, never code trust, revision agreement, authenticated authorship, malware clearance, actual OEM compatibility or certified isolation. Only the trusted installed checkout's generator/validators execute. Independently trust source/build before any separate explicit server action. Exit1 emits generic diagnostics and no receipt; inspect status because shell redirection can leave an empty output. Inputs are never changed. Keep them unchanged during checking and preserve originals, excluded work and unsaved real reviews. No custody, delivery, training-completion, grade, certification, readiness or flight-clearance claim.
+Exit0 emits a privacy-limited momentary JSON receipt with twelve files, three currently checked fixed examples and separate caller-inventory-pin/app-co-delivery status. App independent-pin status is true only when a separate caller app-manifest expectation was explicitly supplied and matched; source-version verification remains false. Even a fully repaired changed app and co-delivered inventories establish only structural byte agreement, never code trust, revision agreement, authenticated authorship, malware clearance, actual OEM compatibility or certified isolation. Only the trusted installed checkout's generator/validators execute. Independently trust source/build before any separate explicit server action. Exit1 emits generic diagnostics and no receipt; inspect status because shell redirection can leave an empty output. Inputs are never changed. Keep them unchanged during checking and preserve originals, excluded work and unsaved real reviews. No custody, delivery, training-completion, grade, certification, readiness or flight-clearance claim.
 
 ## Focus private combination decisions without losing hidden work
 
@@ -854,3 +854,46 @@ reusable template still excludes source/status/notes/references. Hidden original
 are not silently discarded or truncated. No active-review reads/changes, clock
 changes, automatic downloads/imports, storage, network, backend writes, sharing,
 new normal-startup payload, grades, certification or readiness claims are added.
+
+## Read a fresh fixed-trial receiver check as offline HTML
+
+From a separate trusted installed checkout's `skydash/frontend`, run
+`node scripts/report-discussion-trial.mjs TRIAL-DIR [--expect-inventory-sha256 HEX] [--expect-app-manifest-sha256 HEX] > trial-check.html`.
+For npm redirection use `npm run --silent report-discussion-trial -- TRIAL-DIR`.
+This freshly checks the entire actual twelve-file fixed trial folder with the
+same bounded canonical/no-symlink reader, current fixed synthetic generator and
+complete-original intake as `verify-discussion-trial`. A saved receipt or JSON
+inventory is not accepted as a replacement input. No selected executable assets
+are run, no verifier is taken from the received folder and no files are changed.
+
+Both JSON verification and HTML reporting accept either optional independent pin
+or both, in either order, once each. The raw `trial.json` expectation is checked
+before its JSON is parsed. The separate raw `app/distribution.json` expectation
+is checked before selected application asset bytes are read. Obtain expectations
+independently, never from the co-delivered inventory or this generated report.
+Absent pins remain explicitly absent; a co-delivered match never fills them.
+Default JSON fields and existing folder formats remain unchanged. A matched
+caller value means byte agreement with that value, not authenticated authorship,
+trusted code, verified source/build revision or malware clearance.
+
+The self-contained static report shows the twelve-file/three-fixed-example scope,
+both reproducibility fingerprints, separate actual caller-pin status, exact-byte
+checks, unverified claims and manual preservation steps. Private paths, original
+review words, coordinates and individual readings are omitted; hashes and
+code-presence metadata can still be sensitive. No scripts, external assets,
+sign-off controls or automatic opening/printing are included. Desktop/mobile and
+A4 styles need no network. Inspect the audience and print preview yourself.
+
+Exit0 means the complete fresh check and HTML preparation succeeded, never code
+trust, delivery, accepted training or readiness. Exit1 refuses with no report and
+generic diagnostics. Shell redirection is a separate save action and can leave
+an empty or partial output, so inspect exit status and the result. Save the HTML
+outside the checked trial folder so the exact twelve-file layout stays unchanged.
+This editable unsigned snapshot never updates and is not a backup or reopenable
+workspace.
+Rerun current checks after changes; retain every exact input, the trusted checkout
+and license notices, real originals and unsaved reviews separately. Independently
+trust executable source/build before any separate explicit app-only loopback
+server action. No writes by the command, extraction, installation, serving,
+browser launch, import, replay changes, network, sharing, backend write or aircraft
+command, and no grade, certification or flight-clearance claim is added.
