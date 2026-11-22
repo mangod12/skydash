@@ -665,3 +665,20 @@ The command never saves output itself. Shell redirection is a separate save acti
 and can leave an empty or partial report. Check exit status and every refused row
 before using output, confirm audience/secure transport, and retain every exact
 input and excluded artifact separately. This is not a backup or permission to share.
+
+### Read or print the selected discussion intake without private original words
+
+From an installed trusted checkout's `skydash/frontend`:
+
+```sh
+node scripts/report-discussion-intake.mjs INPUT1.zip INPUT2.zip > intake.html
+npm run --silent report-discussion-intake -- INPUT1.zip INPUT2.zip > intake.html
+```
+
+Replace the paths yourself. This checks every explicitly selected complete ZIP and every included original again with the current intake validators before printing one self-contained static HTML document. A saved JSON inventory, received receipt or earlier HTML is never accepted instead of originals. The same one-to-ten canonical no-symlink regular input paths, including parent paths,20MiB total/2MiB per ZIP and separate optional `--expect-input-N-archive-sha256`, `--expect-input-N-source-sha256`, `--expect-input-N-checklist-sha256` and `--expect-input-N-instructor-sha256` flags apply. Paths precede flags; `N` is the one-based selected position. Obtain expected complete-file digests independently. Generated hashes never populate expectations or authenticate authorship.
+
+Check the process exit status before using the document: **0** means all selected archives structurally checked, **2** means valid partial/all-refused HTML, and **1** means configuration/build failure with no report. Shell redirection can still leave an empty or partial output file. A readable HTML file is not proof that every input checked. Refused positions remain explicit and generic with no verified inventory or private errors; later selected inputs continue independently. Over-limit or malformed batch configuration emits no partial document. The command itself writes nothing and performs no extraction, restoration, network, upload, sharing, backend write or aircraft command.
+
+The readable per-input chapters retain exact complete-archive/raw-original fingerprints, separate caller-expectation flags, source sample bounds, per-original prompt/annotation counts, actual instructor inclusion and byte relations to the first earlier checked selected position. No cross-original prompt/status/time/training totals, automatic pairing, chronology, student/aircraft/flight identity, shared lineage or acceptance decision is inferred. Excluded instructor means not included, not an empty review. Source seconds have an unverified time basis; intervals remain unsampled, not observed elapsed flight time. Counts and human annotations do not prove completion or readiness.
+
+The report omits original paths, filenames, titles, IDs, prompts, notes, summaries, coordinates, individual readings and private error diagnostics. Hashes, counts, bounds and reuse patterns remain sensitive, not anonymized. Desktop/mobile layout, a local position index and A4 print styles need no scripts or external assets. Open the HTML locally and inspect print preview yourself before printing or saving PDF. It is editable unsigned output, not authenticated history/custody, source truth, a source backup, a reopenable workspace, complete handoff certificate, grade, certification or flight clearance. Preserve every original and excluded artifact separately, review the audience and use approved transport yourself.
