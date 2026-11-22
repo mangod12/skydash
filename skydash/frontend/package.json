@@ -20,6 +20,7 @@
     "verify-notebook-review": "node scripts/verify-notebook-review.mjs",
     "verify-training-manifest": "node scripts/verify-training-manifest.mjs",
     "verify-csv-conversion": "node scripts/verify-csv-conversion.mjs",
+    "verify-offset-time-input": "node scripts/verify-offset-time-input.mjs",
     "verify-training-lineage": "node scripts/verify-training-lineage.mjs",
     "compare-notebook-reviews": "node scripts/compare-notebook-reviews.mjs",
     "report-instructor-comparison": "node scripts/report-instructor-comparison.mjs",
