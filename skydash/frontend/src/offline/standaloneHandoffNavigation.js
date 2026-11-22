@@ -1,4 +1,5 @@
 const destinations = {
+  discussionOriginals: 'Discussion originals handoff',
   checklistPrint: 'Original checklist print tool',
   checklistCompare: 'Checklist review comparison tool',
   instructorAgenda: 'Instructor discussion agenda tool',
