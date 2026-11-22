@@ -388,3 +388,73 @@ Every preparation consumes consent, freshly checks the complete ZIP and every or
 The bounded2MiB static escaped HTML has desktop/mobile/A4 styles, no scripts, external assets, forms, links, signature/sign-off or progress score. Oversized output refuses the whole packet. Only a separate **Download complete private discussion HTML** click requests saving. Open locally and inspect browser print preview yourself before printing or saving PDF; long notes/page breaks vary by printer. Private words stay out of the on-screen prepared-count summary but appear in downloaded HTML. File/pin edits clear inventory and private output even if reverted; consent edits clear private output; private Clear affects only that output. Other original-role downloads/role choices stay separate. Closing retains session state, refresh/tab close loses it.
 
 No automatic opening/printing, original extraction, replay import/replacement, active-workspace reads/changes, pause/seek, storage, network, upload/sharing, notifications, backend writes or aircraft commands. HTML is sensitive, unsigned, editable and not anonymized; it embeds no exact raw original payload and cannot restore a workspace. Preserve original ZIP/CSV/checklist/instructor and excluded analyst notes, notebook, comparison, mapping originals/recipes, unadded drafts, recovery and library separately. It does not authenticate custody/authorship, source truth, full handoff, completion, certification or flight clearance. Confirm the audience and transport yourself.
+
+## Combine instructor originals directly from two received discussion ZIPs
+
+In the standalone "Combine two instructor reviews explicitly" tool, choose the
+"Two complete received discussion ZIPs" input route. The default original CSV plus
+two instructor JSON route is unchanged. Switching input routes explicitly clears
+all original/ZIP selections, pins, private acknowledgement, preview, decisions and
+candidate, even when switching back. Clear drops those states for this tool only
+and retains the selected route; other tools, active replay and saved downloads are
+unchanged.
+
+Choose two complete separate discussion-originals ZIPs, not training-package ZIPs.
+Each must be the exact4/5-entry stored format, at most2MiB, with an actual instructor
+original on **both** sides and the same complete raw CSV bytes. Equivalent parsed
+samples with different CSV whitespace/line endings are refused. Explicitly
+acknowledge display of both complete private instructor reviews, then validate.
+Both whole archives, strict header/order/CRC reconstruction and every current
+CSV/checklist/instructor original validate before any private preview. Both
+checklists are checked even though their words/statuses/rows are excluded from
+combination. Received guide/receipt remain inert bytes, never rendered/executed or
+used as success evidence. There is no arbitrary archive extraction or raw-original
+download, source repair, replay import or checklist-to-instructor mapping.
+
+Optional independent complete-file SHA-256 expectations cover each archive,
+source CSV, checklist and instructor original separately. Obtain them through a
+separate trusted route, not from received/freshly calculated hashes. The checked
+archive evidence shows the exact per-side archive/original fingerprints and
+whether each actual caller expectation was supplied and matched. Whole-archive
+pins and generated hashes are never promoted to independent raw-file pins. In the
+existing three-original preview, source expectation is true only when a caller
+source pin was actually checked on either of the identical sources; each instructor
+expectation comes only from that side's actual raw-instructor pin. Both original
+source hashes remain separately visible in the archive evidence.
+
+The existing private combination decisions then apply without automatic marker or
+summary choices. All current-model exact IDs and complete private notes/whole
+summaries are shown literally. Same-ID disagreements require an explicit complete
+Left marker, complete Right marker or omission; no field blending, auto-renaming,
+checkbox OR, guessed similarity/time matching or chronology. Different IDs remain
+separate even at equal times/with equal notes. The optional bulk action handles
+only still-unresolved nonconflicting rows and never overrides explicit omissions
+or disagreements. Choose one whole summary or explicitly empty. Every annotation
+and summary must be resolved; the existing100-marker/256KiB candidate bounds apply.
+
+Output is the same new source-bound instructor JSON, never repacked discussion
+ZIPs, an altered checklist, an applied review or an authenticated history. Keep both
+original ZIPs and the new candidate separately. If source CSV is needed for manual
+reopening, use the separate trusted receiver's explicit selected-original download,
+then manually choose CSV and preview/import the new instructor JSON with its own
+confirmation. No automatic reopening, replacement, sharing or upload occurs.
+
+Existing explicit decision-progress download/import still works. It binds choices
+to the three complete raw CSV/Left-instructor/Right-instructor fingerprints, not
+ZIP guide/receipt bytes or excluded checklists. Revalidate chosen archives first,
+then inspect and explicitly restore a progress replacement preview; restoring does
+not prepare/download a candidate or apply anything to replay. Altered raw originals
+refuse the old plan. Identical raw originals inside different ZIP wrappers are not
+authenticated archive identity or revision history. Every file/pin/acknowledgement
+edit drops preview/choices/candidate even if reverted; validation consumes consent.
+
+Private words may include coordinates/personal details. No original CSV coordinate/
+channel readings are added to the private preview. Hashes/counts remain sensitive,
+not authentication. Left/Right are chosen sides, not verified author identity,
+authority, chronology, shared lineage or consensus. Absence is not a deletion
+instruction. Statuses/discussed checkboxes remain unverified human annotations,
+never approved procedure, competence, completion, grades, certification, flight
+clearance or readiness. No source/original writes, repair, active-workspace reads/
+changes, pause/seek, storage, network, backend writes, notifications or aircraft
+commands. Excluded workspace data and unfinished drafts still need their own
+preservation. Closing only hides session state; refresh/tab close drops it.
