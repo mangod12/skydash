@@ -1205,3 +1205,44 @@ state. Downloads require explicit action and audience/transport review. Plan and
 candidate are separate, neither is a workspace backup, signed authority, decision
 audit, consensus, completion or readiness record. No automatic storage, network,
 upload/sharing, source repair, replay/cursor changes or aircraft commands.
+
+
+## Build a fresh discussion checklist from instructor annotations
+
+In the standalone site's handoff task chooser use "Build a checklist from instructor
+notes". Select complete original CSV/instructor JSON with optional independent raw
+hashes. Private-preview acknowledgement is required before reads and consumed on
+validation. Current CSV/instructor models, exact source binding, strict UTF-8 and
+file/marker/summary bounds validate both originals before displaying any notes.
+Nothing is selected automatically; original discussed flags do not select prompts.
+
+Choose 1 to 30 annotations, preserving separate same-time IDs, and name the agenda.
+Selection order is explicit and can be moved earlier/later. Each selected original
+note seeds editable prompt wording, including notes longer than the checklist's
+500-character limit. Long notes are never silently truncated; shorten explicitly or
+deselect before preparing. No summary-to-prompt conversion. Original summary is
+private context only, not copied into title, prompt notes or outcomes.
+
+Every prompt starts Pending with blank reviewer notes. Optional original-row
+reference defaults to none. Explicitly choose the earlier held original row only
+if wanted; UI shows exact row/time/age/gap and warns that a gap marker is not an
+observation at marker time. No interpolated/cursor row invented, no source readings
+copied. The source-bound checklist carries selected references; the separate reusable
+template exports title/prompts/new sequential IDs only, no source/status/notes/rows.
+Original instructor IDs/kinds/times/discussion state/summary are not checklist fields.
+No provenance/audit lineage is claimed. Prompt words themselves may contain claims.
+
+Inspect the prepared agenda and download only the intended format. Keep exact CSV
+and original instructor review separately. Manually preview/import through the
+existing discussion checklist opener, then explicitly replace that checklist if
+wanted. No automatic replay or existing checklist changes during preparation. Both
+formats retain current checklist 30-prompt/title/text/128 KiB bounds, no truncation.
+Templates reset all progress/references on the selected source as before.
+
+All file/hash/ack edits drop preview/selections/output even if reverted. Any title,
+prompt, reference or order edit stales output. Closing hides state; clear affects only
+this tool; refresh drops it. Sensitive editable unencrypted output, audience and
+transport review required. Not approved procedure, operational preflight checklist,
+assessment, task assignment, notifications, authentication/custody, complete backup,
+competence/completion or readiness. No network, storage, upload/sharing, aircraft
+commands, source repair, active replay reads/changes or pause/seek.

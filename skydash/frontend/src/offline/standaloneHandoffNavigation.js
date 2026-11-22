@@ -1,4 +1,5 @@
 const destinations = {
+  instructorAgenda: 'Instructor discussion agenda tool',
   combine: 'Instructor review combination tool',
   instructor: 'Instructor original pair handoff',
   synthetic: 'Fixed synthetic handoff starter',
