@@ -52,14 +52,20 @@ async function siteEntries(root) {
   if (entries.reduce((sum, [, bytes]) => sum + bytes.length, 0) > 16 * 1024 * 1024) throw Error('Build too large.');
   return entries;
 }
+export async function prepareOfflineDistribution(buildPath) {
+  const root = await directory(buildPath);
+  const entries = await siteEntries(root); entries.push(['START.txt', Buffer.from(distributionGuide)]);
+  const manifest = Buffer.from(JSON.stringify({ format: 'skydash-standalone-distribution-v1', files: entries.map(([path, bytes]) => ({ path, bytes: bytes.length, sha256: hash(bytes) })) }, null, 2) + '\n');
+  const files = [...entries, ['distribution.json', manifest]], bytes = storedZip(files);
+  const receipt = { format: 'skydash-standalone-distribution-write-v1', exact_archive_sha256: hash(bytes), exact_manifest_sha256: hash(manifest), archive_bytes: bytes.length, file_count: entries.length + 1, scope };
+  return { entries: files, bytes, receipt };
+}
 export async function writeOfflineDistribution(buildPath, outputPath) {
   const root = await directory(buildPath), output = resolve(outputPath), canonicalOutput = join(await realpath(dirname(output)), basename(output)), child = relative(root, canonicalOutput);
   if (!child || (!isAbsolute(child) && child !== '..' && !child.startsWith('..' + sep))) throw Error('Output must be outside input.');
-  const entries = await siteEntries(root); entries.push(['START.txt', Buffer.from(distributionGuide)]);
-  const manifest = Buffer.from(JSON.stringify({ format: 'skydash-standalone-distribution-v1', files: entries.map(([path, bytes]) => ({ path, bytes: bytes.length, sha256: hash(bytes) })) }, null, 2) + '\n');
-  const bytes = storedZip([...entries, ['distribution.json', manifest]]), file = await open(output, 'wx', 0o600);
+  const { bytes, receipt } = await prepareOfflineDistribution(root), file = await open(output, 'wx', 0o600);
   try { await file.writeFile(bytes); } finally { await file.close(); }
-  return { format: 'skydash-standalone-distribution-write-v1', exact_archive_sha256: hash(bytes), exact_manifest_sha256: hash(manifest), archive_bytes: bytes.length, file_count: entries.length + 1, scope };
+  return receipt;
 }
 export async function readVerifiedOfflineSite(input, expected = '') {
   if (expected !== '' && !pin(expected)) throw Error('Invalid independent expectation.');
