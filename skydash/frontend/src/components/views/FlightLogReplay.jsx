@@ -57,7 +57,7 @@ async function verifiedRecord(data) {
   return { ...data, samples };
 }
 
-export default function FlightLogReplay({ SourceInterval, SourceTimeInput, ColumnMapper = CSVColumnMapping, onBack, backLabel = 'Back to Scenario Lab', backDestination = 'Scenario Lab' }) {
+export default function FlightLogReplay({ SourceInterval, SourceTimeInput, BaselineMapper, ColumnMapper = CSVColumnMapping, onBack, backLabel = 'Back to Scenario Lab', backDestination = 'Scenario Lab' }) {
   const canWrite = useCan('analyst');
   const pendingExit = useUIStore(state => state.pendingRecordedExit);
   const debriefRef = useRef(null), comparisonRef = useRef(null);
@@ -285,7 +285,7 @@ export default function FlightLogReplay({ SourceInterval, SourceTimeInput, Colum
             <div hidden={!reviewPanelVisible(panelFocus, 'debrief')} data-review-panel="DebriefFollowup"><DebriefFollowup onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} key={`followup-${log.sha256}-${reviewRevision}`} log={log} workspaceBusy={busy} getSnapshot={followupSnapshot} onApply={applyFollowup} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div>
             <div hidden={!reviewPanelVisible(panelFocus, 'debrief')} data-review-panel="DebriefActions"><DebriefActions ref={actionsRef} initialReview={currentFollowup?.actions || null} key={`actions-${log.sha256}-${reviewRevision}-${followupRevision}`} log={log} time={time} disabled={busy} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} /></div>
             <div hidden={!reviewPanelVisible(panelFocus, 'debrief')} data-review-panel="DebriefChecklist"><DebriefChecklist ref={checklistRef} initialReview={currentFollowup?.checklist || null} key={`checklist-${log.sha256}-${reviewRevision}-${followupRevision}`} log={log} time={time} disabled={busy} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} /></div>
-            <FlightComparison ref={comparisonRef} openedReview={comparisonSeed} key={`comparison-${log.sha256}-${reviewRevision}`} primary={{ ...log, title: title.trim(), notes }} />
+            <FlightComparison ColumnMapper={BaselineMapper} ref={comparisonRef} openedReview={comparisonSeed} key={`comparison-${log.sha256}-${reviewRevision}`} primary={{ ...log, title: title.trim(), notes }} />
           </> : <div className="rounded-xl border border-dashed border-white/10 p-8 text-sm text-zinc-500">Choose a CSV, load the synthetic sample, or reopen a server record to replay and debrief. This view does not change the live fleet or Scenario Lab scores.</div>}
         </div>
       </div>
