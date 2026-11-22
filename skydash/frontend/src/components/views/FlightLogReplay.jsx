@@ -57,7 +57,7 @@ async function verifiedRecord(data) {
   return { ...data, samples };
 }
 
-export default function FlightLogReplay({ SourceInterval, SourceTimeInput, onBack, backLabel = 'Back to Scenario Lab', backDestination = 'Scenario Lab' }) {
+export default function FlightLogReplay({ SourceInterval, SourceTimeInput, ColumnMapper = CSVColumnMapping, onBack, backLabel = 'Back to Scenario Lab', backDestination = 'Scenario Lab' }) {
   const canWrite = useCan('analyst');
   const pendingExit = useUIStore(state => state.pendingRecordedExit);
   const debriefRef = useRef(null), comparisonRef = useRef(null);
@@ -203,7 +203,7 @@ export default function FlightLogReplay({ SourceInterval, SourceTimeInput, onBac
       <SourceReplacementPreview current={log} candidate={pendingSource} disabled={busy} onCancel={() => { if (busy) return; setPendingSource(null); setError(''); setMessage('Source replacement canceled. Current recorded workspace kept; playback stays under manual control.'); }} onConfirm={() => { if (busy || !pendingSource) return; const checked = pendingSource; applyCheckedSource(checked); setError(''); setMessage('Checked source opened at zero. Previous local reviews and comparison cleared after confirmation. No server record changed or created.'); }} />
       {log && <ReviewFocus focus={panelFocus} onChange={changeFocus} onNavigate={navigateSection} disabled={busy} />}
       {SourceTimeInput && <SourceTimeInput workspaceBusy={busy} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} />}
-      <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><CSVColumnMapping key={`mapper-${rawOpenRevision}`} workspaceBusy={busy} onOpen={openMapped} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
+      <details className="rounded-xl border border-orange-500/20 p-3"><summary className="cursor-pointer text-xs text-orange-200">Map another numeric CSV (explicit columns and units)</summary><div className="mt-3"><ColumnMapper key={`mapper-${rawOpenRevision}`} workspaceBusy={busy} onOpen={openMapped} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
       <details className="rounded-xl border border-fuchsia-500/20 p-3"><summary className="cursor-pointer text-xs text-fuchsia-200">Device-local review library (explicit storage, not a backup)</summary><div className="mt-3"><LocalReviewLibrary key={`library-${rawOpenRevision}`} hasSource={Boolean(log)} workspaceBusy={busy} getSnapshot={caseSnapshot} onOpen={openCase} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} /></div></details>
       <NotebookSourceBundle key={`notebook-bundle-${sourceRevision}-${reviewRevision}`} workspaceBusy={busy} onOpen={openNotebookBundle} onPause={()=>{setPlaying(false);setPlaybackWindow(null);}} />
       <PairedReviewBundle key={`paired-bundle-${sourceRevision}-${reviewRevision}`} hasSource={Boolean(log)} workspaceBusy={busy} getSnapshot={() => { const primary = caseSnapshot(); if (!comparisonRef.current) throw new Error('Load both sources before exporting a paired review.'); return { primary, comparison: comparisonRef.current.snapshot() }; }} onOpen={openPairedBundle} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} />

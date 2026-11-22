@@ -6,9 +6,14 @@ import { MAPPING_FIELDS, MAPPING_SCOPE, readMappingCSV, convertMappedCSV, mappin
 const button = 'inline-flex items-center justify-center gap-2 rounded-lg border border-orange-500/25 bg-orange-500/10 px-3 py-2 text-xs text-orange-200 disabled:opacity-40 disabled:cursor-not-allowed';
 const input = 'mt-1 w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs text-zinc-200';
 const empty = () => ({ columns: Object.fromEntries(MAPPING_FIELDS.map(field => [field.key, null])), timeUnit: '', timeOrigin: '', altitudeUnit: 'm', speedUnit: 'm/s', coordinateReference: '' });
-export default function CSVColumnMapping({ onOpen, onPause, workspaceBusy = false, destination = 'primary' }) {
+export default function CSVColumnMapping({ onOpen, onPause, workspaceBusy = false, destination = 'primary', initialCSV = null }) {
   const isBaseline = destination === 'baseline';
-  const [source, setSource] = useState(null), [mapping, setMapping] = useState(empty), [result, setResult] = useState(null);
+  const [source, setSource] = useState(() => {
+    if (!initialCSV) return null;
+    const { text, filename } = initialCSV;
+    if (typeof filename !== 'string' || !filename.trim() || filename.length > 120) throw Error('Invalid explicit initial mapping input.');
+    return { ...readMappingCSV(text), text, filename, revision: 1 };
+  }), [mapping, setMapping] = useState(empty), [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState(''), [confirm, setConfirm] = useState(false);
   const changed = value => { setMapping(value); setResult(null); setConfirm(false); setError(''); setMessage('Mapping changed. Preview conversion again before download or opening.'); };
   const read = async event => {
