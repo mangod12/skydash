@@ -1,4 +1,5 @@
 const destinations = {
+  discussionExamples: 'Fixed synthetic discussion starter',
   discussionIntake: 'Discussion originals intake queue',
   checklistCombine: 'Checklist review combination tool',
   discussionCompare: 'Received discussion snapshot comparison',
