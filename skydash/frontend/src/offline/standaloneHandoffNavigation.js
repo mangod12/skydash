@@ -1,4 +1,5 @@
 const destinations = {
+  discussionTrial: 'Guided fabricated discussion trial',
   discussionExamples: 'Fixed synthetic discussion starter',
   discussionIntake: 'Discussion originals intake queue',
   checklistCombine: 'Checklist review combination tool',
