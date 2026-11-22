@@ -458,3 +458,75 @@ clearance or readiness. No source/original writes, repair, active-workspace read
 changes, pause/seek, storage, network, backend writes, notifications or aircraft
 commands. Excluded workspace data and unfinished drafts still need their own
 preservation. Closing only hides session state; refresh/tab close drops it.
+
+## Explicit whole-item discussion checklist reconciliation
+
+Use **Combine two checklists explicitly** in the standalone handoff chooser.
+This is a separate local file tool, never an automatic change to active replay or
+its checklist. Default input is one complete original CSV (1MiB) and two complete
+source-bound checklist JSON originals (128KiB each). Reusable templates are refused.
+Alternatively select two complete received discussion ZIPs (2MiB each, exact stored
+4/5-entry format). Both ZIPs and every original validate, including optional
+instructor originals that are excluded from the checklist choices. Both4-entry,
+both5-entry and mixed presence are supported. Different complete CSV bytes refuse
+combination, even if parsed samples would match. Received guide/receipt are inert,
+not instructions or evidence. No arbitrary extraction, original-role download,
+source repair, instructor-to-checklist mapping or cross-source remapping occurs.
+
+Explicit private acknowledgement is required before either route reads files.
+Every preparation consumes it, locks inputs while checking, and either validates
+all selected originals/current models or refuses the whole preview without private
+diagnostics. Full private titles, exact IDs, prompts, human statuses, notes/reasons
+and original row/time/spacing context are shown literally. Empty saved notes have
+an explicit field label, distinct from literal placeholder words. No original
+source coordinates/channel readings are added, though saved reviewer words may
+contain them. Source row context is discussion context, never causation or proof;
+all intervals remain unsampled, including those at or below5s.
+
+Optional independent SHA-256 pins cover the three raw originals, or all eight
+per-side archive/source/checklist/instructor files for ZIP input. Obtain pins by a
+separate trusted route. An instructor pin on a ZIP requires an actual original.
+Archive evidence keeps each actual caller pin separate. Whole-ZIP/generated hashes
+are never relabeled independent raw-file pins. In the three-original section,
+source expectation means an actual source pin checked on either identical CSV;
+each checklist expectation comes only from that side's actual raw-checklist pin.
+Fingerprints detect byte differences, not authorship or authority.
+
+Every exact-ID row starts unresolved, including equal and one-sided items. Choose
+one complete Left item, one complete Right item, or omission from the new candidate.
+All prompt/status/note/reason/row fields stay together. No blending, status
+precedence, checkbox OR, similar-word/time matching, auto-renaming, guessed
+chronology, lineage or consensus. Absence is not deletion. An optional explicit
+bulk action selects only still-unresolved equal/one-sided items. It never resolves
+same-ID field disagreements or the title and never overwrites existing omissions.
+Choose one exact whole Left or Right title separately, even when titles match.
+
+Candidate order is deliberately Left original order, then Right-only IDs, skipping
+omissions. A Right item choice does **not** move it to its Right original ordinal.
+Original ordinals/order differences are shown separately; inspect the numbered
+complete candidate before downloading. Every ID must be resolved. At most30 items
+and128KiB of current-model JSON are permitted. Oversize refuses the whole candidate,
+never silently dropping/truncating items. Zero chosen items is allowed only through
+explicit choices and a title; zero is not evidence of review completeness.
+
+**Prepare explicitly chosen checklist** validates a new source-bound review and
+shows its exact title and complete new item order/status/notes/row references.
+Only a separate **Download combined checklist JSON** click requests saving the
+fixed-name `skydash-combined-discussion-checklist.json`. It is a new sensitive,
+unsigned, editable review, not a decision log, authenticated revision/history,
+backup, combined ZIP, reusable template or applied checklist. It preserves selected
+human states as human states: Discussed/Not applicable are unverified reviewer
+annotations, never competence, completion, applicability proof, approved procedure,
+grades, certification, flight clearance or readiness. Confirm audience and secure
+transport yourself. Keep both original reviews/ZIPs, exact CSV and excluded work.
+
+If wanted, manually preview/import that new JSON in the existing discussion
+checklist for its exact source; replacement has its own separate confirmation.
+Candidate preparation/download never opens/applies it automatically. Every item or
+title decision stales the candidate. Every file/pin/ack edit drops all private
+choices/output even if reverted. Switching input routes clears both routes' files,
+pins and private states; Clear retains the current route but clears this tool only.
+Closing only hides session state. No decision-progress persistence; refresh/tab
+close drops decisions. No active workspace reads/changes, original/source writes,
+pause/seek, storage, network, backend changes, notifications, upload/sharing or
+aircraft commands.
