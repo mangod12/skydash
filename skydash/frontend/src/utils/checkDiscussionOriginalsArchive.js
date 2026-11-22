@@ -1,3 +1,4 @@
+import {prepareInstructorCombination} from './instructorCombination';
 import {discussionSnapshotComparison} from './discussionSnapshotComparison';
 import {renderDiscussionArchivePacket} from './discussionArchivePacket';
 import {storedZipBytes} from './storedZip';
@@ -38,4 +39,17 @@ export async function privateDiscussionArchivePacket(file,{includePrivateReview=
 // Read-only two-snapshot counts, never a replacement/import or private word report.
 export async function compareDiscussionArchiveSnapshots(leftFile,rightFile,{left={},right={}}={}){
  const one=await checked(leftFile,left),two=await checked(rightFile,right);return discussionSnapshotComparison(one,two);
+}
+
+// Same explicit private decisions, now from two whole checked discussion ZIPs.
+export async function prepareReceivedDiscussionInstructorCombination(leftFile,rightFile,{allowPrivateReview=false,left={},right={}}={}){
+ if(allowPrivateReview!==true||!left||!right||typeof left!=='object'||typeof right!=='object'||Array.isArray(left)||Array.isArray(right))throw Error('Explicit private acknowledgement and separate options required.');
+ const one=await checked(leftFile,left),two=await checked(rightFile,right);
+ if(one.summary.originals.source.sha256!==two.summary.originals.source.sha256||!one.summary.instructorIncluded||!two.summary.instructorIncluded)throw Error('Same exact raw CSV and both actual instructor originals required.');
+ const file=(archive,name)=>{const bytes=archive.originals.get(name);return {size:bytes.length,arrayBuffer:async()=>bytes};};
+ // Only actual caller raw-file expectations cross into the three-original preview.
+ // Whole-ZIP pins and freshly generated digests never become independent raw pins.
+ const expected={source:left.expected?.source||right.expected?.source||'',left:left.expected?.instructor||'',right:right.expected?.instructor||''};
+ const snapshot=await prepareInstructorCombination({source:file(one,'originals/source.csv'),left:file(one,'originals/instructor.json'),right:file(two,'originals/instructor.json')},{allowPrivateReview:true,expected});
+ return {...snapshot,archiveEvidence:{left:one.summary,right:two.summary}};
 }
