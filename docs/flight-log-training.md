@@ -1283,3 +1283,36 @@ reverted. Inputs lock during validation. Close hides state; clear affects only t
 tool; refresh drops it. No active replay/checklist reads or changes, pause/seek,
 source repair, original overwrite, network, storage, upload/sharing, notifications,
 aircraft commands, approved procedure or authenticated custody.
+
+### Privacy-limited checklist comparison receipt from the terminal
+
+```sh
+cd skydash/frontend
+npm run compare-checklist-reviews -- SOURCE.csv LEFT.json RIGHT.json \
+  --expect-source-sha256 INDEPENDENT_COMPLETE_SOURCE_SHA256 \
+  --expect-left-sha256 INDEPENDENT_COMPLETE_LEFT_SHA256 \
+  --expect-right-sha256 INDEPENDENT_COMPLETE_RIGHT_SHA256
+```
+
+All three raw-file pins are optional and independent. This read-only command
+freshly uses the same current browser checklist comparison validators, requires
+regular bounded strict UTF-8 originals and refuses reusable templates. No active
+workspace or earlier receipt substitutes for the exact CSV and two source-bound
+review originals. No private-preview request is needed because this command emits
+no private titles/IDs/prompt/note words, individual statuses, rows, times,
+coordinates or readings. Full private side-by-side text remains an explicit
+browser preview, not a CLI option.
+
+Receipt lists raw-file hashes/expectation results, exact-byte equality, title
+change, normalized field-content equality, original-order equality separately,
+left/right prompt counts, exact-ID row categories, overlapping shared-ID field
+change counts and shared-ID ordinal differences. JSON formatting/key order is not
+content; private whitespace remains content. Array order remains separate even
+when all prompt fields match. New IDs stay separate despite identical wording.
+Empty reviews are permitted without completeness claims. Source and review hashes,
+counts and patterns can still identify sensitive work. Not anonymized or a grade,
+score, per-person/task/flight total, outcome transfer, history or signed authority.
+No files are written, no merge/patch, network, storage, upload/sharing or aircraft
+commands. Failures print a generic diagnostic to stderr, empty stdout, exit 1.
+Keep all originals; this editable receipt is not a reopenable backup and cannot
+replace fresh validation. Help/flags reject unknown, repeated and malformed input.
