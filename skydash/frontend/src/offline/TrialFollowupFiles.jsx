@@ -1,13 +1,15 @@
 import {useEffect,useRef,useState} from 'react';
 import {parseTrialFollowup,serializeTrialFollowup,trialFollowupByteLimit} from './guidedTrialFollowup';
+import {preparePersonalTrialReport,personalTrialStepTitles} from './personalTrialReport';
 const button='rounded border border-cyan-700 px-3 py-2 disabled:opacity-40';
 export default function TrialFollowupFiles({steps,flags,notes,onRestore}){
  const[saveAck,setSaveAck]=useState(false),[replaceAck,setReplaceAck]=useState(false),[preview,setPreview]=useState(null),[reading,setReading]=useState(false),[status,setStatus]=useState('');
+ const[report,setReport]=useState(null),[reportAck,setReportAck]=useState(false);
  const generation=useRef(0);
  useEffect(()=>()=>{generation.current++;},[]);
  const select=async event=>{
   const file=event.currentTarget.files?.[0]||null,ticket=++generation.current;
-  event.currentTarget.value='';setPreview(null);setReplaceAck(false);setSaveAck(false);setReading(false);
+  event.currentTarget.value='';setPreview(null);setReplaceAck(false);setSaveAck(false);setReport(null);setReportAck(false);setReading(false);
   if(!file){setStatus('No personal follow-up selected. Current flags and notes unchanged.');return;}
   if(file.size===0||file.size>trialFollowupByteLimit){setStatus('Personal follow-up refused. Choose the supported JSON, at most 16 KiB. Current flags and notes unchanged.');return;}
   setReading(true);setStatus('Reading only the selected personal follow-up. Nothing replaced.');
@@ -27,12 +29,38 @@ export default function TrialFollowupFiles({steps,flags,notes,onRestore}){
    setStatus('Personal follow-up download requested. Verify saving yourself. No originals, replay or tool-use history included; no sharing performed.');
   }catch{setStatus('Personal follow-up could not be prepared. Current flags and notes unchanged.');}
  };
+ const prepareReport=()=>{
+  if(reading)return;
+  setReport(null);setReportAck(false);
+  try{setReport(preparePersonalTrialReport(flags,notes));setStatus('Readable personal follow-up prepared. Inspect all five flags and complete notes below. Nothing downloaded or shared.');}
+  catch{setStatus('Readable personal follow-up refused. Current personal flags and notes unchanged.');}
+ };
+ const downloadReport=()=>{
+  if(!report||!reportAck||reading)return;
+  setReportAck(false);
+  try{
+   const url=URL.createObjectURL(new Blob([report.html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');
+   a.href=url;a.download='skydash-personal-trial-followup.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+   setStatus('Readable personal follow-up download requested. Verify saving yourself. Only the inspected personal flags and notes included; no sharing performed.');
+  }catch{setStatus('Readable personal follow-up download could not be requested. No personal values changed.');}
+ };
  return <details className="mt-4 rounded border border-cyan-800 p-3">
   <summary className="cursor-pointer font-semibold text-cyan-200">Save or resume personal trial follow-up</summary>
   <section aria-label="Personal trial follow-up files" className="mt-3 max-w-4xl">
    <p>Only your five manual follow-up flags and private notes, not a completed trial, tool-use history, real review or training record. No original filenames, sources, hashes, pins, choices, consents, accounts or replay state are collected. Notes may contain anything you typed, including sensitive words. Unencrypted, unsigned and editable; confirm the audience yourself.</p>
    <label className="mt-3 flex items-start gap-2 text-amber-100"><input type="checkbox" aria-label="Acknowledge private personal follow-up download" checked={saveAck} onChange={e=>setSaveAck(e.currentTarget.checked)}/><span>I request my complete personal flags and notes as a local JSON download. I will verify saving and protect any sensitive words. This does not save other work.</span></label>
    <button type="button" className={button+' mt-3'} disabled={!saveAck} onClick={download}>Download personal trial follow-up JSON</button>
+   <section aria-label="Readable personal trial follow-up" className="mt-4 rounded border border-cyan-800 p-3">
+    <h3 className="font-semibold text-cyan-200">Prepare a readable personal follow-up sheet</h3>
+    <p className="mt-2">All five manual flags and complete notes, including any sensitive words you typed. Not verified tool use or completion. Inspect the full preview and audience before a separate HTML download. No scripts or external assets. Saving, printing and sharing remain manual; HTML cannot resume your follow-up.</p>
+    <button type="button" className={button+' mt-3'} disabled={reading} onClick={prepareReport}>Prepare readable personal follow-up</button>
+    {report&&<section aria-label="Readable personal follow-up preview" className="mt-3">
+     <h4 className="font-semibold text-amber-200">Inspect all five personal flags and complete notes</h4>
+     <ol className="mt-3 space-y-3">{report.value.steps.map((step,index)=><li key={step.task} className="min-w-0 rounded border border-zinc-700 p-2"><h5 className="font-semibold">{index+1}. {personalTrialStepTitles[index]}</h5><p>Personal follow-up flag: {step.flagged?'flagged':'not flagged'}. Neither means complete.</p><p className="mt-1 whitespace-pre-wrap break-words">{step.note||'(No personal note)'}</p></li>)}</ol>
+     <label className="mt-3 flex items-start gap-2 text-amber-100"><input type="checkbox" aria-label="Acknowledge complete private personal follow-up HTML" checked={reportAck} onChange={event=>setReportAck(event.currentTarget.checked)}/><span>I inspected all five personal flags and complete notes. I request this unencrypted, unsigned HTML locally and will protect any private words, verify saving and confirm the audience myself.</span></label>
+     <button type="button" className={button+' mt-3'} disabled={!reportAck||reading} onClick={downloadReport}>Download readable personal follow-up HTML</button>
+    </section>}
+   </section>
    <label className="mt-4 block">Select a saved personal follow-up JSON, at most 16 KiB<input type="file" aria-label="Import personal trial follow-up JSON" accept=".json,application/json" className="mt-1 block w-full min-w-0 rounded border border-zinc-700 p-2" onChange={select}/></label>
    {reading&&<p className="mt-2">Reading the selected follow-up only. No replacement yet.</p>}
    {preview&&<section aria-label="Personal trial follow-up replacement preview" className="mt-3 rounded border border-amber-700 p-3">
