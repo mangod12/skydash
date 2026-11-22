@@ -793,3 +793,35 @@ authorship, trusted identity, consensus or readiness claims are added.
 The normal startup JavaScript and existing755KiB total-JS guard are unchanged;
 this component is only in the explicit standalone recorded-review build. This
 is a bounded rendering change, not a measured latency or frame-rate claim.
+
+## Save only personal fabricated-trial follow-up
+
+The guided fabricated discussion trial has five optional personal notes, at most
+400 characters each, alongside its existing manual follow-up flags. Neither a
+flag nor a note establishes that a tool was used, a trial completed or training
+accepted. No source, review, consent, choice or replay state is read for these
+personal fields.
+
+Open **Save or resume personal trial follow-up** to request a separate local
+`skydash-trial-followup.json` download after its sensitive-word acknowledgement.
+It contains only the five fixed task IDs, manual flags and exact entered notes.
+There are no original filenames, source hashes, accounts, tool-use timestamps,
+review outcomes or completion fields. It is unencrypted, unsigned and editable.
+Inspect your own words and confirm the audience; saving never uploads or shares.
+Verify saving yourself and keep real originals and other unsaved work separately.
+
+To resume, explicitly select that JSON. The reader accepts at most 16 KiB of
+valid UTF-8 JSON, version 1 of `skydash-fabricated-trial-followup`, exactly the five
+fixed ordered task records and bounded notes. Extra or missing fields, unknown or
+duplicate/reordered tasks and unsupported versions are refused. All five selected
+flags/notes are previewed as escaped text. A separate acknowledgement and
+**Replace only personal trial follow-up** action replace only these personal
+fields, never an active review or another tool's selected file, prepared result,
+private consent, decision or clock. This is not a workspace backup or import.
+
+Every flag/note edit and either personal clear invalidates any preview and its
+acknowledgements, even if reverted. A newer selected file supersedes an earlier
+pending read. Refusal leaves the current personal fields intact. Clear flags and
+clear notes are independent. Closing the guide hides these values; refresh or tab
+close loses them unless explicitly saved, and nothing auto-restores. No browser
+storage, network, backend write or aircraft command is added.
