@@ -1,3 +1,4 @@
+import {renderDiscussionArchivePacket} from './discussionArchivePacket';
 import {storedZipBytes} from './storedZip';
 import {browserDiscussionHandoff} from './browserDiscussionHandoff';
 const digest=async bytes=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -25,4 +26,10 @@ async function checked(file,{expectedArchiveSha256='',expected={}}={}){
 export async function checkDiscussionOriginalsArchive(file,options={}){return (await checked(file,options)).summary;}
 export async function selectedDiscussionArchiveOriginal(file,{includeSensitiveOriginal=false,role,validatedArchiveSha256='',...options}={}){
  if(includeSensitiveOriginal!==true||!Object.hasOwn(paths,role)||!pin(validatedArchiveSha256))throw Error('Explicit sensitive acknowledgement and original role required.');const result=await checked(file,options);if(validatedArchiveSha256&&result.summary.archiveDigest!==validatedArchiveSha256.toLowerCase())throw Error('Changed checked archive.');if(role==='instructor'&&!result.summary.instructorIncluded)throw Error('Instructor original absent.');return {summary:result.summary,role,bytes:result.originals.get(paths[role]).slice(),originalDigest:result.summary.originals[role].sha256};
+}
+
+// Separate full sensitive print. Receipt/guide stay inert and never enter the renderer.
+export async function privateDiscussionArchivePacket(file,{includePrivateReview=false,validatedArchiveSha256='',...options}={}){
+ if(includePrivateReview!==true||!pin(validatedArchiveSha256))throw Error('Explicit private acknowledgement and supported checked digest required.');
+ const result=await checked(file,options);if(validatedArchiveSha256&&validatedArchiveSha256.toLowerCase()!==result.summary.archiveDigest)throw Error('Changed checked archive.');return renderDiscussionArchivePacket(result.originals,result.summary);
 }
