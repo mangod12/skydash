@@ -1316,3 +1316,42 @@ No files are written, no merge/patch, network, storage, upload/sharing or aircra
 commands. Failures print a generic diagnostic to stderr, empty stdout, exit 1.
 Keep all originals; this editable receipt is not a reopenable backup and cannot
 replace fresh validation. Help/flags reject unknown, repeated and malformed input.
+
+## Print a complete original discussion checklist privately
+
+In the standalone handoff chooser use "Print a saved discussion checklist".
+Choose original CSV and exported source-bound checklist JSON. Reusable templates
+are refused because they are not saved source-bound reviews. Explicit private
+consent is required before file reads and consumed on validation. Existing strict
+UTF-8/source/model/field bounds apply (CSV 1 MiB, checklist 128 KiB/30 prompts).
+Optional separate independent raw-file SHA-256 expectations are checked before
+parsing, not taken from co-delivered receipts or the active workspace.
+
+Privately preview every original title/ID/prompt/status/note in saved order, no
+filter or truncation. Saved Pending, Discussed and Not applicable stay unverified
+reviewer annotations, never completion, competence, completeness, applicability
+truth or readiness. No status totals, scores, generated answers, procedure claim,
+editable form, sign-off fields or signature request. Original-row references show
+actual source row/time/previous spacing, recomputed from exact CSV. Gaps remain
+unsampled and no observation at other times, proof or causation is inferred. No
+coordinates, individual source readings or original filenames in preview/report.
+
+Download private static HTML explicitly. It escapes original text and includes no
+scripts, forms, links or external assets, with restrictive content security policy.
+Every saved prompt/note remains full text, including legal maximum field lengths;
+HTML bound is 512 KiB. Open saved HTML locally and inspect browser print preview
+before printing/saving PDF yourself. Browser/printer page breaks and margins may
+vary, long notes can span pages. No automatic open, print, PDF creation or sharing.
+The report shows exact original CSV/checklist hashes and independent-expectation
+results. IDs/words/hashes do not authenticate authorship, identity, lineage, source
+truth, custody or an earlier/later revision history.
+
+Sensitive editable unencrypted output, not anonymized, a reopenable backup,
+complete workspace handoff, approved operational preflight checklist, assessment,
+certification or decision audit. Inspect audience and secure transport. Keep CSV
+and original checklist JSON separately; instructor sidecar, analyst notes, notebook,
+comparison, mapping originals, unsaved draft and other workspace state excluded.
+All file/hash/ack edits drop private result even if reverted. Inputs lock during
+validation. Close hides state, clear affects only this tool, refresh/tab close drops
+it. No active replay/checklist reads or changes, pause/seek, source repair, outcome
+transfer, storage, network, upload/sharing, notifications or aircraft commands.

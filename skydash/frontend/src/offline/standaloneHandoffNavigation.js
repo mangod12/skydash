@@ -1,4 +1,5 @@
 const destinations = {
+  checklistPrint: 'Original checklist print tool',
   checklistCompare: 'Checklist review comparison tool',
   instructorAgenda: 'Instructor discussion agenda tool',
   combine: 'Instructor review combination tool',
