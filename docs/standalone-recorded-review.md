@@ -738,9 +738,11 @@ Exit0 emits a privacy-limited momentary JSON receipt with twelve files, three cu
 Both instructor and checklist combination tools now offer a view-only decision
 queue after the existing fresh validation and explicit private-preview consent.
 Show all IDs, unresolved IDs, same-ID field disagreements, chosen left/right IDs
-or explicitly omitted IDs. A case-sensitive literal ID substring can narrow any
-view. At most ten rows are mounted per page. Existing row labels and comparison
-order stay unchanged, including annotation labels on a filtered page. Same-ID field
+or explicitly omitted IDs. A case-insensitive literal substring can narrow any
+view by row ID or either original's saved note, prompt or reason. Searches do not
+join words across fields and exclude whole titles/summaries, statuses, types,
+times and source readings. At most ten rows are mounted per page. Existing row
+labels and comparison order stay unchanged, including annotation labels on a filtered page. Same-ID field
 changes do not include an order-only checklist difference; original ordinals and
 order differences remain visible in each original item row.
 
