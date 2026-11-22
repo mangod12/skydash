@@ -334,3 +334,58 @@ The command writes nothing, extracts nothing, opens nothing and does not read/ch
 replay, pause/seek, store, notify, upload/share, contact a backend or send aircraft
 commands. Check exit status; separate shell redirection can leave an empty file on
 failure. Confirm output audience and secure transport yourself.
+
+## Print complete private Left / Right discussion snapshots
+
+After checking two discussion ZIP snapshots against the same exact raw CSV, use
+the separate private comparison packet controls beneath the aggregates. This is
+**not** the privacy-limited JSON. Explicitly acknowledge all saved private fields
+from both snapshots, prepare, then separately download the complete static HTML.
+Each preparation consumes acknowledgement and freshly rechecks both complete ZIPs,
+all current nested originals, independent expectations and both previously checked
+archive digests. No original is extracted or opened into replay. Different raw CSV
+bytes refuse private output entirely, even if parsed samples look equivalent.
+
+The packet contains both complete checklist titles/IDs/prompts/statuses/notes/
+reasons, saved ordinals and explicit source row/time/previous-spacing context. Rows
+follow Left saved order, then Right-only IDs, retaining both original ordinals.
+Every included instructor ID/time/kind/text/discussed checkbox/summary is included,
+with original held row/time/age and gap context. Equal-time annotations stay
+separate; current-model time/ID ordering is not authenticated chronology. Equal,
+changed and side-only records all appear with exact shared-ID differing fields,
+without filtering or truncation. Full private words can themselves contain
+coordinates/readings; no original CSV coordinate/channel readings are added by
+this comparison. Every interval remains unsampled and references are not proof,
+causation or a detected event.
+
+Both instructor originals must actually be present for their exact-ID content/
+field/side-only comparison. If one is absent, only the included original is printed
+separately without comparison; absent is never an empty/deleted/completed review.
+Checklist and instructor remain separate artifacts, no prompt-to-annotation
+crosswalk or transfer. Left/Right are caller choices, not verified earlier/later
+revisions, author identity or common lineage. Same IDs/words/CSV do not prove
+revision history. Side-only does not mean added/deleted/missing work. Ordinal shifts
+can follow absent/new IDs without showing intent. Whitespace remains content.
+Reviewer statuses/checkboxes are unverified human annotations, never approved
+procedure, competence, completion, grades, certification, flight clearance or
+readiness. There is no merge, patch, replacement, inferred outcome or decision audit.
+
+The full HTML is escaped, static and at most2MiB; oversized output is refused, not
+partially printed. It has a restrictive CSP and no scripts, external assets,
+links, forms, sign-off/signature fields or score. Desktop side-by-side records stack
+Left then Right on narrow screens. Open the downloaded HTML locally and inspect
+browser print preview yourself before printing/saving PDF; long words/notes can
+span pages and printer margins vary. PDF dates are not observation/authorship time.
+No automatic download/open/print, sharing or upload occurs. Confirm audience and
+secure transport separately.
+
+No original CSV/JSON file attachment or supported restoration payload is supplied. This unsigned editable packet is not a
+reopenable review, source backup, full workspace, authenticated custody/authorship,
+telemetry truth, approved procedure, certification or readiness evidence. Keep both
+exact ZIPs and excluded work separately. Private words are not displayed in the
+aggregate inventory. File/pin edits drop the private output and consent with the
+aggregates, even if reverted. Editing private acknowledgement or clearing that
+packet drops only private output, not checked aggregates or other tools. Closing
+only hides session state, refresh/tab close drops it. No extraction, repair,
+import/replacement, active-workspace reads/changes, pause/seek, storage, network,
+backend writes, notifications or aircraft commands.
