@@ -345,3 +345,5 @@ describe('optional standalone timestamp preparation slot',()=>{
   await sample();expect(screen.getByLabelText('Independent timestamp preparation draft').value).toBe('separate private source choice');expect(Object.keys(supplied).sort()).toEqual(['onPause','workspaceBusy']);
  });
 });
+
+it('optional numeric mapper slot receives only existing callbacks and busy state without inferring a source',async()=>{const seen=[];function Mapper(props){seen.push(props);return <p>Custom standalone numeric mapper</p>;}render(<FlightLogReplay ColumnMapper={Mapper}/>);expect(screen.getByText('Custom standalone numeric mapper')).toBeTruthy();expect(Object.keys(seen.at(-1)).sort()).toEqual(['onOpen','onPause','workspaceBusy']);expect(typeof seen.at(-1).onOpen).toBe('function');expect(typeof seen.at(-1).onPause).toBe('function');expect(seen.at(-1).workspaceBusy).toBe(false);expect(screen.queryByLabelText('Current recorded observation')).toBeNull();await sample();expect(screen.getByText('Custom standalone numeric mapper')).toBeTruthy();expect(globalThis.fetch).not.toHaveBeenCalled();});
