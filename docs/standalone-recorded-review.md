@@ -278,6 +278,32 @@ The standalone header has a compact **Find a local handoff task** chooser. It op
 
 Navigation closes other direct report drawers but keeps their components mounted, file selections and prepared outputs retained. Manual disclosure navigation remains available and behaves the same. Keyboard focus moves to the chosen section after layout, without invoking its buttons; report areas can scroll while a small replay region remains visible even on shorter mobile viewports. No pause/seek, replay replacement, storage, network, upload, sharing or aircraft commands. The existing tool warnings, validation bounds, consent, stale-result and explicit download requirements still apply. A navigation choice is not a result or proof the handoff completed.
 
+## Browse fixed handoff shortcuts by task
+
+The optional **Browse and search tools** finder sits beside the existing quick
+chooser, closed by default. It shows exactly twenty fixed handoff shortcuts,
+not every replay feature and not private files or saved work. Filter by workflow
+group and a case-insensitive literal substring in a fixed label, group or short
+description. Fields are searched separately, with no joined-field matching,
+regular expressions, file names, original review words or generated results.
+The whole finder scrolls within40svh; the normal review stays mounted beneath it.
+
+Opening, filtering, resetting and hiding the finder never navigate or read files.
+Each **Open** button requests only its fixed existing route, then closes the
+finder. The quick chooser keeps the same twenty values, labels and order and also
+closes an open finder after an explicit choice. Existing route validation still
+rejects unknown or missing targets. Navigation keeps selected file inputs and
+prepared outputs mounted, opens/focuses the existing target, and supplies no
+files, consent, pins, ordinals or choices. Private checks and explicit preparation,
+download and import remain separate. Enter in the search field does not navigate.
+
+Closing retains the in-tab finder query/group only; reset changes no work and
+refresh drops the filter. No history, result indexing, automatic download, replay
+changes, storage, network, backend writes, sharing or aircraft commands. A search
+result is a shortcut description, never success evidence, a reviewed recording,
+source trust, consent or completion. Fixed metadata contains no selected-file or
+private-review information.
+
 ## Print only explicitly selected received-ZIP originals for a discussion
 
 The received ZIP private packet tool defaults to **All listed originals**, preserving the whole-packet flow. To limit chapters, choose **Only explicit manifest ordinals** and enter unique comma-separated original ordinals, such as `1,3`. Nothing is preselected, guessed from filenames or copied from an inventory. Only numbers 1 through 20 are accepted, without duplicates, ranges or leading zeros; every ordinal must exist in the freshly checked manifest. Input order does not change manifest order. Chapters keep their original ordinal numbers, so a `3,1` choice prints Bundle 1 and Bundle 3, not a renumbered two-bundle manifest.
