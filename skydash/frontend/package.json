@@ -44,7 +44,8 @@
     "report-private-training": "node scripts/report-private-training.mjs",
     "verify-discussion-archive": "node scripts/verify-discussion-archive.mjs",
     "report-private-discussion-archive": "node scripts/report-private-discussion-archive.mjs",
-    "compare-discussion-archives": "node scripts/compare-discussion-archives.mjs"
+    "compare-discussion-archives": "node scripts/compare-discussion-archives.mjs",
+    "check-discussion-intake": "node scripts/check-discussion-intake.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",

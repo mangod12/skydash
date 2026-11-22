@@ -586,3 +586,41 @@ No automatic download, original extraction, private print, semantic field pairin
 repair, active-workspace read/change, pause/seek, storage, network, upload/sharing,
 notification, backend write or aircraft command occurs. Use the separate receiver
 and private tools with their own explicit consents and manual replay confirmations.
+
+### Read-only discussion intake from a trusted checkout
+
+From `skydash/frontend`, run:
+
+```sh
+npm run check-discussion-intake -- INPUT1.zip INPUT2.zip \
+  --expect-input-1-archive-sha256 INDEPENDENT_COMPLETE_ZIP_SHA256 \
+  --expect-input-2-source-sha256 INDEPENDENT_COMPLETE_RAW_CSV_SHA256
+```
+
+One to ten explicit paths precede optional flags. Prefix a filename beginning with
+a dash with `./`. `N` in `--expect-input-N-ROLE-sha256` is the one-based selected
+position, never chronology or identity; ROLE is archive/source/checklist/instructor.
+Each pin is optional, independent and exactly 64 hex characters. Duplicate flags,
+unknown flags/roles, indexes outside the selected list and malformed expectations
+refuse configuration with no report. Whole-ZIP pins never become raw-file pins.
+
+The command uses the same current privacy-limited browser intake model and report
+format. Only canonical regular paths without symlinks, including parent paths,
+can be read; each complete ZIP is at most 2 MiB, total at most 20 MiB. Content,
+path/size or pin failure gives that input a generic refused row while later inputs
+continue. Global count/total/configuration failure gives no report. No original
+bytes/words/filenames/paths/private errors are printed and nothing is extracted,
+written, repaired, imported, uploaded or shared. Fingerprints/counts/span remain
+sensitive unsigned metadata with the same identity/history/outcome limits above.
+
+Exit status matters:
+
+- `0`: every selected complete archive checked. Not training completion/readiness.
+- `2`: valid JSON report contains partial or all-refused entries. Inspect each row;
+  do not treat nonzero status or saved JSON as validation of rejected originals.
+- `1`: configuration/build failure, no report issued.
+
+The command never saves output itself. Shell redirection is a separate save action
+and can leave an empty or partial report. Check exit status and every refused row
+before using output, confirm audience/secure transport, and retain every exact
+input and excluded artifact separately. This is not a backup or permission to share.
