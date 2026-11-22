@@ -526,10 +526,51 @@ Candidate preparation/download never opens/applies it automatically. Every item 
 title decision stales the candidate. Every file/pin/ack edit drops all private
 choices/output even if reverted. Switching input routes clears both routes' files,
 pins and private states; Clear retains the current route but clears this tool only.
-Closing only hides session state. No decision-progress persistence; refresh/tab
-close drops decisions. No active workspace reads/changes, original/source writes,
+Closing only hides session state. Only explicit decision-plan download/import below; refresh/tab
+close drops unsaved decisions. No active workspace reads/changes, original/source writes,
 pause/seek, storage, network, backend changes, notifications, upload/sharing or
 aircraft commands.
+
+### Save and resume explicit checklist reconciliation decisions
+
+After freshly checking the original CSV and both source-bound checklists, the
+separate **Download checklist decision progress** action can preserve incomplete
+left/right/omit/unresolved choices and the separate whole-title choice. The
+fixed-name `skydash-checklist-combination-decisions.json` uses
+`skydash-checklist-combination-plan-v1`. It embeds no CSV, original checklist,
+private prompt/note words or title text, but exact IDs, role-bound raw fingerprints
+and decisions remain sensitive and identifying. It is unsigned editable progress,
+not an audit, authenticated authorship, original backup, candidate or permission.
+
+The three complete raw source/Left-checklist/Right-checklist fingerprints must
+match in their original roles, and every exact unique current ID and present-side
+choice must validate. All60 possible IDs remain represented, including unresolved
+ones. Import is strict complete UTF-8 JSON, at most32KiB, with no extra fields or
+unsupported versions. Raw whitespace-only original edits refuse prior progress.
+Swapped roles refuse unless original bytes are identical. ZIP wrappers, received
+receipt/guide bytes, excluded instructor originals and independently supplied
+archive pins are not the plan identity; they must still validate separately in the
+chosen ZIP route. Thus identical three raw originals can resume across direct-file
+and ZIP input, without claiming authenticated archive identity or revision history.
+
+First freshly validate originals with private-preview consent; a plan never
+supplies files or consent. Choose the saved plan and inspect **every** proposed
+item and title decision against current choices. Import only prepares a replacement
+preview, it does not change choices or generate a candidate. **Keep current
+checklist decisions** discards the preview without changes. **Restore reviewed
+checklist decisions** explicitly replaces all current choices/title, including
+unsaved choices, and drops any prepared candidate. Unresolved stays unresolved.
+Then review the private original item/title words and separately prepare, inspect
+and download a new candidate if wanted. No item fields, original files, active
+checklist, replay/cursors or other tool change on restoration.
+
+Every original/file pin/acknowledgement or item/title decision edit discards any
+pending plan preview, even if reverted. Validation, clear and route changes also
+clear the tool's private state as before. Plans are saved/read only by explicit
+user file actions. No automatic persistence, download, import, candidate generation,
+source writes, storage, network, upload/sharing, backend writes or aircraft commands.
+Refresh/tab close drops unsaved local progress. Preserve all exact originals and
+check the audience/secure transport of both plan and eventual candidate yourself.
 
 ## Independent multi-ZIP discussion intake
 
