@@ -47,7 +47,8 @@
     "compare-discussion-archives": "node scripts/compare-discussion-archives.mjs",
     "check-discussion-intake": "node scripts/check-discussion-intake.mjs",
     "report-discussion-intake": "node scripts/report-discussion-intake.mjs",
-    "create-discussion-example": "node scripts/create-discussion-example.mjs"
+    "create-discussion-example": "node scripts/create-discussion-example.mjs",
+    "create-discussion-trial": "node scripts/create-discussion-trial.mjs"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.3.2",
