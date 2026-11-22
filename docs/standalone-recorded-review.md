@@ -825,3 +825,32 @@ pending read. Refusal leaves the current personal fields intact. Clear flags and
 clear notes are independent. Closing the guide hides these values; refresh or tab
 close loses them unless explicitly saved, and nothing auto-restores. No browser
 storage, network, backend write or aircraft command is added.
+
+## Focus original instructor annotations before building an agenda
+
+After the existing fresh original CSV/sidecar validation and explicit private
+preview consent, the instructor agenda tool displays ten original annotations
+per page. Filter by the saved original kind, the original discussed checkbox, or
+selected/not-selected for this agenda. A case-insensitive literal substring
+search covers the original ID or saved note separately, not the summary, source
+readings, times, edited agenda prompts or another tool. All original annotation
+numbers and validated order are retained. These are view controls, not inferred
+priority, verified discussion, completion, agreement or absence of follow-up.
+
+Selections remain global and in the user's explicit agenda order, including
+hidden rows. The separate editable agenda retains every selected prompt, full
+original wording until explicitly edited, row-reference choice and title. The
+existing30-prompt cap applies across all pages. There is no bulk or automatic
+selection. Filtering, searching, paging and resetting the view do not change
+choices, private consent, prepared source-bound checklist or reusable template.
+A real title/prompt/order/reference/selection edit still invalidates prepared
+output. Original file/hash/consent edits still remove the complete private
+preview, choices and output, including when reverted; fresh validation starts a
+new unfiltered first page with nothing selected.
+
+The source-bound checklist still starts every explicitly chosen prompt Pending
+with blank notes and only deliberately chosen held original rows. The separate
+reusable template still excludes source/status/notes/references. Hidden originals
+are not silently discarded or truncated. No active-review reads/changes, clock
+changes, automatic downloads/imports, storage, network, backend writes, sharing,
+new normal-startup payload, grades, certification or readiness claims are added.
