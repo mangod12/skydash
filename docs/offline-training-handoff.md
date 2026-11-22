@@ -389,3 +389,54 @@ packet drops only private output, not checked aggregates or other tools. Closing
 only hides session state, refresh/tab close drops it. No extraction, repair,
 import/replacement, active-workspace reads/changes, pause/seek, storage, network,
 backend writes, notifications or aircraft commands.
+
+## Select whole discussion originals for a new handoff
+
+After the same-exact-CSV discussion snapshot check, a separate selection tool can
+prepare a new standard discussion ZIP from one whole Left/Right checklist and
+one whole actual Left/Right instructor original, or explicit instructor omission.
+Both choices begin unresolved, including equal originals. There is no item/field
+blending, status precedence, guessed checklist-to-instructor matching, consensus,
+authenticated author/revision history or automatic replacement. Keep both input
+ZIPs and excluded work. Omission affects only the new ZIP, never an original.
+
+First choose components and acknowledge display of complete chosen private
+reviews. Preview freshly checks both complete ZIPs, every current original and
+all optional independent expectations, including excluded reviews. Both prior
+checked archive digests and the exact shared CSV are checked again. The complete
+chosen title/prompts/IDs/statuses/notes/reasons/row references and all included
+instructor words/summary appear literally, with original checklist ordinals and
+original instructor JSON array ordinals. The latter is not the replay's normalized
+time ordering or authenticated chronology. Original row/time/spacing/held/gap
+context is recomputed, not proof or causation; every interval remains unsampled.
+Actual empty fields are distinguished from literal placeholder words. Private
+words can contain coordinates/personal details; no CSV coordinates or channel
+readings are added to this preview. No filter, truncation, inferred empty review,
+approved procedure, competence, grade, certification or readiness claim.
+
+A second, stronger acknowledgement explicitly includes the complete original CSV
+with coordinates/readings and the selected complete private originals. Preparation
+freshly rechecks both full inputs, choices and preview bindings, then uses the
+existing standard 4/5-entry discussion packer. Selected raw CSV/JSON bytes, saved
+ordering, whitespace and formatting remain exact. Receipt/guide are regenerated,
+not copied from received claims. Raw-original expectation flags reflect only
+actual caller-supplied raw pins for the corresponding selected role. Generated
+bindings and whole-ZIP pins never become independent raw-file expectations.
+
+Download the new ZIP and separate `skydash-selected-discussion-handoff-v1` JSON
+receipt explicitly. The receipt records chosen sides/omission, checked input
+inventories and output hashes, without original words/IDs/filenames/coordinates
+or readings. Its hashes/counts/choices remain sensitive unsigned editable
+metadata, not authenticated history/custody, a complete backup or permission to
+share. The ZIP is sensitive, unencrypted, and does not preserve both input ZIPs
+or excluded reviews. Confirm saving, audience and secure transport yourself.
+
+Each preview/pack consumes its own consent. Component/private-consent edits drop
+preview and ZIP; ZIP-consent edits drop only prepared ZIP. Parent file/pin edits
+or aggregate recheck discard the whole selection, even when bytes/digests are
+unchanged. Busy operations lock parent controls. Closing hides session state;
+refresh/tab close loses it. Downloaded originals reopen only through the separate
+trusted receiver and each existing manual replay/checklist/instructor confirmation.
+No automatic download, arbitrary extraction, active-workspace read/change,
+pause/seek, original write/deletion, storage, network, upload/sharing, notification,
+backend write or aircraft command occurs.
