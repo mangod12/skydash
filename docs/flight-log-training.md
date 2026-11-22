@@ -1175,3 +1175,33 @@ or readiness. Review audience and secure transport separately. No network, uploa
 sharing, storage, automatic import, source repair or aircraft commands. Excludes
 analyst notes, envelope, notebook, comparison, mapping originals, unadded drafts,
 recovery and device library. Same-time annotations retain separate exact IDs.
+
+
+### Save and resume instructor reconciliation decisions
+
+Inside a freshly validated private combination preview, Download instructor decision
+progress exports a separate editable `skydash-instructor-combination-plan-v1` JSON.
+It holds exact raw-file hashes of source/left/right originals, every annotation ID's
+left/right/omit/unresolved choice and whole-summary left/right/empty/unresolved
+choice. Incomplete work is allowed. It contains no original marker/summary words,
+CSV, coordinates or readings, but IDs/hashes/choices remain sensitive, not anonymous.
+Up to32KiB, strict fields/version/unique exact IDs and present-side choices, never
+truncation. An oversized plan refuses without losing current in-memory choices.
+
+To resume, retain all three exact originals, freshly select/validate them with
+private-preview consent, then choose the plan. Exact raw byte pins and roles must
+match, including whitespace/BOM/line endings. Swapping left/right refuses unless
+their complete original bytes are identical. A plan cannot supply originals, consent,
+identity, source truth or approval. Every proposed choice and whole-summary decision
+is previewed beside the current choices before Restore reviewed instructor decisions.
+Keep current instructor decisions discards only the preview. Restoration replaces
+all choices, including unsaved choices, and drops any candidate; it never prepares,
+downloads or applies a new sidecar. Unresolved work stays unresolved. Review the
+original words again and explicitly prepare/download/import separately if wanted.
+
+Any original/hash/ack or decision edit discards pending plan previews even when
+reverted. Closing hides state, clear affects only this tool, and refresh drops local
+state. Downloads require explicit action and audience/transport review. Plan and
+candidate are separate, neither is a workspace backup, signed authority, decision
+audit, consensus, completion or readiness record. No automatic storage, network,
+upload/sharing, source repair, replay/cursor changes or aircraft commands.
