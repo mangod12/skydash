@@ -530,3 +530,59 @@ Closing only hides session state. No decision-progress persistence; refresh/tab
 close drops decisions. No active workspace reads/changes, original/source writes,
 pause/seek, storage, network, backend changes, notifications, upload/sharing or
 aircraft commands.
+
+## Independent multi-ZIP discussion intake
+
+The local handoff chooser now has a separate discussion intake queue. Explicitly
+select one to ten discussion-original ZIPs, at most 20 MiB total, then check. The
+browser's selected positions become input ordinals, not author/student/flight
+identities or revision chronology. Selected filename labels appear only in the
+input list, never in the resulting inventory or JSON. This is not the separate
+training-package ZIP format. Each input still needs the exact supported 4/5-entry
+stored discussion layout at most 2 MiB and every current source-bound original.
+Oversized individual inputs are refused before reading; batches over the total
+bound or with malformed configuration/expectations refuse before any file read.
+
+Each input has separate optional independent complete-file archive/CSV/checklist/
+instructor SHA-256 expectations. Get them through a separate trusted route;
+co-delivered or computed hashes do not authenticate themselves. An instructor pin
+requires an actual instructor original on that input. Generated archive/source
+fingerprints never populate expectation fields or become independent raw pins.
+
+Checks run serially, retaining only fixed privacy-limited inventories. Damaged
+headers/CRCs, unsupported layouts, invalid current originals/source bindings or
+mismatched expectations refuse that input with generic diagnostics; later inputs
+are still checked. Received guide/receipt bytes stay inert, never opened,
+executed, rendered or treated as evidence. No partial inventory is supplied for a
+refused input. Its refusal is not proof of an absent, empty, deleted or complete
+review. An included zero-annotation instructor and absent instructor stay distinct.
+
+Every checked input retains its own raw hashes/byte counts, caller-expectation
+flags, source sample count/span, checklist prompt count and actual optional
+instructor count. The report supplies no cross-original prompt/status/annotation
+totals. Archive/source digest relations reference only the first earlier checked
+selection ordinal with the same corresponding raw fingerprint. Different wrapper
+bytes can still carry the same raw CSV; equivalent parsed samples with different
+CSV bytes do not acquire a source relation. None of these relations proves
+identity, lineage, consensus, custody, review/training completeness, competence,
+grades, certification, readiness or authenticated history. Every interval remains
+unsampled; span is not continuous observation.
+
+Download `skydash-discussion-intake-v1` JSON separately with its fixed filename.
+It preserves every input ordinal and generic refused row honestly. Any refusal
+makes the report partial, not a successful check of those rejected originals.
+The model explicitly projects allowed fields, not filenames, private titles/IDs/
+prompts/notes/summary words, individual statuses/row/time references, coordinates,
+readings, raw originals or private error text. Hash/count/span/selection relations
+remain sensitive, not anonymized. The report is editable unsigned metadata, not
+source truth, a complete workspace backup or permission to share. Confirm saving,
+audience and secure transport yourself; preserve every exact input/excluded work.
+
+File/pin edits discard the whole report even if reverted. Rechecking replaces it,
+never merges old results. Reselecting files resets all independent expectations.
+Busy locks inputs/actions; closing hides session state; refresh/tab close loses
+it. Clear affects this queue only, not other prepared tools or saved downloads.
+No automatic download, original extraction, private print, semantic field pairing,
+repair, active-workspace read/change, pause/seek, storage, network, upload/sharing,
+notification, backend write or aircraft command occurs. Use the separate receiver
+and private tools with their own explicit consents and manual replay confirmations.

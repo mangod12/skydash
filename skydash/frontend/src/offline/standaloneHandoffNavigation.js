@@ -1,4 +1,5 @@
 const destinations = {
+  discussionIntake: 'Discussion originals intake queue',
   checklistCombine: 'Checklist review combination tool',
   discussionCompare: 'Received discussion snapshot comparison',
   receivedDiscussion: 'Received discussion originals ZIP',
