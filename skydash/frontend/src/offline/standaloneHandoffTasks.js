@@ -1,5 +1,6 @@
 // Fixed navigation metadata only. No selected file names, private words or task results.
 export const handoffTasks=Object.freeze([
+ ['conversionChain','Verify a timestamp-to-numeric conversion chain','Check or recover','Check five exact source/recipe/intermediate/final files through both conversion stages without opening replay.'],
  ['discussionTrial','Start guided fabricated discussion trial','Start','Walk through existing tools with fabricated examples and manual follow-up flags.'],
  ['discussionExamples','Try fabricated discussion examples','Start','Inspect the fixed fabricated discussion ZIP examples before using real originals.'],
  ['discussionIntake','Check a queue of discussion ZIPs','Check or recover','Check each selected discussion ZIP independently and inspect fingerprint relations.'],

@@ -1,4 +1,5 @@
 const destinations = {
+  conversionChain: 'Two-stage conversion chain reproduction',
   discussionTrial: 'Guided fabricated discussion trial',
   discussionExamples: 'Fixed synthetic discussion starter',
   discussionIntake: 'Discussion originals intake queue',
