@@ -1,4 +1,5 @@
 const destinations = {
+  receivedChain: 'Received conversion-chain ZIP check',
   conversionChain: 'Two-stage conversion chain reproduction',
   discussionTrial: 'Guided fabricated discussion trial',
   discussionExamples: 'Fixed synthetic discussion starter',
