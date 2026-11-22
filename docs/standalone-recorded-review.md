@@ -897,3 +897,33 @@ trust executable source/build before any separate explicit app-only loopback
 server action. No writes by the command, extraction, installation, serving,
 browser launch, import, replay changes, network, sharing, backend write or aircraft
 command, and no grade, certification or flight-clearance claim is added.
+
+## Read personal trial follow-up without reopening JSON
+
+The guided fabricated discussion trial's personal follow-up disclosure can
+prepare a readable sheet of all five manual flags and complete personal notes.
+This uses only the same strict five-step personal-value model as the saved
+follow-up JSON. It does not inspect originals, replay, tool results or actions.
+The full literal preview comes first. A separate acknowledgement requests one
+HTML download; the JSON-download acknowledgement never authorizes the HTML.
+Every personal edit or clear, even when reverted, discards the prepared sheet
+and its acknowledgement. Preparing again or selecting any saved follow-up JSON
+also clears HTML-download authority. A pending JSON read blocks preparation.
+
+The unsigned, unencrypted HTML preserves every personal note, including any
+private names, claims or sensitive words typed into it. Inspect all five steps
+and the audience yourself. Flags are personal reminders, never completion or
+verified tool use. HTML escapes the original words, includes no scripts or
+external assets, and has desktop, mobile and A4 styles. Saving, opening,
+printing and sharing are manual. Check the saved file and print preview.
+Nothing is automatically sent or applied to a review.
+
+The readable sheet is a momentary snapshot, not a backup or reopenable
+workspace. Use the separate personal follow-up JSON to resume these personal
+values only; preserve every real original and unsaved review separately. No
+source files, filenames, hashes, pins, accounts, privacy consents, decisions,
+prepared tool results or replay state are automatically included. Notes may
+nevertheless repeat any of those if typed by a person. No automatic reading,
+storage, network, upload, sharing, import, replay change, backend write or
+aircraft command, and no training-completion, grade, certification, readiness
+or flight-clearance claim is added.
