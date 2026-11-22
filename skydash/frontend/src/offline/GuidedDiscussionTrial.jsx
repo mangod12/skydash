@@ -13,6 +13,7 @@ const steps = [
 
 export default function GuidedDiscussionTrial({onChoose}) {
   const [flags,setFlags]=useState([]),[notes,setNotes]=useState(emptyNotes),[revision,setRevision]=useState(0),[status,setStatus]=useState('');
+  const [sheet,setSheet]=useState({scope:'all',ordinals:''});
   const edit=()=>setRevision(value=>value+1);
   const open=task=>{
     const opened=typeof onChoose==='function' && onChoose(task);
@@ -35,7 +36,7 @@ export default function GuidedDiscussionTrial({onChoose}) {
       <p aria-label="Personal trial follow-up count" className="mt-3">{flags.length} of {steps.length} instruction steps flagged for your follow-up. These manual in-tab flags are not a completed task list, tool-use history or training record.</p>
       <button type="button" className="mt-2 rounded border border-zinc-600 px-3 py-2" onClick={()=>{edit();setFlags([]);setStatus('Personal trial flags cleared only. Selected files, prepared results, active reviews, replay clocks and saved downloads unchanged. Personal notes unchanged.');}}>Clear only personal trial flags</button>
       <button type="button" className="ml-2 mt-2 rounded border border-zinc-600 px-3 py-2" onClick={()=>{edit();setNotes(emptyNotes());setStatus('Personal trial notes cleared only. Personal flags and all other work unchanged.');}}>Clear only personal trial notes</button>
-      <TrialFollowupFiles key={revision} steps={steps} flags={flags} notes={notes} onRestore={value=>{edit();setFlags(value.steps.filter(step=>step.flagged).map(step=>step.task));setNotes(Object.fromEntries(value.steps.map(step=>[step.task,step.note])));setStatus('Personal trial flags and notes replaced from the inspected preview only. No other selected files, tool checks, privacy consents, review choices, prepared outputs or replay changed.');}}/>
+      <TrialFollowupFiles key={revision} steps={steps} flags={flags} notes={notes} sheet={sheet} onSheetChange={setSheet} onRestore={value=>{edit();setFlags(value.steps.filter(step=>step.flagged).map(step=>step.task));setNotes(Object.fromEntries(value.steps.map(step=>[step.task,step.note])));setStatus('Personal trial flags and notes replaced from the inspected preview only. No other selected files, tool checks, privacy consents, review choices, prepared outputs or replay changed.');}}/>
       <p role="status" aria-label="Guided discussion trial status" aria-live="polite" className="mt-3">{status}</p>
       <p className="mt-3 text-zinc-400">Return through the task chooser or this disclosure. Opening another tool hides this guide without resetting its flags or notes or unmounting other tools. Flags and notes are in-tab only; refresh or tab close loses them unless you explicitly saved a personal follow-up file. Nothing auto-restores. Clearing personal flags or notes does not clear other work. No automatic reading, download, extraction, import, storage, network, upload/sharing, backend write or aircraft command. Preserve every real original and unsaved work separately.</p>
     </section>
