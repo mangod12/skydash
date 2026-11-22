@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
-import {cleanup,fireEvent,render,screen,within} from '@testing-library/react';
+import {cleanup,fireEvent,render,screen,within,waitFor} from '@testing-library/react';
+import {createTrialFollowup,trialFollowupTasks} from './guidedTrialFollowup';
 import Guide from './GuidedDiscussionTrial';
 let blobs,downloads;
 beforeEach(()=>{blobs=[];downloads=[];const Base=URL;vi.stubGlobal('URL',class extends Base{static createObjectURL=vi.fn(blob=>{blobs.push(blob);return 'blob:personal-sheet';});static revokeObjectURL=vi.fn();});vi.spyOn(HTMLAnchorElement.prototype,'click').mockImplementation(function(){downloads.push(this.download);});});
@@ -35,4 +36,8 @@ it('personal edits retain the chosen private sheet scope while discarding all pr
 });
 it('separate personal JSON always includes all five values and never silently inherits the readable subset',async()=>{
  setup();fireEvent.change(screen.getByLabelText('Personal trial step 2 note'),{target:{value:'PRIVATE JSON-only note'}});fireEvent.change(area().getByLabelText('Personal follow-up sheet scope'),{target:{value:'selected'}});fireEvent.change(area().getByLabelText('Personal follow-up sheet instruction steps'),{target:{value:'1'}});fireEvent.click(screen.getByLabelText('Acknowledge private personal follow-up download'));fireEvent.click(screen.getByRole('button',{name:'Download personal trial follow-up JSON',exact:true}));const json=JSON.parse(await read(blobs[0]));expect(Object.keys(json)).toEqual(['format','version','steps']);expect(json.steps).toHaveLength(5);expect(json.steps[1].note).toBe('PRIVATE JSON-only note');expect(area().getByText(/never narrows the separate JSON download/)).toBeTruthy();expect(downloads).toEqual(['skydash-trial-followup.json']);
+});
+
+it('readable scope edits retain an inspected saved-JSON replacement preview and its separate acknowledgement without rereading or replacing personal values',async()=>{
+ setup();fireEvent.change(note(),{target:{value:'Current note stays'}});const values=Object.fromEntries(trialFollowupTasks.map(task=>[task,'Saved private note'])),bytes=new TextEncoder().encode(JSON.stringify(createTrialFollowup([trialFollowupTasks[2]],values))),file=new File([bytes],'saved-personal.json',{type:'application/json'}),readFile=vi.fn(async()=>bytes.buffer);Object.defineProperty(file,'arrayBuffer',{value:readFile});fireEvent.change(screen.getByLabelText('Import personal trial follow-up JSON'),{target:{files:[file]}});await waitFor(()=>expect(screen.getByLabelText('Personal trial follow-up replacement preview')).toBeTruthy());const preview=screen.getByLabelText('Personal trial follow-up replacement preview');fireEvent.click(screen.getByLabelText('Confirm replacement of only personal trial follow-up'));fireEvent.click(screen.getByLabelText('Acknowledge private personal follow-up download'));fireEvent.change(area().getByLabelText('Personal follow-up sheet scope'),{target:{value:'selected'}});fireEvent.change(area().getByLabelText('Personal follow-up sheet instruction steps'),{target:{value:'1,3'}});expect(screen.getByLabelText('Personal trial follow-up replacement preview')).toBe(preview);expect(screen.getByLabelText('Confirm replacement of only personal trial follow-up').checked).toBe(true);expect(screen.getByLabelText('Acknowledge private personal follow-up download').checked).toBe(true);expect(note().value).toBe('Current note stays');expect(readFile).toHaveBeenCalledOnce();expect(downloads).toEqual([]);
 });
