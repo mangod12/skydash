@@ -57,7 +57,7 @@ async function verifiedRecord(data) {
   return { ...data, samples };
 }
 
-export default function FlightLogReplay({ onBack, backLabel = 'Back to Scenario Lab', backDestination = 'Scenario Lab' }) {
+export default function FlightLogReplay({ SourceInterval, onBack, backLabel = 'Back to Scenario Lab', backDestination = 'Scenario Lab' }) {
   const canWrite = useCan('analyst');
   const pendingExit = useUIStore(state => state.pendingRecordedExit);
   const debriefRef = useRef(null), comparisonRef = useRef(null);
@@ -270,7 +270,7 @@ export default function FlightLogReplay({ onBack, backLabel = 'Back to Scenario 
               {!canWrite && <p className="text-xs text-amber-300">Analyst role required to save or delete shared records.</p>}
               {confirmDelete && <div className="text-xs text-amber-300">Permanently delete this server log and its fixed notes? Download both first if needed.<div className="mt-2 flex gap-2"><button disabled={busy} onClick={remove} className={button}>Confirm delete record</button><button disabled={busy} onClick={() => setConfirmDelete(false)} className={button}>Keep record</button></div></div>}
             </article>
-            <div hidden={!reviewPanelVisible(panelFocus, 'source')} data-review-panel="RecordedChannelChart"><RecordedChannelChart key={`chart-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} /></div>
+            <div hidden={!reviewPanelVisible(panelFocus, 'source')} data-review-panel="RecordedChannelChart"><RecordedChannelChart key={`chart-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} />{SourceInterval && <SourceInterval key={`interval-${log.sha256}-${sourceRevision}`} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} />}</div>
             <div id="selected-sample-window" hidden={!reviewPanelVisible(panelFocus, 'interval')} data-review-panel="ReviewWindow"><ReviewWindow initialNotebook={notebookSeed} key={`window-${log.sha256}-${reviewRevision}`} onPlayWindow={playWindow} playbackDisabled={busy} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); document.querySelector('[aria-label="Recorded replay controls"]')?.scrollIntoView({ behavior: 'smooth' }); }} /></div>
             <div hidden={!reviewPanelVisible(panelFocus, 'interval')} data-review-panel="ReferenceCircle"><ReferenceCircle key={`circle-${log.sha256}-${reviewRevision}`} log={log} time={time} disabled={busy} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} /></div>
             <div hidden={!reviewPanelVisible(panelFocus, 'source')} data-review-panel="SourceRowLedger"><SourceRowLedger key={`ledger-${log.sha256}-${reviewRevision}`} log={log} time={time} onPause={() => { setPlaying(false); setPlaybackWindow(null); }} onSeek={value => { setPlaying(false); setPlaybackWindow(null); setTime(value); }} /></div>
