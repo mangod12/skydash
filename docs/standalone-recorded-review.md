@@ -927,3 +927,30 @@ nevertheless repeat any of those if typed by a person. No automatic reading,
 storage, network, upload, sharing, import, replay change, backend write or
 aircraft command, and no training-completion, grade, certification, readiness
 or flight-clearance claim is added.
+
+### Choose only specific personal steps for the readable sheet
+
+The readable sheet defaults to all five instruction steps. For a partial sheet,
+choose **Only explicit instruction step numbers**, then enter unique numbers
+1 to 5 separated by commas, for example `5,1`. No ranges, duplicates, inferred
+flagged steps or automatic selection. The prepared preview and HTML retain the
+original instruction order and numbers, so that example includes steps 1 and 5,
+not newly numbered steps 1 and 2. Only their complete notes and manual flag
+states appear. An omitted step is never evidence that no other notes or
+follow-up exist. Every selected note remains sensitive and must be inspected.
+
+Scope and number edits discard the readable preview and its acknowledgement,
+even when reverted, without changing personal values, JSON-download consent or
+a saved-JSON replacement preview. Personal edits still discard all prepared
+previews and acknowledgements, but retain the chosen sheet scope in the current
+tab. A fresh preview and separate acknowledgement are always required. Selection
+of any saved personal JSON discards the prepared sheet. The entire strict
+bounded five-step personal model still validates before any subset is prepared;
+there is no partial success for malformed hidden values.
+
+The readable scope is not saved in JSON. The separate personal follow-up JSON
+always includes all five flags and notes, including steps omitted from the
+readable sheet. Its format and replacement behavior do not change. A partial
+HTML sheet is not a redacted JSON backup, a reopenable subset, proof of absent
+work, verified actions or a completed trial. No automatic sharing, import,
+reading of other originals, replay changes or storage is added.
