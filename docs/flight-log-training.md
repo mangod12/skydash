@@ -1355,3 +1355,55 @@ All file/hash/ack edits drop private result even if reverted. Inputs lock during
 validation. Close hides state, clear affects only this tool, refresh/tab close drops
 it. No active replay/checklist reads or changes, pause/seek, source repair, outcome
 transfer, storage, network, upload/sharing, notifications or aircraft commands.
+
+## Keep complete discussion originals together
+
+Use the standalone handoff chooser's "Keep checklist and original CSV together".
+Select an existing exported original CSV and source-bound checklist JSON, not
+active replay or a reusable template. Explicitly opt in only if also including a
+separately exported original instructor sidecar. Optional instructor selection and
+its raw-file expectation are cleared whenever inclusion changes. It is off by
+default, never inferred from active replay. No hidden original enters the archive.
+
+Explicit sensitive-original consent is required before reads and consumed on
+preparation. Actual current CSV/checklist/instructor validators check strict UTF-8,
+existing models/limits and exact same CSV binding. Source 1 MiB, checklist 128 KiB
+and 30 prompts, optional instructor 256 KiB and 100 markers. Separate optional
+raw-file SHA-256 expectations are checked before parsing, from an independent
+trusted route. Every original is re-read against its just-validated raw hash before
+copying. Changed originals fail without a partial archive or private diagnostics.
+
+Download the sensitive unencrypted unsigned ZIP explicitly. Fixed safe paths are
+`originals/source.csv`, `originals/checklist.json`, optional `originals/instructor.json`
+only if explicitly selected, plus generated `validation.json` and `HANDOFF.txt`.
+Original raw bytes, BOM, line endings and JSON formatting remain exact. Original
+filenames are not retained. Complete original coordinates/readings, checklist
+private title/IDs/prompts/status/notes/reasons and optional instructor notes/summary
+are included, not redacted. Confirm audience and secure transport separately.
+Receipt excludes private words/IDs/individual statuses/rows/times/readings, but
+hashes/counts/source span still identify sensitive work. No automatic sharing.
+
+Same source binding does not establish prompt/annotation correspondence, common
+lineage, authorship, chronology, identity or a decision audit. No IDs are mapped,
+words blended or status/outcome state transferred. Each original retains its own
+human annotations exactly. Saved Discussed/Not applicable and instructor discussion
+checkboxes remain unverified, not competence/completion/applicability/readiness.
+
+Extract using a separate trusted archive tool into a new private directory. This
+ZIP is not accepted by the separate received training-package ZIP tool. From a
+separate trusted app, protect current unsaved work, choose extracted source CSV,
+then manually preview/import extracted checklist JSON and confirm replacement.
+If instructor JSON was explicitly included, manually preview/import and confirm
+it separately. Checklist import replaces only that checklist; instructor import
+replaces only that instructor review. No automatic multi-file restore or merge.
+Never execute received code or trust a co-delivered receipt as authentication.
+Revalidate extracted originals using trusted tools and independent expectations.
+
+No complete workspace backup: analyst notes, envelope criteria, notebook,
+comparison, mapping originals/recipes, unadded drafts, recovery and device library
+are excluded. Instructor original is absent unless selected. Keep originals and
+excluded work separately. Fixed ZIP timestamps are not observation/creation time.
+All file/hash/ack/inclusion edits drop results even if reverted, inputs lock while
+preparing. Close hides state, clear affects only this tool, refresh/tab close drops
+it. No source repair, storage, network, upload/sharing, aircraft commands, active
+replay/checklist reads or changes, pause/seek, grades or authenticated custody.
