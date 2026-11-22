@@ -1,4 +1,5 @@
 const destinations = {
+  discussionCompare: 'Received discussion snapshot comparison',
   receivedDiscussion: 'Received discussion originals ZIP',
   discussionOriginals: 'Discussion originals handoff',
   checklistPrint: 'Original checklist print tool',

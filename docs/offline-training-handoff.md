@@ -228,3 +228,61 @@ The original must be a strict canonical no-symlink regular file, including paren
 All saved checklist prompts remain in saved order, all included instructor annotations in current-model time/ID order, not authenticated chronology. Equal-time notes stay separate. No prompt/marker mapping, common authorship/history or outcome transfer is inferred. Context is original held sample, exact-time/gap/unknown warnings remain; every interval is unsampled. Known readings are not sensor correctness. Statuses and checkboxes are unverified annotations, not approved procedure, assessed skill, completeness, completion, grade, certification or readiness.
 
 Output is one complete escaped static HTML, bounded2MiB, no scripts, external assets, forms, links, signature/sign-off or progress score. No partial HTML prints on failure. Check exit status; explicit shell redirection can leave an empty file. Open locally and inspect browser print preview yourself before printing or saving PDF. This command itself writes nothing, extracts nothing, opens nothing and does not access/change replay, store, upload, share, notify, contact a backend or send aircraft commands. Sensitive unsigned editable HTML is not anonymized, trusted custody/authorship, source truth, reopenable exact-original payload or a complete workspace backup. Preserve original ZIP/CSV/checklist/instructor and excluded work separately, and confirm audience and secure transport yourself.
+
+## Compare two received discussion snapshots without restoring them
+
+In the standalone handoff chooser select "Compare two discussion ZIP snapshots".
+Choose Left and Right complete discussion-originals ZIPs yourself. These are the
+separate fixed4/5-entry stored CSV/checklist/optional-instructor archives, not the
+larger training-package ZIPs. Each is at most2MiB. Check explicitly, then optionally
+download the privacy-limited comparison JSON. No files are automatically extracted,
+opened, restored or shared. The current replay and independent comparison are not
+read, paused, sought or changed.
+
+Both whole ZIPs, strict local/central headers/order/CRC reconstruction, and every
+current nested CSV/checklist/instructor original validate before any result. Each
+review must bind to its own exact complete CSV. Received validation.json/HANDOFF.txt
+are bounded inert bytes, never rendered/executed or used as evidence. A malformed
+unselected instructor original refuses the entire result. Optional separate
+complete-file SHA-256 expectations cover each archive and its source/checklist/
+instructor originals. A nonempty instructor pin requires that actual original.
+Pins are never copied automatically from received or freshly computed hashes, and
+generated internal checks are not labeled independent caller expectations.
+
+Only equal complete raw CSV bytes permit cross-snapshot annotation association.
+Even different CSV whitespace/line endings with equivalent parsed samples suppress
+**all** checklist/instructor content equality, exact-ID/field and side-only counts.
+The two independently checked inventories remain separate. No guessed row/time,
+similar-note, filename or checklist-to-instructor pairing is performed.
+
+For the same exact CSV, each artifact is compared separately by exact editable
+saved IDs. Checklist equal/changed/Left-only/Right-only rows exclude saved order;
+shared-ID prompt/status/note/row field counts can overlap. Title change, complete
+raw JSON byte equality, normalized content equality ignoring order, complete saved
+ID order equality and shared-ID ordinal differences are separate. Side-only IDs
+can shift other ordinals, which is not proof of intentional reordering. Instructor
+comparison requires both actual originals and separately counts time/kind/text/
+discussed differences and summary change using current-model canonical time/ID
+ordering. Absent instructor stays absent, never an empty/deleted/completed review.
+Whitespace is content; JSON formatting/key order can differ without normalized
+saved-content change. Changed ZIP receipt/guide bytes can change the ZIP digest
+while all original review bytes remain equal.
+
+Left/Right are caller choices, not verified earlier/later versions. Equal IDs/words
+or the same exact CSV do not authenticate author, identity, common lineage or
+revision history. Side-only does not mean added/deleted/missing work. Field counts
+apply only to shared IDs, overlap and are not independent tasks/students/flights.
+Statuses/checkboxes are unverified human annotations, never approved procedure,
+competence, completion, grades, certification, flight clearance or readiness. No
+patch, repair, merge, annotation transfer, decision audit or outcome inference.
+
+Display and JSON contain no private filenames/title/IDs/prompts/notes/summary
+words, individual statuses/rows/times, coordinates/readings or raw originals.
+Hashes/counts/span/patterns remain sensitive, not anonymized. No combined totals;
+first-to-last span is not continuous observation and every interval is unsampled.
+The fixed-name unsigned editable JSON cannot reopen either review or replace
+original validation, source truth or custody evidence. Preserve both exact ZIPs
+and excluded work separately. Every selection/pin edit stales output even if
+reverted; rechecking always revalidates both complete archives. Clear affects only
+this tool, closing only hides session state, refresh/tab close drops it. No storage,
+network, backend writes, notifications, upload/sharing or aircraft commands.

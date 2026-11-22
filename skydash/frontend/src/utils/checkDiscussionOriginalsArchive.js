@@ -1,3 +1,4 @@
+import {discussionSnapshotComparison} from './discussionSnapshotComparison';
 import {renderDiscussionArchivePacket} from './discussionArchivePacket';
 import {storedZipBytes} from './storedZip';
 import {browserDiscussionHandoff} from './browserDiscussionHandoff';
@@ -32,4 +33,9 @@ export async function selectedDiscussionArchiveOriginal(file,{includeSensitiveOr
 export async function privateDiscussionArchivePacket(file,{includePrivateReview=false,validatedArchiveSha256='',...options}={}){
  if(includePrivateReview!==true||!pin(validatedArchiveSha256))throw Error('Explicit private acknowledgement and supported checked digest required.');
  const result=await checked(file,options);if(validatedArchiveSha256&&validatedArchiveSha256.toLowerCase()!==result.summary.archiveDigest)throw Error('Changed checked archive.');return renderDiscussionArchivePacket(result.originals,result.summary);
+}
+
+// Read-only two-snapshot counts, never a replacement/import or private word report.
+export async function compareDiscussionArchiveSnapshots(leftFile,rightFile,{left={},right={}}={}){
+ const one=await checked(leftFile,left),two=await checked(rightFile,right);return discussionSnapshotComparison(one,two);
 }
