@@ -332,3 +332,16 @@ it('prepares a manifest from separately selected originals without replacing act
 it('exposes interval inspection only through the standalone slot and resets it on even identical source replacement, not analyst edits',async()=>{
  const normal=render(<FlightLogReplay/>);await sample();expect(screen.queryByLabelText('Selected original source interval inspection')).toBeNull();normal.unmount();render(<FlightLogReplay SourceInterval={SourceIntervalInspection}/>);await sample();fireEvent.change(screen.getByLabelText('Inspection interval start'),{target:{value:'2'}});fireEvent.change(screen.getByLabelText('Inspection interval end'),{target:{value:'14'}});fireEvent.click(screen.getByText('Inspect chosen source interval'));fireEvent.click(screen.getByLabelText('Acknowledge sensitive interval report'));fireEvent.change(screen.getByLabelText('Analyst notes'),{target:{value:'Independent private notes'}});expect(screen.getByLabelText('Prepared original source interval')).toBeTruthy();expect(screen.getByLabelText('Acknowledge sensitive interval report').checked).toBe(true);await sample();expect(screen.queryByLabelText('Prepared original source interval')).toBeNull();expect(screen.getByLabelText('Inspection interval start').value).toBe('0');expect(screen.getByLabelText('Inspection interval end').value).toBe('16');expect(globalThis.fetch).not.toHaveBeenCalled();
 });
+
+
+describe('optional standalone timestamp preparation slot',()=>{
+ it('is absent by default and only receives pause/busy controls rather than source or review access',async()=>{
+  const normal=render(<FlightLogReplay/>);expect(screen.queryByLabelText('Standalone timestamp probe')).toBeNull();normal.unmount();
+  let supplied;
+  const Probe=props=>{supplied=props;return <section aria-label="Standalone timestamp probe"><input aria-label="Independent timestamp preparation draft" defaultValue=""/><button disabled={props.workspaceBusy} onClick={props.onPause}>Pause from timestamp preparation</button></section>;};
+  render(<FlightLogReplay SourceTimeInput={Probe}/>);expect(Object.keys(supplied).sort()).toEqual(['onPause','workspaceBusy']);await sample();
+  fireEvent.change(screen.getByLabelText('Independent timestamp preparation draft'),{target:{value:'separate private source choice'}});fireEvent.change(screen.getByLabelText('Analyst notes'),{target:{value:'keep current review'}});selectPlaybackWindow(2,3);fireEvent.click(screen.getByText('Repeat reviewed window'));expect(screen.getByLabelText('Active selected-window playback')).toBeTruthy();
+  fireEvent.click(screen.getByText('Pause from timestamp preparation'));expect(screen.queryByLabelText('Active selected-window playback')).toBeNull();expect(screen.getByLabelText('Replay position').value).toBe('2');expect(screen.getByLabelText('Analyst notes').value).toBe('keep current review');expect(screen.getByLabelText('Independent timestamp preparation draft').value).toBe('separate private source choice');expect(globalThis.fetch).not.toHaveBeenCalled();
+  await sample();expect(screen.getByLabelText('Independent timestamp preparation draft').value).toBe('separate private source choice');expect(Object.keys(supplied).sort()).toEqual(['onPause','workspaceBusy']);
+ });
+});
