@@ -1,3 +1,4 @@
+import SourceIntervalInspection from '../../offline/SourceIntervalInspection';
 import { createReviewCase } from '../../utils/reviewCase';
 // @vitest-environment jsdom
 import { TextEncoder, TextDecoder } from 'node:util';
@@ -326,4 +327,8 @@ it('prepares a manifest from separately selected originals without replacing act
   const log = { filename: 'other.csv', title: 'Separate', csv_text: SAMPLE_LOG, sha256: await flightCSVHash(SAMPLE_LOG), model_version: LOG_VERSION, samples: parseFlightCSV(SAMPLE_LOG) }, text = await createReviewCase(log, { title: 'Separate', notes: 'Other selected file' }, { markers: [], notes: '' }, null), bytes = new TextEncoder().encode(text);
   fireEvent.change(screen.getByLabelText('Add training package artifacts'), { target: { files: [{ name: 'other.json', size: bytes.length, arrayBuffer: async () => bytes.buffer }] } }); fireEvent.click(screen.getByText('Validate selected artifacts')); await screen.findByText(/selected artifacts passed nested validation/);
   expect(screen.getByLabelText('Replay position').value).toBe('8'); expect(screen.getByLabelText('Comparison time').value).toBe('6'); expect(screen.getByLabelText('Analyst notes').value).toBe('Current primary kept'); expect(screen.getByLabelText('Comparison notes').value).toBe('Current baseline kept'); expect(screen.queryByLabelText('Checked source replacement')).toBeNull(); expect(fetch).not.toHaveBeenCalled(); expect(URL.createObjectURL).not.toHaveBeenCalled();
+});
+
+it('exposes interval inspection only through the standalone slot and resets it on even identical source replacement, not analyst edits',async()=>{
+ const normal=render(<FlightLogReplay/>);await sample();expect(screen.queryByLabelText('Selected original source interval inspection')).toBeNull();normal.unmount();render(<FlightLogReplay SourceInterval={SourceIntervalInspection}/>);await sample();fireEvent.change(screen.getByLabelText('Inspection interval start'),{target:{value:'2'}});fireEvent.change(screen.getByLabelText('Inspection interval end'),{target:{value:'14'}});fireEvent.click(screen.getByText('Inspect chosen source interval'));fireEvent.click(screen.getByLabelText('Acknowledge sensitive interval report'));fireEvent.change(screen.getByLabelText('Analyst notes'),{target:{value:'Independent private notes'}});expect(screen.getByLabelText('Prepared original source interval')).toBeTruthy();expect(screen.getByLabelText('Acknowledge sensitive interval report').checked).toBe(true);await sample();expect(screen.queryByLabelText('Prepared original source interval')).toBeNull();expect(screen.getByLabelText('Inspection interval start').value).toBe('0');expect(screen.getByLabelText('Inspection interval end').value).toBe('16');expect(globalThis.fetch).not.toHaveBeenCalled();
 });
