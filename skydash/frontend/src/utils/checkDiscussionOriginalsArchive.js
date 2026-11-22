@@ -1,3 +1,4 @@
+import {renderPrivateDiscussionComparison} from './privateDiscussionSnapshotPacket';
 import {prepareInstructorCombination} from './instructorCombination';
 import {discussionSnapshotComparison} from './discussionSnapshotComparison';
 import {renderDiscussionArchivePacket} from './discussionArchivePacket';
@@ -52,4 +53,12 @@ export async function prepareReceivedDiscussionInstructorCombination(leftFile,ri
  const expected={source:left.expected?.source||right.expected?.source||'',left:left.expected?.instructor||'',right:right.expected?.instructor||''};
  const snapshot=await prepareInstructorCombination({source:file(one,'originals/source.csv'),left:file(one,'originals/instructor.json'),right:file(two,'originals/instructor.json')},{allowPrivateReview:true,expected});
  return {...snapshot,archiveEvidence:{left:one.summary,right:two.summary}};
+}
+
+// Separate full-private output, never an authorization to merge/replace or share.
+export async function privateDiscussionSnapshotPacket(leftFile,rightFile,{includePrivateReview=false,left={},right={}}={}){
+ if(includePrivateReview!==true||!left||!right||typeof left!=='object'||typeof right!=='object'||Array.isArray(left)||Array.isArray(right)||!pin(left.validatedArchiveSha256===undefined?'':left.validatedArchiveSha256)||!pin(right.validatedArchiveSha256===undefined?'':right.validatedArchiveSha256))throw Error('Explicit private acknowledgement and supported checked digests required.');
+ const one=await checked(leftFile,left),two=await checked(rightFile,right);
+ for(const[result,options]of[[one,left],[two,right]])if(options.validatedArchiveSha256&&options.validatedArchiveSha256.toLowerCase()!==result.summary.archiveDigest)throw Error('Changed checked archive.');
+ return renderPrivateDiscussionComparison(one,two);
 }
