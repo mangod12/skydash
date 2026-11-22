@@ -286,3 +286,51 @@ and excluded work separately. Every selection/pin edit stales output even if
 reverted; rechecking always revalidates both complete archives. Clear affects only
 this tool, closing only hides session state, refresh/tab close drops it. No storage,
 network, backend writes, notifications, upload/sharing or aircraft commands.
+
+## Compare two separate discussion ZIP snapshots headlessly
+
+```sh
+npm run --silent compare-discussion-archives -- LEFT.zip RIGHT.zip --expect-left-archive-sha256 HEX --expect-right-archive-sha256 HEX
+```
+
+Replace both original paths and optional independently obtained complete raw-file
+expectations yourself. This is the separate discussion-originals ZIP format, not
+the training-package or executable-distribution format. Both complete originals
+must be strict canonical no-symlink regular files, including every parent path,
+at most2MiB each. Both fixed4/5-entry stored layouts, headers/order/CRCs and every
+current CSV/checklist/instructor model/source/bound validate before any output.
+Received guide/receipt are inert bytes, never parsed/rendered/executed or trusted
+as validation evidence. No arbitrary archive extraction or original output occurs.
+
+Optional nonrepeated `--expect-left-source-sha256 HEX`,
+`--expect-left-checklist-sha256 HEX`, `--expect-left-instructor-sha256 HEX` and
+corresponding `--expect-right-...` flags pin each complete raw original separately.
+The archive pins precede entry inspection and each original pin precedes model
+parsing. A nonempty instructor expectation requires that actual original on that
+side. Expectations copied from received bytes or current output do not
+authenticate themselves. Generated internal checks are never described as
+independently supplied expectations.
+
+The output exactly matches the trusted browser's privacy-limited snapshot
+comparison JSON, including separate actual per-side pin evidence. Different raw
+CSV bytes, even equivalent parsed samples, suppress every cross-snapshot
+association/content/field/side-only count. Same exact CSV permits separate exact
+editable-ID checklist and optional instructor aggregates only. Checklist order,
+title, normalized content ignoring order and original byte equality stay separate;
+instructor must actually be present on both sides for content comparison. Absent
+is not an empty/deleted review. No guessed similar-note/time pairing, cross-artifact
+mapping, lineage, authorship, chronology, merge, patch or status transfer. Field
+counts overlap and are not independent tasks/students/flights or outcomes.
+
+Only one complete JSON prints after success, never partial success, private HTML,
+paths/filenames/title/IDs/prompts/notes/summary words, individual statuses/rows/times,
+coordinates/readings or raw originals. Hashes/counts/span/patterns remain sensitive,
+not anonymized. All intervals remain unsampled and span is not continuous
+observation. Statuses/checkboxes are unverified annotations, not approved procedure,
+competence, completion, grades, certification, flight clearance or readiness. The
+unsigned editable JSON is not source truth, a reopenable backup, full workspace,
+revision audit or authenticated custody. Preserve both exact ZIPs and excluded work.
+The command writes nothing, extracts nothing, opens nothing and does not read/change
+replay, pause/seek, store, notify, upload/share, contact a backend or send aircraft
+commands. Check exit status; separate shell redirection can leave an empty file on
+failure. Confirm output audience and secure transport yourself.
