@@ -45,7 +45,7 @@ function generateFindings(entities, events, relationships) {
   if (recentCrit.length > 0) {
     findings.push({
       type: 'trend',
-      text: `${recentCrit.length} critical events in last 30 minutes`,
+      text: `${recentCrit.length} critical ${recentCrit.length === 1 ? 'event' : 'events'} in last 30 minutes`,
       priority: 3,
     });
   }
@@ -73,7 +73,7 @@ function generateFindings(entities, events, relationships) {
   if (lowConf.length > 0) {
     findings.push({
       type: 'surveillance',
-      text: `${lowConf.length} entities below 60% confidence — verification needed`,
+      text: `${lowConf.length} ${lowConf.length === 1 ? 'entity' : 'entities'} below 60% confidence — verification needed`,
       priority: 1,
     });
   }
