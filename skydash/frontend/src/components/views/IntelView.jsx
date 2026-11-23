@@ -54,16 +54,16 @@ export default function IntelView() {
   }, [activeView]);
 
   return (
-    <div className="h-full flex">
+    <div className="h-full flex flex-col md:flex-row overflow-y-auto md:overflow-visible">
       {/* Left: Entity list */}
-      <div className="w-[300px] shrink-0 border-r border-white/[0.06]">
+      <div className="h-[125svh] w-full md:h-auto md:w-[300px] shrink-0 border-b md:border-b-0 md:border-r border-white/[0.06]">
         <PanelBoundary name="Entity List">
           <IntelPanel />
         </PanelBoundary>
       </div>
 
       {/* Center: Timeline/Graph + NLQ + Anomaly */}
-      <div className="flex-1 min-w-0 border-r border-white/[0.06] flex flex-col">
+      <div className="h-[90svh] shrink-0 md:h-auto md:shrink md:flex-1 min-w-0 md:border-r border-white/[0.06] flex flex-col">
         {/* Tab switcher */}
         <div className="flex border-b border-white/[0.06] shrink-0" role="tablist" aria-label="Intel analysis views">
           {CENTER_TABS.map((tab) => (
@@ -116,7 +116,7 @@ export default function IntelView() {
 
       {/* Right: Entity detail (conditional) */}
       {selectedEntityId && (
-        <div className="w-[320px] shrink-0">
+        <div className="h-[80svh] w-full md:h-auto md:w-[320px] shrink-0 border-t md:border-t-0 border-white/[0.06]">
           <PanelBoundary name="Entity Detail">
             <EntityDetail />
           </PanelBoundary>
