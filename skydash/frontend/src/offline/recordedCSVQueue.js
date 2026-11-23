@@ -26,3 +26,8 @@ export async function checkRecordedCSVQueue(files){
  for(const entry of entries)if(entry.status==='ready')entry.same_bytes_as_slots=entries.filter(other=>other.status==='ready'&&other.slot!==entry.slot&&other.sha256===entry.sha256).map(other=>other.slot);
  return {format:'skydash-session-csv-review-queue-v1',selected_files:entries.length,selected_bytes:total,ready_files:entries.filter(entry=>entry.status==='ready').length,entries};
 }
+export function recordedCSVQueueReceipt(result){
+ if(!result||result.format!=='skydash-session-csv-review-queue-v1'||!Array.isArray(result.entries))throw Error('No checked queue.');
+ // Metadata only: no filenames, CSV text or cells. Hashes and shape remain sensitive.
+ return JSON.stringify({format:'skydash-csv-review-queue-metadata-v1',selected_files:result.selected_files,ready_files:result.ready_files,entries:result.entries.map(e=>e.status==='ready'?{slot:e.slot,status:'ready',bytes:e.bytes,sha256:e.sha256,model_version:e.model_version,sample_count:e.sample_count,source_span_s:e.source_span_s,gaps_over_5s:e.gaps_over_5s,largest_source_interval_s:e.largest_source_interval_s,missing_cells:e.missing_cells,same_bytes_as_slots:e.same_bytes_as_slots}:{slot:e.slot,status:'not-prepared'}),scope:'Selection-order file metadata only. Not flights, chronology, authenticity, review completion, grades or readiness.'},null,2)+'\n';
+}
