@@ -43,7 +43,7 @@ export default function MissionList({ missions, activeId, onSelect, loading }) {
   };
 
   return (
-    <div className="w-80 shrink-0 border-r border-white/[0.06] flex flex-col">
+    <div className="max-h-[45svh] w-full md:max-h-none md:w-80 shrink-0 border-b md:border-b-0 md:border-r border-white/[0.06] flex flex-col">
       <div className="p-3 border-b border-white/[0.06] shrink-0">
         {canEdit ? (
         <button
