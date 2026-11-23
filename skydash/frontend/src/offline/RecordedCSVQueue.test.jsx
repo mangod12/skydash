@@ -45,3 +45,7 @@ it('downloads only a fixed-name metadata receipt without filenames or CSV cells,
  fireEvent.click(screen.getByText('Download queue metadata JSON'));expect(click).toHaveBeenCalledOnce();expect(click.mock.instances[0].download).toBe('skydash-csv-queue-metadata.json');expect(open).not.toHaveBeenCalled();expect(screen.getByLabelText('Checked recorded CSV queue')).toBe(result);
  const text=api.recordedCSVQueueReceipt(await api.checkRecordedCSVQueue([file(raw,'SECRET-NAME.csv'),file('bad','bad.csv')])),json=JSON.parse(text);expect(text).not.toContain('SECRET-NAME');expect(text).not.toContain('28.1');expect(text).not.toContain('csv_text');expect(json.entries.map(e=>e.status)).toEqual(['ready','not-prepared']);expect(()=>api.recordedCSVQueueReceipt(null)).toThrow();
 });
+it('keeps the short selection-order warning visible and every full limit inside one Scope and limits disclosure',()=>{
+ render(<RecordedCSVQueue/>);const summary=screen.getByText('Scope and limits'),box=summary.closest('details');expect(screen.getByText(/Selection order only\. Entries are files/).closest('details')).not.toBe(box);
+ for(const text of [/Order is selection order, not chronology/,/A request freshly checks only that captured CSV/,/Selection, checking, closing this drawer/])expect(box.textContent).toMatch(text);
+});
