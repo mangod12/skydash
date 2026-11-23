@@ -9,17 +9,17 @@ export default function TelemetryView() {
   return (
     <div className="h-full flex flex-col">
       <AlertBar />
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-auto md:overflow-visible">
         {/* Map (smaller) */}
-        <div className="flex-1 min-w-0 p-3 pr-0">
+        <div className="h-64 shrink-0 md:h-auto md:shrink md:flex-1 min-w-0 p-3 md:pr-0">
           <PanelBoundary name="Map">
             <MapView variant="telemetry" />
           </PanelBoundary>
         </div>
 
         {/* Telemetry + Command panel */}
-        <div className="w-[380px] shrink-0 flex flex-col">
-          <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="w-full md:w-[380px] shrink-0 flex flex-col md:overflow-y-auto">
+          <div className="shrink-0">
             <PanelBoundary name="Telemetry">
               <TelemetryPanel />
             </PanelBoundary>
