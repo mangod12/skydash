@@ -39,9 +39,9 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
         <div className="flex items-center gap-2">
           <span className="text-zinc-500 font-medium">{BRAND.wordmark}</span>
           <span className="text-zinc-700">/</span>
-          <span className="text-zinc-300 font-semibold uppercase tracking-wider text-xs">
+          <h1 className="text-zinc-300 font-semibold uppercase tracking-wider text-xs">
             {activeView}
-          </span>
+          </h1>
         </div>
         {!isMobile && <WorkspaceSwitcher />}
       </div>
@@ -51,7 +51,7 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
         <button
           data-tour="command-palette"
           onClick={toggleCommandPalette}
-          aria-label="Open command palette"
+          aria-label="Search, open command palette"
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
         >
           <Search size={14} className="text-zinc-500" />

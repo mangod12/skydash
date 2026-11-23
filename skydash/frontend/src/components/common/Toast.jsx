@@ -46,7 +46,7 @@ export default function ToastContainer({ recordedReview = false }) {
   const removeToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   return (
-    <div aria-label={recordedReview ? 'Background app notifications, not recorded CSV evidence' : 'App notifications'} className={clsx('z-[90] flex flex-col items-end gap-2 pointer-events-none', recordedReview ? 'relative shrink-0 max-h-40 overflow-y-auto px-3' : 'fixed right-3 left-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px)+0.75rem)] md:bottom-10 md:left-auto md:right-4')}>
+    <div role="region" aria-label={recordedReview ? 'Background app notifications, not recorded CSV evidence' : 'App notifications'} className={clsx('z-[90] flex flex-col items-end gap-2 pointer-events-none', recordedReview ? 'relative shrink-0 max-h-40 overflow-y-auto px-3' : 'fixed right-3 left-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px)+0.75rem)] md:bottom-10 md:left-auto md:right-4')}>
       <AnimatePresence>
         {toasts.map((t) => {
           const Icon = ICONS[t.type] || Info;

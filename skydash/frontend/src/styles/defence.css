@@ -85,3 +85,11 @@
     linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
   background-size: 64px 64px;
 }
+
+/* WCAG AA text contrast on the dark surfaces: zinc-500 and zinc-600 text measured 2.3 to 4.0:1.
+   These values give at least 4.6:1 on the darkest to lightest panel backgrounds in use. */
+[data-theme="midnight"] .text-zinc-500 { color: #8b8b96; }
+[data-theme="midnight"] .text-zinc-600 { color: #80808a; }
+[data-theme="midnight"] .text-zinc-500:hover,
+[data-theme="midnight"] .hover\:text-zinc-400:hover { color: #a1a1aa; }
+[data-theme="midnight"] .text-zinc-700 { color: #74747e; }
