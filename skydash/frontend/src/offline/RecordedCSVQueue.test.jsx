@@ -39,3 +39,9 @@ it('one request at a time retains the queue on callback failure without claiming
 it('busy checks cannot duplicate and unmount prevents late result restoration or source requests',async()=>{
  let resolve;const spy=vi.spyOn(api,'checkRecordedCSVQueue').mockImplementationOnce(()=>new Promise(done=>{resolve=done;})),open=vi.fn(),view=render(<RecordedCSVQueue onPreview={open}/>);choose([file()]);fireEvent.click(check());fireEvent.click(check());expect(spy).toHaveBeenCalledTimes(1);view.unmount();await act(async()=>{resolve({entries:[],ready_files:0,selected_files:1});});expect(open).not.toHaveBeenCalled();expect(view.container.textContent).toBe('');
 });
+it('downloads only a fixed-name metadata receipt without filenames or CSV cells, and never changes the queue or opens sources',async()=>{
+ const open=vi.fn(),click=vi.spyOn(HTMLAnchorElement.prototype,'click').mockImplementation(()=>{}),create=vi.fn(()=>'blob:x');vi.stubGlobal('URL',Object.assign(class extends URL{},{createObjectURL:create,revokeObjectURL:vi.fn()}));
+ render(<RecordedCSVQueue onPreview={open}/>);expect(screen.getByText('Download queue metadata JSON').disabled).toBe(true);const result=await ready([file(raw,'SECRET-NAME.csv'),file('bad','bad.csv')]);
+ fireEvent.click(screen.getByText('Download queue metadata JSON'));expect(click).toHaveBeenCalledOnce();expect(click.mock.instances[0].download).toBe('skydash-csv-queue-metadata.json');expect(open).not.toHaveBeenCalled();expect(screen.getByLabelText('Checked recorded CSV queue')).toBe(result);
+ const text=api.recordedCSVQueueReceipt(await api.checkRecordedCSVQueue([file(raw,'SECRET-NAME.csv'),file('bad','bad.csv')])),json=JSON.parse(text);expect(text).not.toContain('SECRET-NAME');expect(text).not.toContain('28.1');expect(text).not.toContain('csv_text');expect(json.entries.map(e=>e.status)).toEqual(['ready','not-prepared']);expect(()=>api.recordedCSVQueueReceipt(null)).toThrow();
+});
