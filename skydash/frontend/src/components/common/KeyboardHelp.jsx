@@ -137,7 +137,7 @@ export default function KeyboardHelp({ open, onClose, onOpen }) {
             whileHover={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
             onClick={() => onOpen?.()}
-            aria-label="Open keyboard shortcuts"
+            aria-label="Keys, open keyboard shortcuts"
             className="fixed bottom-6 right-24 z-40 hidden md:flex items-center gap-1.5 px-3 py-1.5
               bg-zinc-900/40 hover:bg-zinc-900/80 border border-white/[0.06]
               rounded-full cursor-pointer transition-colors"
