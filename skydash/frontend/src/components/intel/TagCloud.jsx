@@ -39,7 +39,7 @@ export default function TagCloud({ onTagClick }) {
                 'hover:scale-105 hover:brightness-125 cursor-pointer',
                 size, color,
               )}
-              style={{ opacity: 0.5 + tag.ratio * 0.5 }}
+              style={{ opacity: 0.8 + tag.ratio * 0.2 }}
             >
               {tag.name}({tag.count})
             </button>
