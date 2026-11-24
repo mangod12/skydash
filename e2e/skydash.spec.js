@@ -27,7 +27,7 @@ const openBaselineSource = async (page, choose) => {
 };
 
 const getIntelCount = async (page) => {
-  const countText = (await page.locator('h3:text-is("INTELLIGENCE")')
+  const countText = (await page.locator('h2:text-is("INTELLIGENCE")')
     .locator('xpath=ancestor::div[contains(@class, "h-full flex")][1]')
     .locator('span').filter({ hasText: /\d+\s+of\s+\d+\s+entities/i })
     .first()
@@ -50,7 +50,7 @@ const getIntelCount = async (page) => {
 };
 
 const getIntelList = (page) => page
-  .locator('h3:text-is("INTELLIGENCE")')
+  .locator('h2:text-is("INTELLIGENCE")')
   .locator('xpath=ancestor::div[contains(@class, "h-full flex")][1]')
   .locator('.overflow-y-auto.h-full.p-2');
 

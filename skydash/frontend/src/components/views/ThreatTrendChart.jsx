@@ -28,9 +28,9 @@ export default function ThreatTrendChart({ events }) {
 
   return (
     <GlassCard>
-      <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-3">
+      <h2 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-3">
         THREAT TIMELINE
-      </h3>
+      </h2>
       <div className="h-[200px]">
         {data.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">

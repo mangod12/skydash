@@ -66,9 +66,9 @@ export default function IntelPanel() {
       {/* Header */}
       <div className="p-3 border-b border-white/[0.06] space-y-2 shrink-0">
         <div className="flex items-center justify-between">
-          <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
+          <h2 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
             INTELLIGENCE
-          </h3>
+          </h2>
           <div className="flex items-center gap-2">
             {selectMode && selectedIds.size > 0 && (
               <span className="text-[9px] font-mono tabular-nums text-indigo-400">

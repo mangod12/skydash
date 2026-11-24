@@ -5,7 +5,7 @@ const BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173';
 const API = process.env.PLAYWRIGHT_API_URL || 'http://localhost:8001';
 
 const getIntelCards = (page) => page
-  .locator('h3:text-is("INTELLIGENCE")')
+  .locator('h2:text-is("INTELLIGENCE")')
   .locator('xpath=ancestor::div[contains(@class, "h-full flex")][1]')
   .locator('.overflow-y-auto.h-full.p-2')
   .locator('button')
