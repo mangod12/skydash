@@ -46,7 +46,7 @@ export function EntityDistributionChart({ typeData }) {
                 dataKey="value"
               >
                 {typeData.map((entry) => (
-                  <Cell key={entry.name} fill={TYPE_COLORS[entry.name] || '#71717a'} />
+                  <Cell key={entry.name} fill={TYPE_COLORS[entry.name] || '#71717a'} role="img" aria-label={`${entry.name}: ${entry.value}`} />
                 ))}
               </Pie>
               <Tooltip
