@@ -78,7 +78,7 @@ export default function TimelineSlider() {
           {/* Speed */}
           <button
             onClick={() => setSpeed((s) => (s + 1) % SPEEDS.length)}
-            aria-label="Change timeline speed"
+            aria-label={`${SPEEDS[speed]}x, change timeline speed`}
             className="text-[9px] font-mono font-bold text-zinc-500 hover:text-zinc-300 w-8 text-center transition-colors"
           >
             {SPEEDS[speed]}x
