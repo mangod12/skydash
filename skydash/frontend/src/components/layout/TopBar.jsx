@@ -51,7 +51,7 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
         <button
           data-tour="command-palette"
           onClick={toggleCommandPalette}
-          aria-label="Search, open command palette"
+          aria-label="Search... ⌘K, open command palette"
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
         >
           <Search size={14} className="text-zinc-500" />
@@ -86,7 +86,7 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
           data-tour="notifications"
           onClick={onNotificationToggle}
           className="relative text-zinc-500 hover:text-zinc-300 transition-colors"
-          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+          aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
         >
           <Bell size={18} strokeWidth={1.5} />
           {unreadCount > 0 && (
