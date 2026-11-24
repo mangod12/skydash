@@ -37,7 +37,7 @@ export default function ThreatMatrix() {
         <table className="w-full text-[9px]">
           <thead>
             <tr>
-              <th className="text-left text-zinc-600 font-medium pb-2 pr-2"></th>
+              <th className="text-left text-zinc-600 font-medium pb-2 pr-2"><span className="sr-only">Entity type</span></th>
               {THREAT_LEVELS.map((level) => (
                 <th
                   key={level}
