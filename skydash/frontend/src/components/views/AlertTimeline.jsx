@@ -38,6 +38,9 @@ export default function AlertTimeline({ events }) {
       {/* Horizontal scrolling timeline */}
       <div
         ref={scrollRef}
+        tabIndex={0}
+        role="region"
+        aria-label="Alert timeline, scrollable"
         className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-zinc-800"
       >
         {sorted.map((evt) => {
