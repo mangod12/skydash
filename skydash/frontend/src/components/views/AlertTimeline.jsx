@@ -28,9 +28,9 @@ export default function AlertTimeline({ events }) {
   return (
     <GlassCard className="!p-3">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
+        <h2 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500">
           ALERT TIMELINE
-        </h3>
+        </h2>
         <span className="text-[9px] text-zinc-600 font-mono tabular-nums">
           {sorted.length} EVENTS
         </span>

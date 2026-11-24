@@ -36,9 +36,9 @@ export default function TelemetryPanel() {
 
       {/* Primary Flight Display */}
       <GlassCard className="!p-4">
-        <h3 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-2">
+        <h2 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-2">
           PRIMARY FLIGHT DISPLAY
-        </h3>
+        </h2>
         <div className="flex items-center gap-3">
           {/* Speed tape (left) */}
           <div className="flex flex-col items-center">
