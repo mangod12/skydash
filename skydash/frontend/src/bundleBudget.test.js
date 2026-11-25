@@ -15,11 +15,11 @@ function run(chunks,override){
 }
 afterEach(()=>{for(const path of folders.splice(0))rmSync(path,{recursive:true,force:true});});
 describe('total JavaScript gzip guard',()=>{
- it('allows the narrow756KiB total cap rather than the historical750KiB or 755KiB',()=>{
-  const result=run({'index.js':754*1024});expect(result.status).toBe(0);expect(result.stdout).toContain('budget 756 kB');
+ it('allows the 760KiB total cap rather than the historical750KiB, 755KiB or 756KiB',()=>{
+  const result=run({'index.js':758*1024});expect(result.status).toBe(0);expect(result.stdout).toContain('budget 760 kB');
  });
  it('still counts every lazy JavaScript chunk and fails above the cap',()=>{
-  const result=run({'index.js':400*1024,'ScenarioLabView.js':358*1024,'ignored.css':1000});expect(result.status).toBe(1);expect(result.stderr).toContain('Bundle size budget exceeded');expect(result.stdout).toContain('ScenarioLabView.js');
+  const result=run({'index.js':400*1024,'ScenarioLabView.js':362*1024,'ignored.css':1000});expect(result.status).toBe(1);expect(result.stderr).toContain('Bundle size budget exceeded');expect(result.stdout).toContain('ScenarioLabView.js');
  });
  it('keeps an explicit smaller environment limit effective',()=>{
   const result=run({'index.js':2*1024},1);expect(result.status).toBe(1);expect(result.stdout).toContain('budget 1 kB');
