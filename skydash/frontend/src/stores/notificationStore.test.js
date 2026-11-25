@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 // Ensure `window` exists for notificationStore's DEV guard
 if (typeof globalThis.window === 'undefined') {
-  globalThis.window = {};
+  globalThis.window = { location: { hostname: 'localhost' } };
 }
 
 const { default: useNotificationStore, notify } = await import('./notificationStore');
@@ -102,5 +102,38 @@ describe('alert workflow', () => {
     expect(after.notifications.find((n) => n.id === a.id).status).toBe('acknowledged');
     expect(after.notifications.find((n) => n.id === b.id).status).toBe('escalated');
     expect(after.getNeedsAttention().map((n) => n.title)).toEqual(['B']);
+  });
+  it('records who acted and writes an audit entry for ack and escalate', async () => {
+    const { useAuthStore } = await import('./authStore');
+    const { useAuditStore } = await import('./auditStore');
+    useAuditStore.getState().clear();
+    useAuthStore.setState({ user: { username: 'cmdr.lee' } });
+    const s = useNotificationStore.getState();
+    s.clearAll();
+    s.addNotification({ type: 'alert', title: 'Geofence breach', message: 'm', severity: 'critical' });
+    const id = useNotificationStore.getState().notifications[0].id;
+    useNotificationStore.getState().acknowledge(id);
+    const n = useNotificationStore.getState().notifications[0];
+    expect(n.statusBy).toBe('cmdr.lee');
+    expect(n.statusAt).toBeInstanceOf(Date);
+    useNotificationStore.getState().escalate(id);
+    useAuthStore.setState({ user: null });
+    const entries = useAuditStore.getState().entries;
+    expect(entries.map((e) => e.action)).toEqual(['escalate', 'acknowledge']);
+    expect(entries[1].category).toBe('alert');
+    expect(entries[1].detail).toContain('Geofence breach');
+    expect(entries[1].detail).toContain('cmdr.lee');
+  });
+
+  it('ignores status changes for unknown ids and falls back to local operator', async () => {
+    const { useAuditStore } = await import('./auditStore');
+    useAuditStore.getState().clear();
+    useNotificationStore.getState().acknowledge('missing');
+    expect(useAuditStore.getState().entries).toHaveLength(0);
+    useNotificationStore.getState().clearAll();
+    useNotificationStore.getState().addNotification({ type: 'alert', title: 'X', message: 'm', severity: 'warning' });
+    const id = useNotificationStore.getState().notifications[0].id;
+    useNotificationStore.getState().acknowledge(id);
+    expect(useNotificationStore.getState().notifications[0].statusBy).toBe('local operator');
   });
 });

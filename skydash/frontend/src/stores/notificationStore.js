@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { useAuthStore } from './authStore';
+import { audit } from './auditStore';
 
 const MAX_NOTIFICATIONS = 50;
 
@@ -70,12 +72,21 @@ const useNotificationStore = create((set, get) => ({
   }),
 
   // Workflow status for alerts: new -> acknowledged -> escalated
-  setStatus: (id, status) => set((s) => {
-    const next = s.notifications.map((n) =>
-      n.id === id ? { ...n, status, read: true, statusAt: new Date() } : n,
-    );
-    return { notifications: next, unreadCount: computeUnread(next) };
-  }),
+  // Each change records who acted and when, and writes an audit entry.
+  setStatus: (id, status) => {
+    const target = get().notifications.find((n) => n.id === id);
+    if (!target) return;
+    const actor = useAuthStore.getState().user?.username || 'local operator';
+    const statusAt = new Date();
+    set((s) => {
+      const next = s.notifications.map((n) =>
+        n.id === id ? { ...n, status, read: true, statusAt, statusBy: actor } : n,
+      );
+      return { notifications: next, unreadCount: computeUnread(next) };
+    });
+    audit(status === 'escalated' ? 'escalate' : 'acknowledge', 'alert',
+      `${status === 'escalated' ? 'Escalated' : 'Acknowledged'} "${target.title}" (${target.severity || 'info'}) as ${actor}`);
+  },
 
   acknowledge: (id) => get().setStatus(id, 'acknowledged'),
   escalate: (id) => get().setStatus(id, 'escalated'),
