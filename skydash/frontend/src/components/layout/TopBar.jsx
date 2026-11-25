@@ -55,8 +55,8 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
         >
           <Search size={14} className="text-zinc-500" />
-          <span className="text-zinc-500 text-xs">Search...</span>
-          <kbd className="hidden sm:flex items-center gap-0.5 text-[10px] text-zinc-600 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.08]">
+          <span className="text-zinc-500 text-xs hidden lg:inline">Search...</span>
+          <kbd className="hidden lg:flex items-center gap-0.5 text-[10px] text-zinc-600 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.08]">
             <Command size={10} />K
           </kbd>
         </button>
