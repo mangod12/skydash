@@ -63,12 +63,12 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
       )}
 
       {/* Right: Info + Notifications + Clock */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3">
         {isMobile && (
           <button
             data-tour="command-palette"
             onClick={toggleCommandPalette}
-            className="text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="inline-flex h-7 w-7 items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors"
             aria-label="Open command palette"
           >
             <Search size={18} strokeWidth={1.5} />
@@ -76,7 +76,7 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
         )}
         <button
           onClick={onInfoOpen}
-          className="text-zinc-600 hover:text-indigo-400 transition-colors"
+          className="inline-flex h-7 w-7 items-center justify-center text-zinc-600 hover:text-indigo-400 transition-colors"
           title="Platform Guide"
           aria-label="Open platform guide"
         >
@@ -85,7 +85,7 @@ export default function TopBar({ onInfoOpen, onNotificationToggle }) {
         <button
           data-tour="notifications"
           onClick={onNotificationToggle}
-          className="relative text-zinc-500 hover:text-zinc-300 transition-colors"
+          className="inline-flex h-7 w-7 items-center justify-center relative text-zinc-500 hover:text-zinc-300 transition-colors"
           aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
         >
           <Bell size={18} strokeWidth={1.5} />
