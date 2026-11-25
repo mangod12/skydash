@@ -43,7 +43,9 @@ const SEED_NOTIFICATIONS = [
   },
 ];
 
-const withStatus = (list) => list.map((n) => ({ status: 'new', ...n }));
+// Seeded items are demo samples, not live detections. They carry sample: true
+// so the UI can label them and nobody reads them as real fleet events.
+const withStatus = (list) => list.map((n) => ({ status: 'new', sample: true, ...n }));
 
 const computeUnread = (notifications) =>
   notifications.filter((n) => !n.read).length;

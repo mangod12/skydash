@@ -136,4 +136,13 @@ describe('alert workflow', () => {
     useNotificationStore.getState().acknowledge(id);
     expect(useNotificationStore.getState().notifications[0].statusBy).toBe('local operator');
   });
+  it('labels seeded demo items as samples but not live ones', async () => {
+    const mod = await import('./notificationStore');
+    const seeded = mod.default.getState().notifications;
+    expect(seeded.length).toBeGreaterThan(0);
+    expect(seeded.every((n) => n.sample === true)).toBe(true);
+    mod.notify({ type: 'alert', title: 'Live', message: 'm', severity: 'warning' });
+    const live = mod.default.getState().notifications.find((n) => n.title === 'Live');
+    expect(live.sample).toBeUndefined();
+  });
 });
