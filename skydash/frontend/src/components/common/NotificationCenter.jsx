@@ -76,6 +76,10 @@ function NotificationItem({ notification, onDismiss, onClose }) {
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-medium text-zinc-200 truncate">
             {notification.title}
+            {notification.sample && (
+              <span className="ml-1.5 align-middle text-[8px] font-bold tracking-[0.15em] text-zinc-400 bg-white/[0.06] px-1 py-0.5 rounded"
+                title="Demo sample, not a live detection">SAMPLE</span>
+            )}
           </p>
           <p className="text-[10px] text-zinc-500 mt-0.5 line-clamp-2">
             {notification.message}
