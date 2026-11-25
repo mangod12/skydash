@@ -18,6 +18,7 @@ import QuickActions from '../common/QuickActions';
 import ToastContainer, { toast } from '../common/Toast';
 import { useTelemetry } from '../../hooks/useTelemetry';
 import { useAlertEngine } from '../../hooks/useAlertEngine';
+import { useLinkAlerts } from '../../hooks/useLinkAlerts';
 import { useKeyboard } from '../../hooks/useKeyboard';
 import useAuditIntegration from '../../hooks/useAuditIntegration';
 import { useTelemetryStore } from '../../stores/telemetryStore';
@@ -33,6 +34,7 @@ export default function Shell({ children }) {
 
   useTelemetry();
   useAlertEngine();
+  useLinkAlerts();
   useAuditIntegration();
   useKeyboard({ onHelp: () => setShowHelp((v) => !v) });
 
