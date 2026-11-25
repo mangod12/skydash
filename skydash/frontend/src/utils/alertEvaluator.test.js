@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateRule } from './alertEvaluator';
+import { evaluateRule, previewRule } from './alertEvaluator';
 
 const drone = (extra = {}) => ({ drone_id: 'D1', ...extra });
 const rule = (type, config = {}) => ({ type, config });
@@ -183,5 +183,20 @@ describe('alert rule input integrity', () => {
     expect(evaluateRule(rule, drone, null, null).triggered).toBe(false);
     expect(evaluateRule(rule, drone, [null, fence], null).triggered).toBe(true);
     expect(evaluateRule({ type: 'proximity', config: { entityId: 'e' } }, drone, [], [null, { id: 'e', coordinates: [1, 1] }]).triggered).toBe(true);
+  });
+});
+
+describe('previewRule', () => {
+  const r = { type: 'battery_low', enabled: false, config: { threshold: 20 } };
+  it('lists drones that would trigger, ignoring enabled state', () => {
+    const out = previewRule(r, [drone({ battery_percentage: 5 }), drone({ drone_id: 'D2', battery_percentage: 90 })], [], []);
+    expect(out.total).toBe(2);
+    expect(out.hits).toEqual([{ droneId: 'D1', message: 'D1 battery at 5%' }]);
+  });
+  it('handles empty, invalid and null inputs', () => {
+    expect(previewRule(r, [], [], [])).toEqual({ total: 0, hits: [] });
+    expect(previewRule(r, null, [], [])).toEqual({ total: 0, hits: [] });
+    expect(previewRule(r, [null, drone({ battery_percentage: 1 })], [], []).total).toBe(1);
+    expect(previewRule({ type: 'nope', config: {} }, [drone()], [], []).hits).toEqual([]);
   });
 });

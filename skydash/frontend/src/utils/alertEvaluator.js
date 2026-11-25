@@ -101,3 +101,18 @@ export function evaluateRule(rule, drone, geofences, entities) {
   return CHECKERS[rule.type](drone, config,
     Array.isArray(geofences) ? geofences : [], Array.isArray(entities) ? entities : []);
 }
+
+/**
+ * Dry run: which drones would trigger this rule against the current fleet.
+ * Pure. Ignores enabled state and cooldown, and never notifies.
+ * @returns {{ total: number, hits: Array<{ droneId: string, message: string }> }}
+ */
+export function previewRule(rule, drones, geofences, entities) {
+  const list = Array.isArray(drones) ? drones.filter(Boolean) : [];
+  const hits = [];
+  for (const drone of list) {
+    const result = evaluateRule(rule, drone, geofences, entities);
+    if (result.triggered) hits.push({ droneId: String(drone.drone_id ?? 'unknown'), message: result.message });
+  }
+  return { total: list.length, hits };
+}
