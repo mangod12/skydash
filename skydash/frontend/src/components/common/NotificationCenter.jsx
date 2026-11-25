@@ -85,6 +85,9 @@ function NotificationItem({ notification, onDismiss, onClose }) {
             {isAlert && status !== 'new' && (
               <span className={clsx('ml-2 uppercase', status === 'escalated' ? 'text-red-400' : 'text-emerald-400')}>
                 {status}
+                {notification.statusBy && notification.statusAt
+                  ? ` · ${notification.statusBy} · ${new Date(notification.statusAt).toISOString().slice(11, 16)}Z`
+                  : ''}
               </span>
             )}
           </span>

@@ -7,7 +7,7 @@ import { apiFetch } from '../../utils/api';
 import { API_BASE } from '../../utils/runtimeConfig';
 import { csvCell } from '../../utils/csvSafe';
 
-const CATEGORIES = ['all', 'entity', 'mission', 'map', 'export', 'system'];
+const CATEGORIES = ['all', 'entity', 'mission', 'map', 'export', 'alert', 'system'];
 
 const ACTION_COLORS = {
   create: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
