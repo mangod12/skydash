@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { join } from 'node:path';
 
-const BUDGET_KB = Number(process.env.BUNDLE_BUDGET_KB || 756);
+const BUDGET_KB = Number(process.env.BUNDLE_BUDGET_KB || 760);
 const dir = join(process.cwd(), 'dist', 'assets');
 const files = readdirSync(dir).filter((f) => f.endsWith('.js'));
 const sizes = files

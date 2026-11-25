@@ -56,3 +56,14 @@ application chunk stays about 119.0 KiB, and the guard still sums all JavaScript
 including lazy chunks. This is a measured allowance for layout classes, not
 permission to grow startup payload or weaken checks. Configured builds can differ
 slightly and must pass the same 756 KiB cap.
+
+## Operator workflow allowance
+
+The total-JavaScript gzip guard is now 760 KiB, four KiB above the previous 756 KiB.
+Main measured 755.9 KiB after alert accountability (who acknowledged or escalated,
+with an audit entry) and the alert rule dry run, leaving no room for the next
+operator-facing change. The added bytes are application code for those two
+features, not new dependencies. The vendor chunk is unchanged, and the guard still
+sums all JavaScript including lazy chunks. This is a measured allowance for
+shipped features, not permission to grow startup payload or weaken checks.
+Configured builds can differ slightly and must pass the same 760 KiB cap.
