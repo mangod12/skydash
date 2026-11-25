@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { clsx } from 'clsx';
-import { Trash2 } from 'lucide-react';
+import { FlaskConical, Trash2 } from 'lucide-react';
 import { isDefaultRule } from '../../stores/alertRulesStore';
+import { useTelemetryStore } from '../../stores/telemetryStore';
+import { useMapStore } from '../../stores/mapStore';
+import { useIntelStore } from '../../stores/intelStore';
+import { previewRule } from '../../utils/alertEvaluator';
 
 const SEVERITY_COLORS = {
   info: 'bg-blue-500',
@@ -49,6 +53,7 @@ function ToggleSwitch({ on, onChange }) {
 
 export default function AlertRuleRow({ rule, onToggle, onUpdate, onRemove }) {
   const [editing, setEditing] = useState(false);
+  const [preview, setPreview] = useState(null);
   const field = CONFIG_FIELDS[rule.type];
   const canDelete = !isDefaultRule(rule.id);
 
@@ -59,9 +64,15 @@ export default function AlertRuleRow({ rule, onToggle, onUpdate, onRemove }) {
     }
   };
 
+  const runPreview = () => {
+    const { data, fleet } = useTelemetryStore.getState();
+    const drones = fleet.length > 0 ? fleet : (data ? [data] : []);
+    setPreview(previewRule(rule, drones, useMapStore.getState().geofences, useIntelStore.getState().entities));
+  };
+
   return (
     <div className={clsx(
-      'flex items-center gap-3 p-3 rounded-xl border transition-all',
+      'flex flex-wrap items-center gap-3 p-3 rounded-xl border transition-all',
       'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]',
     )}>
       <div className={clsx('w-2 h-2 rounded-full shrink-0', SEVERITY_COLORS[rule.severity])} />
@@ -98,6 +109,16 @@ export default function AlertRuleRow({ rule, onToggle, onUpdate, onRemove }) {
         )}
       </div>
 
+      <button
+        type="button"
+        onClick={runPreview}
+        aria-label={`Test alert rule ${rule.name} against current fleet`}
+        title="Dry run against current telemetry (sends no alert)"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-zinc-500 hover:text-indigo-400 transition-colors"
+      >
+        <FlaskConical size={14} />
+      </button>
+
       <ToggleSwitch on={rule.enabled} onChange={() => onToggle(rule.id)} />
 
       {canDelete && (
@@ -109,6 +130,16 @@ export default function AlertRuleRow({ rule, onToggle, onUpdate, onRemove }) {
         >
           <Trash2 size={14} />
         </button>
+      )}
+      {preview && (
+        <p role="status" className="basis-full pl-5 text-[10px] font-mono text-zinc-400">
+          {preview.total === 0
+            ? 'DRY RUN: no telemetry yet. Nothing to test.'
+            : preview.hits.length === 0
+              ? `DRY RUN: would not trigger (${preview.total} drone${preview.total === 1 ? '' : 's'} checked).`
+              : `DRY RUN: would trigger on ${preview.hits.length} of ${preview.total}. ${preview.hits.map((h) => h.message).join('; ')}`}
+          {!rule.enabled && ' Rule is disabled.'}
+        </p>
       )}
     </div>
   );

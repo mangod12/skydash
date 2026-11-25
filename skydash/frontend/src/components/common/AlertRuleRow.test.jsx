@@ -2,6 +2,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import AlertRuleRow from './AlertRuleRow';
+import { useTelemetryStore } from '../../stores/telemetryStore';
 
 afterEach(cleanup);
 
@@ -55,5 +56,32 @@ describe('AlertRuleRow', () => {
     setup(rule({ id: 'geo-any', type: 'geofence_breach', config: {} }));
     expect(screen.queryByLabelText(/Remove alert rule/)).toBeNull();
     expect(screen.getByText('GEOFENCE')).toBeTruthy();
+  });
+  it('dry-runs a rule against the current fleet without notifying', () => {
+    useTelemetryStore.setState({
+      data: null,
+      fleet: [
+        { drone_id: 'D1', battery_percentage: 12 },
+        { drone_id: 'D2', battery_percentage: 80 },
+      ],
+    });
+    setup();
+    fireEvent.click(screen.getByLabelText('Test alert rule Low battery against current fleet'));
+    const out = screen.getByRole('status').textContent;
+    expect(out).toContain('would trigger on 1 of 2');
+    expect(out).toContain('D1 battery at 12%');
+  });
+
+  it('says when a dry run would not trigger or there is no telemetry', () => {
+    useTelemetryStore.setState({ data: null, fleet: [{ drone_id: 'D2', battery_percentage: 80 }] });
+    setup(rule({ enabled: false }));
+    fireEvent.click(screen.getByLabelText('Test alert rule Low battery against current fleet'));
+    expect(screen.getByRole('status').textContent).toContain('would not trigger (1 drone checked)');
+    expect(screen.getByRole('status').textContent).toContain('Rule is disabled');
+    cleanup();
+    useTelemetryStore.setState({ data: null, fleet: [] });
+    setup();
+    fireEvent.click(screen.getByLabelText('Test alert rule Low battery against current fleet'));
+    expect(screen.getByRole('status').textContent).toContain('no telemetry yet');
   });
 });
