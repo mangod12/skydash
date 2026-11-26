@@ -7,6 +7,7 @@ import useNotificationStore from '../../stores/notificationStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useMapStore } from '../../stores/mapStore';
 import VirtualList from './VirtualList';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
 
 const TABS = ['attention', 'all', 'alert', 'intel', 'system', 'mission'];
 
@@ -129,6 +130,7 @@ export default function NotificationCenter({ isOpen, onClose }) {
   const panelRef = useRef(null);
   const { notifications, markAllRead, dismiss } = useNotificationStore();
   const [activeTab, setActiveTab] = useState('attention');
+  useDialogFocus(isOpen, panelRef);
 
   // Close on Escape
   useEffect(() => {
