@@ -13,8 +13,12 @@ export function useKeyboard({ onHelp } = {}) {
         return;
       }
 
-      // Don't capture shortcuts when typing in inputs
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      // Leave browser and OS combos alone (Ctrl+A, Cmd+D, Alt+T ...).
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      // Don't capture shortcuts when typing in form fields or editable text
+      const tag = e.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return;
 
       switch (e.key) {
         case 'm': setActiveView('map'); break;
