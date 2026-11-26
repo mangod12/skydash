@@ -3,6 +3,12 @@ import { clsx } from 'clsx';
 const CHIP_ACTIVE = 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30';
 const CHIP_IDLE = 'text-zinc-500 border-white/[0.06] hover:bg-white/[0.04]';
 
+// Keys that change a range value, plus Enter and Space, commit on release.
+const COMMIT_KEYS = new Set([
+  'Enter', ' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+  'Home', 'End', 'PageUp', 'PageDown',
+]);
+
 export function SectionLabel({ children }) {
   return (
     <h4 className="text-[8px] font-semibold tracking-[0.15em] text-zinc-500 uppercase mb-2">
@@ -66,7 +72,7 @@ export function Slider({ label, value, min, max, step, unit, onChange, onCommit,
         onMouseUp={(e) => onCommit?.(Number(e.currentTarget.value))}
         onTouchEnd={(e) => onCommit?.(Number(e.currentTarget.value))}
         onKeyUp={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') onCommit?.(Number(e.currentTarget.value));
+          if (COMMIT_KEYS.has(e.key)) onCommit?.(Number(e.currentTarget.value));
         }}
         className="flex-1 h-1 appearance-none bg-zinc-800 rounded-full outline-none
           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3
