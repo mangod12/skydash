@@ -122,7 +122,7 @@ export default function BulkActionsBar({ selectedIds, onClear }) {
           <ActionBtn icon={Target} label="Mission" onClick={applyMission} />
           <ActionBtn icon={Trash2} label="Delete" onClick={() => setConfirmDelete(true)} danger />
         </div>
-        <button onClick={() => { close(); onClear(); }} className="text-zinc-600 hover:text-zinc-400 transition-colors">
+        <button aria-label="Clear selection" onClick={() => { close(); onClear(); }} className="text-zinc-600 hover:text-zinc-400 transition-colors">
           <X size={14} />
         </button>
       </div>
