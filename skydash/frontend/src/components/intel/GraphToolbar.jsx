@@ -19,6 +19,7 @@ export default function GraphToolbar({
           <button
             key={id}
             onClick={() => onLayoutChange(id)}
+            aria-pressed={layout === id}
             className={clsx(
               'flex items-center gap-1 px-2 py-1 rounded text-[8px] font-semibold tracking-wider transition-colors',
               layout === id
@@ -44,6 +45,7 @@ export default function GraphToolbar({
         </button>
         <button
           onClick={onExpandAll}
+          aria-pressed={!!expanded}
           className={clsx(
             'flex items-center gap-1 px-2 py-1 rounded text-[8px] font-semibold tracking-wider transition-colors',
             expanded ? 'text-cyan-400' : 'text-zinc-500 hover:text-zinc-300',
@@ -54,6 +56,7 @@ export default function GraphToolbar({
         </button>
         <button
           onClick={onToggleCommunities}
+          aria-pressed={!!communities}
           className={clsx(
             'flex items-center gap-1 px-2 py-1 rounded text-[8px] font-semibold tracking-wider transition-colors',
             communities ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300',
