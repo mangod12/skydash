@@ -1,5 +1,12 @@
 import { useIntelStore } from '../../stores/intelStore';
 
+const LEVEL_LABELS = {
+  critical: 'critical threat present',
+  high: 'high threat present',
+  steady: 'no high or critical threats',
+  none: 'no entities tracked',
+};
+
 const LEVEL_COLORS = {
   critical: { bg: 'rgb(239, 68, 68)', shadow: '0 0 8px rgba(239, 68, 68, 0.5)' },
   high: { bg: 'rgb(245, 158, 11)', shadow: '0 0 8px rgba(245, 158, 11, 0.4)' },
@@ -21,6 +28,9 @@ export default function ThreatBar() {
 
   return (
     <div
+      role="img"
+      aria-label={`Threat level: ${LEVEL_LABELS[level]}`}
+      title={`Threat level: ${LEVEL_LABELS[level]}`}
       className={`w-full h-[3px] shrink-0 z-50 ${level === 'critical' ? 'animate-pulse' : ''}`}
       style={{
         backgroundColor: bg,
