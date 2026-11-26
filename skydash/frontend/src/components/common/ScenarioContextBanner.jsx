@@ -51,7 +51,7 @@ export default function ScenarioContextBanner() {
                 <span className="text-[10px] text-zinc-500">|</span>
                 <span className="text-[10px] text-zinc-500">{frame.preset.name}</span>
                 <span className="text-[10px] text-zinc-500">|</span>
-                <span className="text-[10px] text-zinc-500">{frame.injectedEvents.length} injects</span>
+                <span className="text-[10px] text-zinc-500">{injectedEvents.length} injects</span>
               </div>
             </div>
           </div>
