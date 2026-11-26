@@ -29,13 +29,14 @@ export default function AlertBar() {
         <div className={clsx(
           'mx-3 mt-3 px-4 py-2.5 rounded-xl border flex items-center gap-3',
           SEVERITY_STYLES[topAlert.severity],
-        )}>
+        )} role={topAlert.severity === 'critical' ? 'alert' : 'status'}>
           <AlertTriangle size={16} className="shrink-0" />
           <span className="text-xs font-semibold tracking-wider flex-1">
             {topAlert.message}
           </span>
           <button
             onClick={clearAlerts}
+            aria-label="Dismiss alerts"
             className="text-zinc-500 hover:text-zinc-300 transition-colors"
           >
             <X size={14} />
