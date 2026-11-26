@@ -116,7 +116,7 @@ function BearingLineRow({ line, index, unit, speed, onRemove }) {
           LINE {String.fromCharCode(65 + index)}
         </span>
         <button
-          onClick={onRemove}
+          onClick={onRemove} aria-label="Remove bearing line"
           className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-all"
         >
           <X size={10} />

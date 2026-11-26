@@ -80,7 +80,7 @@ export default function EntityCreateForm({ open, onClose }) {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
               <h2 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-400">CREATE ENTITY</h2>
-              <button type="button" onClick={close} className="text-zinc-600 hover:text-zinc-300 transition-colors"><X size={14} /></button>
+              <button type="button" onClick={close} className="text-zinc-600 hover:text-zinc-300 transition-colors" aria-label="Close create entity"><X size={14} /></button>
             </div>
             {/* Body */}
             <div className="px-5 py-4 space-y-4 max-h-[60vh] overflow-y-auto scrollbar-thin">

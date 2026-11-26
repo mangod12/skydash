@@ -57,7 +57,7 @@ export default function EntityDetail() {
           </div>
         </div>
         <button
-          onClick={clearSelection}
+          onClick={clearSelection} aria-label="Close entity detail"
           className="text-zinc-600 hover:text-zinc-400 transition-colors"
         >
           <X size={16} />

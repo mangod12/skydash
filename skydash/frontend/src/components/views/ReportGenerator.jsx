@@ -158,7 +158,7 @@ ${fleetSection}
             <b.icon size={12} /> {b.label}
           </button>
         ))}
-        <button onClick={onClose} className="p-2 rounded-lg bg-zinc-800/90 border border-white/10 text-zinc-400 hover:text-white transition-colors">
+        <button onClick={onClose} className="p-2 rounded-lg bg-zinc-800/90 border border-white/10 text-zinc-400 hover:text-white transition-colors" aria-label="Close report">
           <X size={14} />
         </button>
       </div>
