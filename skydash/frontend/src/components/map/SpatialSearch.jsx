@@ -58,7 +58,7 @@ export default function SpatialSearchPanel({ active, center, radius, onRadiusCha
                 <span className="text-[10px] font-semibold tracking-[0.15em] text-indigo-400">SPATIAL SEARCH</span>
                 <span className="text-[10px] font-mono tabular-nums text-zinc-500">{fmtR(radius)}</span>
               </div>
-              <button onClick={onClose}
+              <button onClick={onClose} aria-label="Close spatial search"
                 className="w-5 h-5 flex items-center justify-center rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition-colors">
                 <X size={12} />
               </button>

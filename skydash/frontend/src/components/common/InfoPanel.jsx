@@ -79,7 +79,7 @@ export default function InfoPanel({ open, onClose }) {
                 <h2 className="text-sm font-semibold text-zinc-200 tracking-wider">SKYDASH GUIDE</h2>
                 <p className="text-[10px] text-zinc-500 mt-0.5">Spatial Intelligence Platform — Quick Reference</p>
               </div>
-              <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+              <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors" aria-label="Close guide">
                 <X size={18} />
               </button>
             </div>

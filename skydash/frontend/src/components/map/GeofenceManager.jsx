@@ -52,7 +52,7 @@ function GeofenceCard({ fence, onToggle, onDelete, onUpdate }) {
               <div className="flex items-center gap-1 flex-1 min-w-0">
                 <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                   className="flex-1 min-w-0 bg-zinc-800 border border-white/10 rounded px-1.5 py-0.5 text-[11px] text-zinc-100 outline-none focus:border-indigo-500/50" autoFocus />
-                <button onClick={handleSave} className="text-emerald-400 hover:text-emerald-300"><Check size={12} /></button>
+                <button onClick={handleSave} className="text-emerald-400 hover:text-emerald-300" aria-label="Save geofence name"><Check size={12} /></button>
               </div>
             ) : (
               <div className="flex items-center gap-1.5 min-w-0">
@@ -144,7 +144,7 @@ export default function GeofenceManager() {
                 className="flex items-center gap-1 px-2 py-1 text-[9px] tracking-wider text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 rounded border border-indigo-500/20 transition-colors">
                 <Plus size={10} />NEW
               </button>
-              <button onClick={handleClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+              <button onClick={handleClose} className="text-zinc-500 hover:text-zinc-300 transition-colors" aria-label="Close geofence manager">
                 <X size={14} />
               </button>
             </div>

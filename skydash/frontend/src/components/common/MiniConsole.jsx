@@ -106,7 +106,7 @@ export default function MiniConsole({ open, onClose }) {
             <span className="text-[10px] font-semibold tracking-[0.15em] text-emerald-500/80 uppercase">Console</span>
             <div className="flex-1" />
             <span className="text-[10px] text-zinc-600 font-mono">ESC to close</span>
-            <button onClick={onClose} className="text-zinc-600 hover:text-zinc-400 transition-colors p-0.5">
+            <button onClick={onClose} className="text-zinc-600 hover:text-zinc-400 transition-colors p-0.5" aria-label="Close console">
               <X size={14} />
             </button>
           </div>
