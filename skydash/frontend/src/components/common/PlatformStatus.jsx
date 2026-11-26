@@ -1,17 +1,7 @@
 import { CheckCircle, ExternalLink } from 'lucide-react';
 import GlassCard from './GlassCard';
+import { INVENTORY, formatCount } from './platformInventory';
 import { version } from '../../../package.json';
-
-const INVENTORY = [
-  ['Components', 90],
-  ['Stores', 10],
-  ['Hooks', 11],
-  ['Views', 8],
-  ['API Endpoints', 28],
-  ['Themes', 3],
-  ['Shortcuts', 11],
-  ['Export Formats', 5],
-];
 
 const CAPABILITIES = [
   'Real-time telemetry (10Hz WebSocket)',
@@ -38,10 +28,7 @@ const TECH = [
 ];
 
 const BUILD = [
-  ['Source Files', '127'],
-  ['Lines', '13,518'],
   ['Bundle', 'Code-split'],
-  ['Dev Phases', '16'],
 ];
 
 const SectionLabel = ({ children }) => (
@@ -64,7 +51,7 @@ export default function PlatformStatus() {
           {INVENTORY.map(([label, count]) => (
             <div key={label} className="flex justify-between py-0.5">
               <span className="text-zinc-500">{label}</span>
-              <span className="font-mono text-zinc-300">{count}</span>
+              <span className="font-mono text-zinc-300">{formatCount(label, count)}</span>
             </div>
           ))}
         </div>
