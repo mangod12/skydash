@@ -38,10 +38,13 @@ export default function FeedItem({ item, onEntityClick }) {
         onClick={() => hasEntity && onEntityClick(item.entityId)}
         role={hasEntity ? 'button' : undefined}
         tabIndex={hasEntity ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (hasEntity && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onEntityClick(item.entityId); }
+        }}
       >
         <div className="flex items-start gap-2">
           {/* Severity dot */}
-          <div className={clsx('w-2 h-2 rounded-full shrink-0 mt-1.5', SEVERITY_DOT[item.severity])} />
+          <div className={clsx('w-2 h-2 rounded-full shrink-0 mt-1.5', SEVERITY_DOT[item.severity])} role="img" aria-label={`${item.severity || 'unknown'} severity`} />
 
           <div className="flex-1 min-w-0">
             {/* Top row: time + category */}
