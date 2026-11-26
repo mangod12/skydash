@@ -12,7 +12,15 @@ export default function AttitudeIndicator() {
 
   return (
     <div className="w-full aspect-square max-w-[200px] mx-auto relative">
-      <svg viewBox="0 0 200 200" className="w-full h-full" style={{ opacity: available ? 1 : 0.2 }}>
+      <svg
+        viewBox="0 0 200 200"
+        className="w-full h-full"
+        style={{ opacity: available ? 1 : 0.2 }}
+        role="img"
+        aria-label={available
+          ? `Attitude indicator: roll ${Math.round(roll)} degrees, pitch ${Math.round(pitch)} degrees`
+          : 'Attitude indicator: unavailable'}
+      >
         <defs>
           <clipPath id="horizon-clip">
             <circle cx="100" cy="100" r="90" />
