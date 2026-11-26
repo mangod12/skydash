@@ -58,8 +58,13 @@ export default function FleetOverview() {
             const s = STATUS_MAP[r.status];
             return (
               <tr key={r.id}
-                className="border-b border-white/[0.03] last:border-0 hover:bg-white/[0.03] cursor-pointer transition-colors"
+                className="border-b border-white/[0.03] last:border-0 hover:bg-white/[0.03] focus-visible:bg-white/[0.06] focus-visible:outline focus-visible:outline-1 focus-visible:outline-indigo-400 cursor-pointer transition-colors"
                 onClick={() => setActiveView('telemetry')}
+                tabIndex={0}
+                aria-label={`Open telemetry for ${r.id}`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveView('telemetry'); }
+                }}
               >
                 <td className={clsx(CELL, 'py-1 px-1 text-zinc-300 font-semibold')}>{r.id}</td>
                 <td className={clsx(CELL, 'py-1 px-1')}>
