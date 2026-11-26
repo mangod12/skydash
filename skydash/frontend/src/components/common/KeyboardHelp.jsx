@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Keyboard, Search, Copy, Check } from 'lucide-react';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
 
 const SHORTCUTS = {
   NAVIGATION: [
@@ -72,6 +73,8 @@ export default function KeyboardHelp({ open, onClose, onOpen }) {
   const [inputFocused, setInputFocused] = useState(false);
   const [search, setSearch] = useState('');
   const [copied, setCopied] = useState(false);
+  const dialogRef = useRef(null);
+  useDialogFocus(open, dialogRef);
 
   useEffect(() => {
     const onFocus = (e) => {
@@ -159,6 +162,7 @@ export default function KeyboardHelp({ open, onClose, onOpen }) {
           >
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
             <motion.div
+              ref={dialogRef}
               initial={{ opacity: 0, scale: 0.93, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.93, y: 12 }}
