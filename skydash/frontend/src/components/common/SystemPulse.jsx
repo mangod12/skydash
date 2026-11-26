@@ -31,7 +31,12 @@ export default function SystemPulse() {
   return (
     <div className="flex items-center gap-2">
       {/* Heartbeat dot */}
-      <div className="relative w-2 h-2">
+      <div
+        className="relative w-2 h-2"
+        role="img"
+        aria-label={isConnected ? 'Telemetry link: live' : 'Telemetry link: offline'}
+        title={isConnected ? 'Live' : 'Offline'}
+      >
         <div className={`absolute inset-0 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
         {isConnected && (
           <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-60" />
