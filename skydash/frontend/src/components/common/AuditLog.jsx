@@ -17,6 +17,8 @@ const ACTION_COLORS = {
   unlink: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
   export: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
   annotate: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
+  acknowledge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  escalate: 'bg-red-500/20 text-red-400 border-red-500/30',
   view: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
 };
 
