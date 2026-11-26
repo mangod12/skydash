@@ -19,6 +19,7 @@ export default function WorkspaceSwitcher() {
           <button
             key={id}
             onClick={() => setWorkspace(id)}
+            aria-pressed={active}
             className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors text-[9px] font-semibold tracking-wider ${
               active
                 ? 'bg-indigo-500/15 text-indigo-400'

@@ -24,6 +24,7 @@ function Chip({ label, active, onClick }) {
   return (
     <button
       onClick={onClick}
+      aria-pressed={!!active}
       className={clsx(
         'rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wider transition-all duration-150',
         active ? ACTIVE : INACTIVE,
