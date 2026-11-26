@@ -44,6 +44,14 @@ export default function ActivityItem({ activity }) {
   };
 
   const isClickable = activity.entityId || activity.missionId;
+  const handleKeyDown = (e) => {
+    if (!isClickable) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+  const severity = SEVERITY_COLOR[activity.severity] ? activity.severity : 'info';
   const timeLabel = formatDistanceToNow(activity.timestamp, { addSuffix: true });
 
   return (
@@ -53,6 +61,9 @@ export default function ActivityItem({ activity }) {
       exit={{ opacity: 0, x: 8 }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
       className={`flex items-start gap-2.5 px-3 py-2 rounded-lg border border-white/[0.04]
         bg-white/[0.02] hover:bg-white/[0.04] transition-colors
         ${isClickable ? 'cursor-pointer hover:border-white/[0.08]' : ''}`}
@@ -68,7 +79,12 @@ export default function ActivityItem({ activity }) {
           <span className="text-[11px] font-semibold text-zinc-200 truncate">
             {activity.action}
           </span>
-          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${SEVERITY_COLOR[activity.severity] || SEVERITY_COLOR.info}`} />
+          <div
+            role="img"
+            aria-label={`Severity: ${severity}`}
+            title={severity}
+            className={`w-1.5 h-1.5 rounded-full shrink-0 ${SEVERITY_COLOR[severity]}`}
+          />
         </div>
         <p className="text-[10px] text-zinc-500 leading-snug mt-0.5 line-clamp-1">
           {activity.detail}
