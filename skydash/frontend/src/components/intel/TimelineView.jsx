@@ -93,10 +93,16 @@ export default function TimelineView() {
                 )} />
                 <div
                   className={clsx(
-                    'p-2.5 rounded-lg border cursor-pointer transition-colors',
+                    'p-2.5 rounded-lg border transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-indigo-400',
+                    event.entityId && 'cursor-pointer',
                     'bg-white/[0.02] border-white/[0.04] hover:bg-white/[0.04]',
                   )}
                   onClick={() => handleEventClick(event)}
+                  role={event.entityId ? 'button' : undefined}
+                  tabIndex={event.entityId ? 0 : undefined}
+                  onKeyDown={(e) => {
+                    if (event.entityId && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handleEventClick(event); }
+                  }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="text-[11px] text-zinc-300 leading-snug">
