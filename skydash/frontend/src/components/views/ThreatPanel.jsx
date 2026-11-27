@@ -3,6 +3,7 @@ import { AlertTriangle, Shield } from 'lucide-react';
 import { useIntelStore } from '../../stores/intelStore';
 
 const THREAT_COLORS = {
+  none: 'text-zinc-400',
   low: 'text-emerald-400',
   medium: 'text-amber-400',
   high: 'text-red-400',
@@ -10,6 +11,7 @@ const THREAT_COLORS = {
 };
 
 const THREAT_BG = {
+  none: 'bg-white/[0.03] border-white/[0.08]',
   low: 'bg-emerald-500/20 border-emerald-500/40',
   medium: 'bg-amber-500/20 border-amber-500/40',
   high: 'bg-red-500/20 border-red-500/40',
@@ -26,7 +28,8 @@ export function ThreatPanel() {
     return c;
   }, [entities]);
 
-  const maxThreat = threatCounts.critical > 0 ? 'critical'
+  const hasData = entities.length > 0;
+  const maxThreat = !hasData ? 'none' : threatCounts.critical > 0 ? 'critical'
     : threatCounts.high > 0 ? 'high'
     : threatCounts.medium > 0 ? 'medium' : 'low';
 
@@ -43,7 +46,7 @@ export function ThreatPanel() {
       <div className={`border rounded-xl p-4 mb-3 text-center ${THREAT_BG[maxThreat]}`}>
         <Shield size={24} className={`mx-auto mb-1 ${THREAT_COLORS[maxThreat]}`} />
         <div className={`text-2xl font-bold font-mono tracking-wider ${THREAT_COLORS[maxThreat]}`}>
-          {maxThreat.toUpperCase()}
+          {hasData ? maxThreat.toUpperCase() : 'NO DATA'}
         </div>
         <div className="text-[9px] text-zinc-400 mt-1 tracking-wider">
           {threatCounts.critical}C / {threatCounts.high}H / {threatCounts.medium}M / {threatCounts.low}L
@@ -55,7 +58,7 @@ export function ThreatPanel() {
         {recentEvents.map((evt) => (
           <div key={evt.id} className="border border-white/[0.06] rounded-lg p-2.5 bg-zinc-900/40">
             <div className="flex items-start gap-2">
-              <AlertTriangle size={12} className={
+              <AlertTriangle size={12} aria-label={`Severity: ${evt.severity || 'info'}`} role="img" className={
                 evt.severity === 'critical' ? 'text-red-400 mt-0.5' :
                 evt.severity === 'warning' ? 'text-amber-400 mt-0.5' : 'text-zinc-500 mt-0.5'
               } />
