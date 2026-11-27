@@ -1,4 +1,5 @@
-import { useEffect, useRef, useCallback } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { useIntelStore } from '../../stores/intelStore';
@@ -30,7 +31,23 @@ function buildGradientData(gradient) {
   return ctx.getImageData(0, 0, 1, 256).data;
 }
 
-function generateEntityHeatPoints(entities, events) {
+// Deterministic 0..1 sequence per entity, so the same data always draws the same heat
+// (previously Math.random re-scattered every point on each render).
+function seededRandom(seed) {
+  let h = 2166136261;
+  const str = String(seed);
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  let a = h >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export function generateEntityHeatPoints(entities, events) {
   const points = [];
   const eventCounts = {};
   events.forEach((e) => {
@@ -42,17 +59,18 @@ function generateEntityHeatPoints(entities, events) {
     const evtBoost = Math.min((eventCounts[entity.id] || 0) * 0.08, 0.3);
     const intensity = Math.min(base + evtBoost, 1.0);
     const [lat, lng] = entity.coordinates;
+    const rand = seededRandom(entity.id);
     points.push({ lat, lng, intensity });
 
     // Scatter points around entity for density effect
     const count = Math.floor(intensity * 8) + 2;
     for (let i = 0; i < count; i++) {
-      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
-      const dist = (0.0005 + Math.random() * 0.001) * (1 + intensity);
+      const angle = (Math.PI * 2 * i) / count + rand() * 0.5;
+      const dist = (0.0005 + rand() * 0.001) * (1 + intensity);
       points.push({
         lat: lat + Math.cos(angle) * dist,
         lng: lng + Math.sin(angle) * dist,
-        intensity: intensity * (0.3 + Math.random() * 0.4),
+        intensity: intensity * (0.3 + rand() * 0.4),
       });
     }
   });
@@ -72,7 +90,10 @@ export default function HeatmapLayer({ visible = true, points: externalPoints, o
   const gradient = options.gradient || DEFAULT_GRADIENT;
   const gradientDataRef = useRef(null);
 
-  const points = externalPoints || generateEntityHeatPoints(entities, events);
+  const points = useMemo(
+    () => externalPoints || generateEntityHeatPoints(entities, events),
+    [externalPoints, entities, events],
+  );
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
