@@ -10,6 +10,7 @@ export default function GeofenceOverlay() {
         const color = fence.color || '#6366f1';
 
         if (fence.type === 'circle') {
+          if (!Number.isFinite(fence.center?.lat) || !Number.isFinite(fence.center?.lng) || !(fence.radius > 0)) return null;
           return (
             <Circle
               key={fence.id}
