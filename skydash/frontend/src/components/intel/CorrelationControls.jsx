@@ -1,6 +1,7 @@
 import { clsx } from 'clsx';
 import { ZoomIn, ZoomOut, Check } from 'lucide-react';
 import { SEVERITY_COLORS } from './CorrelationLane';
+import { upperLabel } from '../../utils/upperLabel';
 
 const MAX_ENTITIES = 8;
 const RANGE_OPTIONS = ['1h', '6h', '24h', '7d', 'all'];
@@ -145,7 +146,7 @@ export function EventTooltip({ tooltip }) {
             style={{ backgroundColor: fill }}
           />
           <span className="text-[9px] font-bold tracking-wider text-zinc-400">
-            {tooltip.event.severity.toUpperCase()}
+            {upperLabel(tooltip.event.severity)}
           </span>
           <span className="text-[9px] font-mono text-zinc-600 ml-auto">
             {time}

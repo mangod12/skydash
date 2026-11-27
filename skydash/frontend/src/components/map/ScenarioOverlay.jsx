@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Circle, CircleMarker, Polyline, Tooltip } from 'react-leaflet';
 import { useScenarioStore } from '../../stores/scenarioStore';
 import { buildScenarioFrame } from '../../utils/scenarioEngine';
+import { upperLabel } from '../../utils/upperLabel';
 
 const SEVERITY = {
   info: { color: '#22d3ee', radius: 7 },
@@ -118,7 +119,7 @@ export default function ScenarioOverlay({ frame: providedFrame, showIdle = false
               <div className="text-[10px] font-mono space-y-0.5">
                 <div className="font-bold text-[11px]">{event.label}</div>
                 <div style={{ color: style.color }}>
-                  {event.type.toUpperCase()} | {event.severity.toUpperCase()}
+                  {upperLabel(event.type)} | {upperLabel(event.severity)}
                 </div>
                 <div className="text-zinc-500">
                   T+{String(Math.round(event.time)).padStart(3, '0')}s
