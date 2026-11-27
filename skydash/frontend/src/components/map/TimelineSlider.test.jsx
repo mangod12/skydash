@@ -6,6 +6,12 @@ import TimelineSlider from './TimelineSlider';
 afterEach(cleanup);
 
 describe('TimelineSlider', () => {
+  it('is labelled as a preview, not connected to recorded data', () => {
+    render(<TimelineSlider />);
+    const tag = screen.getByText('PREVIEW');
+    expect(tag.getAttribute('title')).toMatch(/not connected to recorded data/i);
+  });
+
   it('starts at -15m with the slider at 75', () => {
     render(<TimelineSlider />);
     expect(screen.getByText('-15m')).toBeTruthy();

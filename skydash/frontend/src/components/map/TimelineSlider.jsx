@@ -13,6 +13,12 @@ export default function TimelineSlider() {
     <div className="absolute bottom-14 left-3 right-14 z-20 pointer-events-auto">
       <div className="bg-zinc-900/85 backdrop-blur-md border border-white/[0.06] rounded-xl px-4 py-2.5">
         <div className="flex items-center gap-3">
+          <span
+            className="px-1.5 py-0.5 rounded border border-amber-500/30 text-[8px] font-semibold tracking-[0.14em] text-amber-400"
+            title="Layout preview only. Not connected to recorded data. Use Replay for recorded sessions."
+          >
+            PREVIEW
+          </span>
           {/* Controls */}
           <div className="flex items-center gap-1">
             <button
