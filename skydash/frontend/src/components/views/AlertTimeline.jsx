@@ -51,7 +51,11 @@ export default function AlertTimeline({ events }) {
               className={`shrink-0 w-48 rounded-lg border ${sev.border} bg-white/[0.02] p-2.5 hover:bg-white/[0.04] transition-colors`}
             >
               <div className="flex items-center gap-1.5 mb-1">
-                <div className={`w-1.5 h-1.5 rounded-full ${sev.dot} shrink-0`} />
+                <div
+                  role="img"
+                  aria-label={`Severity: ${SEVERITY_COLORS[evt.severity] ? evt.severity : 'info'}`}
+                  className={`w-1.5 h-1.5 rounded-full ${sev.dot} shrink-0`}
+                />
                 <span className="text-[8px] font-mono text-zinc-600 tabular-nums">
                   {formatDistanceToNow(evt.time, { addSuffix: true })}
                 </span>
