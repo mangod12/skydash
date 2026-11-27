@@ -29,11 +29,11 @@ function createGhostIcon(color, heading = 0) {
 }
 
 function formatAlt(alt) {
-  return alt != null ? `${alt.toFixed(0)}m` : '--';
+  return Number.isFinite(alt) ? `${alt.toFixed(0)}m` : '--';
 }
 
 function formatBat(bat) {
-  return bat != null ? `${bat.toFixed(1)}V` : '--';
+  return Number.isFinite(bat) ? `${bat.toFixed(1)}V` : '--';
 }
 
 export default function PlaybackMarkers() {
@@ -52,7 +52,7 @@ export default function PlaybackMarkers() {
 
   return (
     <>
-      {snapshot.positions.map((pos) => {
+      {snapshot.positions.filter((pos) => Number.isFinite(pos.lat) && Number.isFinite(pos.lng)).map((pos) => {
         const color = GHOST_COLORS[pos.droneId] || '#6366f1';
         const icon = createGhostIcon(color, pos.heading ?? 0);
 
@@ -68,7 +68,7 @@ export default function PlaybackMarkers() {
                   {pos.droneId} <span className="text-[8px]">(PLAYBACK)</span>
                 </div>
                 <div>
-                  {formatAlt(pos.alt)} | {formatBat(pos.battery)} | {pos.speed?.toFixed(1)}m/s
+                  {formatAlt(pos.alt)} | {formatBat(pos.battery)} | {Number.isFinite(pos.speed) ? pos.speed.toFixed(1) : '--'}m/s
                 </div>
               </div>
             </Tooltip>
