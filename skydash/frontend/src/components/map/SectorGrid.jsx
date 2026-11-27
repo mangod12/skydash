@@ -34,6 +34,8 @@ function sectorLabelIcon(name, color) {
 
 export default function SectorGrid() {
   const center = useMapStore((s) => s.center);
+  // Leaflet throws on NaN bounds, so draw nothing without a usable centre.
+  if (!Array.isArray(center) || !Number.isFinite(center[0]) || !Number.isFinite(center[1])) return null;
   const sectors = computeSectors(center);
 
   return (
