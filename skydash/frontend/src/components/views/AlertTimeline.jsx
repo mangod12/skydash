@@ -1,5 +1,5 @@
 import { useMemo, useRef, useEffect } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { timeAgo } from '../../utils/timeAgo';
 import GlassCard from '../common/GlassCard';
 
 const SEVERITY_COLORS = {
@@ -57,7 +57,7 @@ export default function AlertTimeline({ events }) {
                   className={`w-1.5 h-1.5 rounded-full ${sev.dot} shrink-0`}
                 />
                 <span className="text-[8px] font-mono text-zinc-600 tabular-nums">
-                  {formatDistanceToNow(evt.time, { addSuffix: true })}
+                  {timeAgo(evt.time)}
                 </span>
               </div>
               <p className={`text-[10px] leading-tight ${sev.text} line-clamp-2`}>

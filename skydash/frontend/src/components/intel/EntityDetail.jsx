@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { MapPin, Link2, Activity, X } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { format } from 'date-fns';
+import { timeAgo } from '../../utils/timeAgo';
 import GlassCard from '../common/GlassCard';
 import SourceReliability from '../common/SourceReliability';
 import MiniRelGraph from './MiniRelGraph';
@@ -117,7 +118,7 @@ export default function EntityDetail() {
                     {formatDecimal(entity.coordinates[0], entity.coordinates[1])}
                   </div>
                   <div className="text-[9px] text-zinc-600 mt-0.5">
-                    Last known: {formatDistanceToNow(entity.lastSeen, { addSuffix: true })}
+                    Last known: {timeAgo(entity.lastSeen)}
                   </div>
                 </div>
                 <button
@@ -179,7 +180,7 @@ export default function EntityDetail() {
         <div className="border-t border-white/[0.06] pt-3">
           <div className="text-[9px] text-zinc-600 space-y-1 px-1">
             <div>First seen: {format(entity.firstSeen, 'yyyy-MM-dd HH:mm')}</div>
-            <div>Last seen: {formatDistanceToNow(entity.lastSeen, { addSuffix: true })}</div>
+            <div>Last seen: {timeAgo(entity.lastSeen)}</div>
           </div>
         </div>
       </div>

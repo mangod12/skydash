@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { formatDistanceToNow } from 'date-fns';
+import { timeAgo } from '../../utils/timeAgo';
 import { Shield, Target, Settings, AlertTriangle, Radio } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 
@@ -52,7 +52,7 @@ export default function ActivityItem({ activity }) {
     }
   };
   const severity = SEVERITY_COLOR[activity.severity] ? activity.severity : 'info';
-  const timeLabel = formatDistanceToNow(activity.timestamp, { addSuffix: true });
+  const timeLabel = timeAgo(activity.timestamp);
 
   return (
     <motion.div
