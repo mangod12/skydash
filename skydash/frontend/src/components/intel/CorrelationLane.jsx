@@ -1,4 +1,4 @@
-
+import { upperLabel } from '../../utils/upperLabel';
 const SEVERITY_COLORS = {
   info: { fill: '#3b82f6', glow: 'rgba(59,130,246,0.3)' },
   warning: { fill: '#f59e0b', glow: 'rgba(245,158,11,0.3)' },
@@ -77,7 +77,7 @@ export default function CorrelationLane({
         letterSpacing="0.12em"
         textTransform="uppercase"
       >
-        {entity.type.toUpperCase()}
+        {upperLabel(entity.type)}
       </text>
 
       {/* Event dots */}

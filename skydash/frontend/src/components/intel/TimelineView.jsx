@@ -6,6 +6,7 @@ import { useIntelStore } from '../../stores/intelStore';
 import { useEntityNavigation } from '../../hooks/useEntityNavigation';
 import VirtualList from '../common/VirtualList';
 import TimelineCorrelation from './TimelineCorrelation';
+import { upperLabel } from '../../utils/upperLabel';
 
 const SEVERITY_CONFIG = {
   info: { dot: 'bg-blue-500', line: 'border-blue-500/20', text: 'text-blue-400' },
@@ -113,7 +114,7 @@ export default function TimelineView() {
                       config.text,
                       event.severity === 'critical' ? 'bg-red-500/10' : 'bg-transparent',
                     )}>
-                      {event.severity.toUpperCase()}
+                      {upperLabel(event.severity)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1.5 text-[9px] text-zinc-600">

@@ -4,6 +4,7 @@ import { X, ChevronDown } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 import { useIntelStore } from '../../stores/intelStore';
 import { distanceBetween } from '../../utils/coordinates';
+import { upperLabel } from '../../utils/upperLabel';
 
 const _THREAT_ORDER = { none: 0, low: 1, medium: 2, high: 3, critical: 4 };
 const THREAT_BAR = { none: 'w-1/5', low: 'w-2/5', medium: 'w-3/5', high: 'w-4/5', critical: 'w-full' };
@@ -72,7 +73,7 @@ function CommonElements({ a, b, relsA, relsB, entities }) {
     <GlassCard className="!p-3 col-span-2" animate={false}>
       <SectionLabel>COMMON ELEMENTS</SectionLabel>
       <div className="space-y-1.5 text-[11px]">
-        {sameType && <div className="text-emerald-400 font-mono">Same type: {a.type.toUpperCase()}</div>}
+        {sameType && <div className="text-emerald-400 font-mono">Same type: {upperLabel(a.type)}</div>}
         {sharedRels.map((id) => (
           <div key={id} className="text-emerald-400 font-mono">Both connected to: {getName(id)}</div>
         ))}

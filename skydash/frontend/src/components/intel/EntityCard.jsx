@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { timeAgo } from '../../utils/timeAgo';
 import { useIntelStore } from '../../stores/intelStore';
+import { upperLabel } from '../../utils/upperLabel';
 
 const TYPE_CONFIG = {
   vehicle: { icon: Car, color: 'text-blue-400', bg: 'bg-blue-500/10' },
@@ -124,7 +125,7 @@ export default function EntityCard({ entity, selected, onClick, onContextMenu, s
             <ActivitySparkline entityId={entity.id} threatLevel={entity.threatLevel} />
           </div>
           <div className="text-[10px] text-zinc-500 mt-0.5 truncate">
-            {entity.type.toUpperCase()} &middot; {entity.confidence}% conf
+            {upperLabel(entity.type)} &middot; {entity.confidence}% conf
           </div>
           {entity.lastSeen && (
             <span className="text-[8px] text-zinc-700 font-mono mt-1 block">
