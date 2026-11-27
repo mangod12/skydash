@@ -37,20 +37,21 @@ export default function FleetMarkers() {
   return (
     <>
       {secondaryDrones.map((drone) => {
-        if (!drone.gps) return null;
+        const { latitude, longitude } = drone.gps || {};
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
         const style = PATTERN_STYLES[drone.pattern] || PATTERN_STYLES.orbit;
         const icon = createFleetIcon(style.color, drone.attitude?.yaw ?? 0);
 
         return (
           <Marker
             key={drone.drone_id}
-            position={[drone.gps.latitude, drone.gps.longitude]}
+            position={[latitude, longitude]}
             icon={icon}
           >
             <Tooltip direction="top" offset={[0, -20]} permanent={false}>
               <div className="text-[10px] font-mono">
                 <div className="font-bold">{drone.drone_id}</div>
-                <div>{style.label} | {drone.altitude?.toFixed(0)}m | {drone.battery_voltage?.toFixed(1)}V</div>
+                <div>{style.label} | {Number.isFinite(drone.altitude) ? drone.altitude.toFixed(0) : '--'}m | {Number.isFinite(drone.battery_voltage) ? drone.battery_voltage.toFixed(1) : '--'}V</div>
               </div>
             </Tooltip>
           </Marker>
