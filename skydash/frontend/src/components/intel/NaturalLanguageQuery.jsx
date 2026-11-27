@@ -5,6 +5,11 @@ import { useIntelStore } from '../../stores/intelStore';
 import { formatDistanceToNow } from 'date-fns';
 import { parseQuery } from '../../utils/nlqParser';
 
+function seenAgo(ts) {
+  const d = new Date(ts);
+  return ts == null || Number.isNaN(d.getTime()) ? 'unknown' : formatDistanceToNow(d, { addSuffix: true });
+}
+
 export default function NaturalLanguageQuery() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState(null);
@@ -36,6 +41,7 @@ export default function NaturalLanguageQuery() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            aria-label="Intelligence query"
             placeholder="e.g. vehicles near warehouse, high threat..."
             className="w-full pl-7 pr-3 py-2 text-[11px] bg-white/[0.03] border border-white/[0.06] rounded-lg text-zinc-300 placeholder:text-zinc-700 outline-none focus:border-violet-500/30 transition-colors"
           />
@@ -64,7 +70,7 @@ export default function NaturalLanguageQuery() {
                 <div>
                   <div className="text-[11px] text-zinc-300">{entity.name}</div>
                   <div className="text-[9px] text-zinc-600">
-                    {entity.type.toUpperCase()} | {entity.confidence}% | {formatDistanceToNow(entity.lastSeen, { addSuffix: true })}
+                    {String(entity.type ?? 'unknown').toUpperCase()} | {Number.isFinite(entity.confidence) ? `${entity.confidence}%` : '--'} | {seenAgo(entity.lastSeen)}
                   </div>
                 </div>
                 <div className={clsx(
@@ -73,7 +79,7 @@ export default function NaturalLanguageQuery() {
                   entity.threatLevel === 'medium' ? 'text-amber-400 bg-amber-500/10' :
                   'text-zinc-500',
                 )}>
-                  {entity.threatLevel.toUpperCase()}
+                  {String(entity.threatLevel ?? 'unknown').toUpperCase()}
                 </div>
               </button>
             ))}
