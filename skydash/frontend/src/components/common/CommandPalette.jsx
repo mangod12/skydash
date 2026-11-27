@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Command } from 'cmdk';
-import { formatDistanceToNow } from 'date-fns';
+import { timeAgo } from '../../utils/timeAgo';
 import { useUIStore } from '../../stores/uiStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMissionStore } from '../../stores/missionStore';
@@ -43,10 +43,7 @@ const GROUP_HEADING = '[&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-headi
 const ITEM_BASE = 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 cursor-pointer data-[selected=true]:bg-indigo-500/10 data-[selected=true]:text-indigo-400 transition-colors';
 
 const match = (text, q) => text?.toLowerCase().includes(q);
-const relTime = (ts) => {
-  try { return formatDistanceToNow(typeof ts === 'string' ? new Date(ts) : ts, { addSuffix: true }); }
-  catch { return ''; }
-};
+const relTime = (ts) => timeAgo(ts, '');
 
 export default function CommandPalette() {
   const { commandPaletteOpen, toggleCommandPalette, setActiveView } = useUIStore();

@@ -2,13 +2,8 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import { Search, Sparkles } from 'lucide-react';
 import { useIntelStore } from '../../stores/intelStore';
-import { formatDistanceToNow } from 'date-fns';
+import { timeAgo } from '../../utils/timeAgo';
 import { parseQuery } from '../../utils/nlqParser';
-
-function seenAgo(ts) {
-  const d = new Date(ts);
-  return ts == null || Number.isNaN(d.getTime()) ? 'unknown' : formatDistanceToNow(d, { addSuffix: true });
-}
 
 export default function NaturalLanguageQuery() {
   const [query, setQuery] = useState('');
@@ -70,7 +65,7 @@ export default function NaturalLanguageQuery() {
                 <div>
                   <div className="text-[11px] text-zinc-300">{entity.name}</div>
                   <div className="text-[9px] text-zinc-600">
-                    {String(entity.type ?? 'unknown').toUpperCase()} | {Number.isFinite(entity.confidence) ? `${entity.confidence}%` : '--'} | {seenAgo(entity.lastSeen)}
+                    {String(entity.type ?? 'unknown').toUpperCase()} | {Number.isFinite(entity.confidence) ? `${entity.confidence}%` : '--'} | {timeAgo(entity.lastSeen)}
                   </div>
                 </div>
                 <div className={clsx(
