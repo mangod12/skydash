@@ -77,12 +77,11 @@ export default function DashboardView() {
 
   const activeMissions = missions.filter((m) => m.status === 'active');
   const linkedEntities = missions.reduce((s, m) => s + (m.entityIds?.length || 0), 0);
-  const dataRate = fleet.length > 0 ? `${fleet.length * 2} msg/s` : '0 msg/s';
   const systemHealth = BACKEND_CONFIGURED
     ? {
         value: isConnected ? 'ONLINE' : 'OFFLINE',
         icon: isConnected ? Activity : WifiOff,
-        sub: isConnected ? `${latency}ms LATENCY \u00B7 ${dataRate}` : 'RECONNECTING...',
+        sub: isConnected ? `${latency}ms LATENCY \u00B7 ${fleet.length} DRONE${fleet.length === 1 ? '' : 'S'}` : 'RECONNECTING...',
         accent: isConnected ? 'cyan' : 'red',
         freshness: isConnected ? 'Updated just now' : 'Connection lost',
       }
