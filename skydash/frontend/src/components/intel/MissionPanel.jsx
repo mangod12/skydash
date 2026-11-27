@@ -48,7 +48,7 @@ export default function MissionPanel({ missionId }) {
         </div>
       )}
       <div className="flex gap-1.5">
-        <input value={noteText} onChange={(e) => setNoteText(e.target.value)}
+        <input aria-label="Quick note" value={noteText} onChange={(e) => setNoteText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
           placeholder="Quick note..."
           className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded px-2 py-1 text-[10px] text-zinc-300 placeholder:text-zinc-700 outline-none" />
