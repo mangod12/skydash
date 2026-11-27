@@ -7,7 +7,8 @@ import { predictTrack, RANGE_RING_RADII_M } from '../../utils/prediction';
 export default function DroneRangeRings() {
   const pos = useMapStore((s) => s.dronePosition);
   const speed = useTelemetryStore((s) => s.data?.ground_speed);
-  if (!pos) return null;
+  // Leaflet throws on NaN coordinates, so draw nothing without a usable fix.
+  if (!pos || !Number.isFinite(pos.lat) || !Number.isFinite(pos.lng)) return null;
 
   const track = predictTrack(pos, speed, pos.heading, 120, 30);
 
