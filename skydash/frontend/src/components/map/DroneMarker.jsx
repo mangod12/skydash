@@ -43,7 +43,7 @@ export default function DroneMarker() {
     [dronePosition?.heading]
   );
 
-  if (!dronePosition) return null;
+  if (!dronePosition || !Number.isFinite(dronePosition.lat) || !Number.isFinite(dronePosition.lng)) return null;
 
   return (
     <Marker
