@@ -67,6 +67,7 @@ const ComparisonMap = forwardRef(function ComparisonMap({ syncEnabled, syncCente
           <button
             key={key}
             onClick={() => toggle(key)}
+            aria-pressed={layers[key]}
             className={clsx(
               'px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider transition-all border backdrop-blur-sm',
               layers[key] ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-zinc-900/80 text-zinc-500 border-white/[0.06] hover:text-zinc-300',
