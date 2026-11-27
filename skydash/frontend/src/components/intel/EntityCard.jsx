@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   Car, User, Building2, Wifi, AlertTriangle, ChevronRight, Check,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { timeAgo } from '../../utils/timeAgo';
 import { useIntelStore } from '../../stores/intelStore';
 
 const TYPE_CONFIG = {
@@ -128,7 +128,7 @@ export default function EntityCard({ entity, selected, onClick, onContextMenu, s
           </div>
           {entity.lastSeen && (
             <span className="text-[8px] text-zinc-700 font-mono mt-1 block">
-              Seen {formatDistanceToNow(entity.lastSeen, { addSuffix: true })}
+              Seen {timeAgo(entity.lastSeen)}
             </span>
           )}
         </div>

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Target, FileText, MapPin, Clock, Plus, X, ChevronRight, Trash2, ScrollText, ScanSearch, ClipboardCheck,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { timeAgo } from '../../utils/timeAgo';
 import { useMissionStore } from '../../stores/missionStore';
 import { useIntelStore } from '../../stores/intelStore';
 import { useMapStore } from '../../stores/mapStore';
@@ -174,7 +174,7 @@ function TimelineTab({ mission }) {
         {filtered.map((e) => (
           <div key={e.id} className="p-3 rounded-lg border border-white/[0.04] bg-white/[0.02]">
             <div className="text-[11px] text-zinc-300">{e.description}</div>
-            <div className="text-[9px] text-zinc-600 font-mono tabular-nums mt-1">{formatDistanceToNow(e.time, { addSuffix: true })}</div>
+            <div className="text-[9px] text-zinc-600 font-mono tabular-nums mt-1">{timeAgo(e.time)}</div>
           </div>
         ))}
         {filtered.length === 0 && <div className="text-zinc-700 text-[10px] tracking-wider text-center py-6">NO EVENTS FOR LINKED ENTITIES</div>}

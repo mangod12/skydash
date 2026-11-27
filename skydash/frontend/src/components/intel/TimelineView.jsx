@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { clsx } from 'clsx';
-import { formatDistanceToNow } from 'date-fns';
+import { timeAgo } from '../../utils/timeAgo';
 import { MapPin, GitCompareArrows } from 'lucide-react';
 import { useIntelStore } from '../../stores/intelStore';
 import { useEntityNavigation } from '../../hooks/useEntityNavigation';
@@ -118,7 +118,7 @@ export default function TimelineView() {
                   </div>
                   <div className="flex items-center gap-2 mt-1.5 text-[9px] text-zinc-600">
                     <span className="font-mono tabular-nums">
-                      {formatDistanceToNow(event.time, { addSuffix: true })}
+                      {timeAgo(event.time)}
                     </span>
                     {event.entityId && (
                       <>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { X, Bell, CheckCheck, Crosshair, Check, ArrowUpCircle } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { timeAgo } from '../../utils/timeAgo';
 import useNotificationStore from '../../stores/notificationStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useMapStore } from '../../stores/mapStore';
@@ -86,7 +86,7 @@ function NotificationItem({ notification, onDismiss, onClose }) {
             {notification.message}
           </p>
           <span className="text-[9px] font-mono text-zinc-600 mt-1 block">
-            {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
+            {timeAgo(notification.timestamp)}
             {isAlert && status !== 'new' && (
               <span className={clsx('ml-2 uppercase', status === 'escalated' ? 'text-red-400' : 'text-emerald-400')}>
                 {status}

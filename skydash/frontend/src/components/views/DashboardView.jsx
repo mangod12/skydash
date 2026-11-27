@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { formatDistanceToNow } from 'date-fns';
+import { timeAgo } from '../../utils/timeAgo';
 import { Wifi, WifiOff, Shield, Crosshair, Activity, LayoutGrid, LayoutList } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
 import DataFreshnessBar from '../common/DataFreshnessBar';
@@ -49,7 +49,7 @@ export default function DashboardView() {
 
   const formatFreshness = useCallback((timestamp) => {
     if (!timestamp) return null;
-    return `Updated ${formatDistanceToNow(timestamp, { addSuffix: true })}`;
+    return `Updated ${timeAgo(timestamp)}`;
   }, []);
 
   // Track last-seen timestamps per category
