@@ -1,6 +1,7 @@
 import { FileText, ScrollText } from 'lucide-react';
 import { useIntelStore } from '../../stores/intelStore';
 import { useTelemetryStore } from '../../stores/telemetryStore';
+import { toast } from '../common/Toast';
 import { generateBriefing, formatBriefingText } from '../../utils/briefingGenerator';
 
 export default function MissionBriefingTab({ mission }) {
@@ -11,8 +12,13 @@ export default function MissionBriefingTab({ mission }) {
   const briefing = generateBriefing(mission, entities, { data: telemetryData, fleet });
   const text = formatBriefingText(briefing);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('Briefing copied to clipboard', 'success');
+    } catch {
+      toast('Could not copy. Use DOWNLOAD instead.', 'warning');
+    }
   };
 
   const handleDownload = () => {
