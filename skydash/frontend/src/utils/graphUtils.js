@@ -177,10 +177,8 @@ export function detectCommunities(nodes, edges) {
 
   for (let iter = 0; iter < MAX_ITER; iter++) {
     let changed = false;
-    // Shuffle order for better convergence
-    const shuffled = [...ids].sort(() => Math.random() - 0.5);
-
-    for (const id of shuffled) {
+    // Fixed input order: the same graph always yields the same communities
+    for (const id of ids) {
       const neighbors = adj.get(id);
       if (!neighbors || neighbors.size === 0) continue;
 

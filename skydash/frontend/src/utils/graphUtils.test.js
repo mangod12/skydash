@@ -109,6 +109,13 @@ describe('getNeighborhood', () => {
 });
 
 describe('detectCommunities', () => {
+  it('is deterministic for the same graph', () => {
+    const first = [...detectCommunities(NODES, EDGES).entries()];
+    for (let i = 0; i < 20; i++) {
+      expect([...detectCommunities(NODES, EDGES).entries()]).toEqual(first);
+    }
+  });
+
   it('returns a community label for every node', () => {
     const labels = detectCommunities(NODES, EDGES);
     expect(labels.size).toBe(4);
