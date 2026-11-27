@@ -84,4 +84,9 @@ describe('AlertRuleRow', () => {
     fireEvent.click(screen.getByLabelText('Test alert rule Low battery against current fleet'));
     expect(screen.getByRole('status').textContent).toContain('no telemetry yet');
   });
+
+  it('labels the severity dot', () => {
+    setup(rule({ severity: 'critical' }));
+    expect(screen.getByLabelText('Severity: critical')).toBeTruthy();
+  });
 });

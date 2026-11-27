@@ -75,7 +75,12 @@ export default function AlertRuleRow({ rule, onToggle, onUpdate, onRemove }) {
       'flex flex-wrap items-center gap-3 p-3 rounded-xl border transition-all',
       'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]',
     )}>
-      <div className={clsx('w-2 h-2 rounded-full shrink-0', SEVERITY_COLORS[rule.severity])} />
+      <div
+        role="img"
+        aria-label={`Severity: ${rule.severity}`}
+        title={rule.severity}
+        className={clsx('w-2 h-2 rounded-full shrink-0', SEVERITY_COLORS[rule.severity])}
+      />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
