@@ -6,6 +6,9 @@ export default function VirtualList({ items, itemHeight, renderItem, className, 
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
 
+  const isEmpty = !items || items.length === 0;
+
+  // Re-attach when the list goes from empty (no container rendered) to populated.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -14,9 +17,9 @@ export default function VirtualList({ items, itemHeight, renderItem, className, 
     const onScroll = () => setScrollTop(el.scrollTop);
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => { obs.disconnect(); el.removeEventListener('scroll', onScroll); };
-  }, []);
+  }, [isEmpty]);
 
-  if (!items || items.length === 0) return null;
+  if (isEmpty) return null;
 
   const totalHeight = items.length * itemHeight;
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
