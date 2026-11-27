@@ -60,12 +60,12 @@ export function StatusPanel() {
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[9px] tracking-[0.15em] text-zinc-500">UPTIME</span>
+          <span className="text-[9px] tracking-[0.15em] text-zinc-500">SESSION</span>
           <span className="text-xs font-mono font-bold text-zinc-200">{uptime}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[9px] tracking-[0.15em] text-zinc-500">DATA RATE</span>
-          <span className="text-xs font-mono font-bold text-cyan-400">{fleet.length * 2} msg/s</span>
+          <span className="text-[9px] tracking-[0.15em] text-zinc-500">DRONES REPORTING</span>
+          <span className="text-xs font-mono font-bold text-cyan-400">{fleet.length}</span>
         </div>
       </div>
     </div>
