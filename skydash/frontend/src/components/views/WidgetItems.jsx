@@ -19,7 +19,7 @@ export function ThreatGaugeWidget() {
 
   return (
     <div className="flex flex-col items-center justify-center h-full">
-      <svg viewBox="0 0 120 70" className="w-full max-w-[160px]">
+      <svg viewBox="0 0 120 70" className="w-full max-w-[160px]" role="img" aria-label={`Threat score ${score} out of 100`}>
         <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none"
           stroke="rgba(255,255,255,0.06)" strokeWidth="8" strokeLinecap="round" />
         <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke={color}
@@ -82,7 +82,11 @@ export function FeedWidget() {
     <div className="space-y-1.5 h-full overflow-y-auto">
       {recent.map((item) => (
         <div key={item.id} className="flex items-start gap-2 py-1 border-b border-white/[0.04] last:border-0">
-          <span className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${SEV_DOT[item.severity] || SEV_DOT.info}`} />
+          <span
+            role="img"
+            aria-label={`Severity: ${SEV_DOT[item.severity] ? item.severity : 'info'}`}
+            className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${SEV_DOT[item.severity] || SEV_DOT.info}`}
+          />
           <div className="min-w-0 flex-1">
             <p className="text-[10px] text-zinc-300 leading-tight truncate">{item.title}</p>
             <span className="text-[8px] font-mono text-zinc-600">{item.category}</span>
