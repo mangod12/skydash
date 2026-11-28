@@ -9,7 +9,7 @@ import {
   ExternalLink,
   Trash2,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { timeAgo } from '../../utils/timeAgo';
 import { API_BASE } from '../../utils/runtimeConfig';
 import { useMissionStore } from '../../stores/missionStore';
 
@@ -233,7 +233,7 @@ export default function DetectionDebriefTab({ mission }) {
               <div>
                 <div className="text-[11px] font-semibold text-zinc-200">{result.source_name}</div>
                 <div className="mt-1 text-[9px] font-mono text-zinc-600">
-                  {result.model} | {result.created_at ? formatDistanceToNow(new Date(result.created_at), { addSuffix: true }) : 'recent'}
+                  {result.model} | {timeAgo(result.created_at, 'recent')}
                 </div>
               </div>
               <div className="flex gap-1">
@@ -245,6 +245,8 @@ export default function DetectionDebriefTab({ mission }) {
                 </button>
                 <button
                   onClick={() => deleteDetection(mission.id, result.id)}
+                  aria-label={`Delete analysis ${result.source_name || result.id}`}
+                  title="Delete analysis"
                   className="rounded bg-red-500/10 p-1 text-red-400 hover:bg-red-500/20"
                 >
                   <Trash2 size={11} />
