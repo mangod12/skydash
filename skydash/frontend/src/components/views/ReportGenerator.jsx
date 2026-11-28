@@ -1,3 +1,4 @@
+import { fmtNum } from '../../utils/fmtNum';
 import { useMemo, useCallback } from 'react';
 import { X, Printer, Copy, Download } from 'lucide-react';
 import { format } from 'date-fns';
@@ -39,7 +40,7 @@ function buildPlainText(mission, entities, rels, events, fleet, now) {
   notes.forEach((n) => { r += `   - ${n.content}\n`; });
   if (!notes.length) r += '   No analyst notes.\n';
   r += `\n7. FLEET STATUS\n${sr}\n`;
-  fleet.forEach((d) => { r += `   ${d.drone_id || d.id} | ALT ${d.altitude?.toFixed(0) || '—'}m | BAT ${d.battery_voltage?.toFixed(1) || '—'}V | SPD ${d.ground_speed?.toFixed(1) || '—'}m/s\n`; });
+  fleet.forEach((d) => { r += `   ${d.drone_id || d.id} | ALT ${fmtNum(d.altitude, 0)}m | BAT ${fmtNum(d.battery_voltage, 1)}V | SPD ${fmtNum(d.ground_speed, 1)}m/s\n`; });
   if (!fleet.length) r += '   No fleet data available.\n';
   r += `\n${hr}\nGenerated: ${format(now, "yyyy-MM-dd'T'HH:mm:ss")}Z by ${VERSION}\n${hr}\nEND OF REPORT\n`;
   return r;
@@ -112,7 +113,7 @@ export default function ReportGenerator({ open, onClose, missionId }) {
     const fleetSection = fleet.length === 0
       ? '<p>No fleet data available.</p>'
       : fleet.map((d) =>
-          `<p>${escapeHtml(d.drone_id || d.id)} | ALT ${d.altitude?.toFixed(0) ?? '—'}m | BAT ${d.battery_voltage?.toFixed(1) ?? '—'}V | SPD ${d.ground_speed?.toFixed(1) ?? '—'}m/s</p>`
+          `<p>${escapeHtml(d.drone_id || d.id)} | ALT ${fmtNum(d.altitude, 0)}m | BAT ${fmtNum(d.battery_voltage, 1)}V | SPD ${fmtNum(d.ground_speed, 1)}m/s</p>`
         ).join('');
 
     const full = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>SkyDash Report</title><style>body{font-family:monospace;background:#fff;color:#000;padding:2rem;max-width:800px;margin:auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid #333;padding:4px 8px;text-align:left;font-size:12px}th{background:#e5e7eb}h1,h2,h3{font-family:sans-serif}hr{border-color:#333}</style></head><body>
@@ -234,7 +235,7 @@ ${fleetSection}
         {/* 7. Fleet Status */}
         <Section n={7} title="FLEET STATUS">
           {fleet.map((d) => (
-            <p key={d.drone_id || d.id} className="tabular-nums">{d.drone_id || d.id} | ALT {d.altitude?.toFixed(0) ?? '—'}m | BAT {d.battery_voltage?.toFixed(1) ?? '—'}V | SPD {d.ground_speed?.toFixed(1) ?? '—'}m/s</p>
+            <p key={d.drone_id || d.id} className="tabular-nums">{d.drone_id || d.id} | ALT {fmtNum(d.altitude, 0)}m | BAT {fmtNum(d.battery_voltage, 1)}V | SPD {fmtNum(d.ground_speed, 1)}m/s</p>
           ))}
           {fleet.length === 0 && <p className="text-zinc-600">No fleet data available.</p>}
         </Section>
