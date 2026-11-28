@@ -7,15 +7,17 @@ import 'leaflet/dist/leaflet.css';
 import { DARK_BASEMAP } from '../../utils/basemap';
 
 
+const isPoint = (p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]);
+const dronePoint = (d) => (Number.isFinite(d?.gps?.latitude) && Number.isFinite(d?.gps?.longitude) ? [d.gps.latitude, d.gps.longitude] : null);
+
 function computeCentroid(fleet, entities) {
   const points = [];
   fleet.forEach((d) => {
-    if (d.gps?.latitude && d.gps?.longitude) {
-      points.push([d.gps.latitude, d.gps.longitude]);
-    }
+    const pt = dronePoint(d);
+    if (pt) points.push(pt);
   });
   entities.forEach((e) => {
-    if (e.coordinates) points.push(e.coordinates);
+    if (isPoint(e.coordinates)) points.push(e.coordinates);
   });
   if (points.length === 0) return [37.7755, -122.4180];
   const lat = points.reduce((s, p) => s + p[0], 0) / points.length;
@@ -50,12 +52,13 @@ export default function DashboardMiniMap() {
 
         {/* Fleet drone dots */}
         {fleet.map((drone) => {
-          if (!drone.gps?.latitude) return null;
+          const pt = dronePoint(drone);
+          if (!pt) return null;
           const color = PATTERN_COLORS[drone.pattern] || COLORS.dataLight;
           return (
             <CircleMarker
               key={drone.drone_id}
-              center={[drone.gps.latitude, drone.gps.longitude]}
+              center={pt}
               radius={5}
               pathOptions={{
                 color,
@@ -70,7 +73,7 @@ export default function DashboardMiniMap() {
 
         {/* Entity diamonds (rendered as small circle markers) */}
         {entities
-          .filter((e) => e.coordinates)
+          .filter((e) => isPoint(e.coordinates))
           .map((entity) => {
             const color = THREAT_COLORS[entity.threatLevel] || COLORS.muted;
             return (
