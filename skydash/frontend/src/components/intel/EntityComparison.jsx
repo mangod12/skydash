@@ -17,6 +17,7 @@ function EntitySelector({ value, onChange, entities, label }) {
       <div className="relative">
         <select
           value={value || ''}
+          aria-label={label}
           onChange={(e) => onChange(e.target.value || null)}
           className="w-full appearance-none bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 pr-8 text-[11px] text-zinc-300 outline-none focus:border-indigo-500/40 transition-colors cursor-pointer"
         >
