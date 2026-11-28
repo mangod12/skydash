@@ -1,4 +1,5 @@
 import GlassCard from '../common/GlassCard';
+import { fmtNum } from '../../utils/fmtNum';
 
 function SectionLabel({ children }) {
   return (
@@ -25,7 +26,7 @@ export default function AnalyticsNetwork({ networkSummary, topEntities, fleet })
           </div>
           <div className="text-center">
             <div className="text-[9px] text-zinc-600 tracking-wider mb-1">DENSITY</div>
-            <div className="text-xl font-mono font-bold text-amber-400 tabular-nums">{(networkSummary.networkDensity * 100).toFixed(0)}%</div>
+            <div className="text-xl font-mono font-bold text-amber-400 tabular-nums">{fmtNum(networkSummary.networkDensity * 100, 0)}%</div>
           </div>
           <div className="text-center">
             <div className="text-[9px] text-zinc-600 tracking-wider mb-1">CLUSTERS</div>
@@ -76,7 +77,7 @@ export default function AnalyticsNetwork({ networkSummary, topEntities, fleet })
                     <div className="flex-1 h-1 rounded-full bg-zinc-800">
                       <div
                         className="h-full rounded-full bg-indigo-500/60"
-                        style={{ width: `${(e.count / topEntities[0].count) * 100}%` }}
+                        style={{ width: `${topEntities[0].count > 0 && Number.isFinite(e.count) ? Math.min(100, Math.max(0, (e.count / topEntities[0].count) * 100)) : 0}%` }}
                       />
                     </div>
                   </div>
@@ -96,13 +97,13 @@ export default function AnalyticsNetwork({ networkSummary, topEntities, fleet })
           ) : fleet.map((drone) => (
               <div key={drone.drone_id} className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <div aria-hidden="true" className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-xs font-mono text-zinc-300">{drone.drone_id}</span>
                 </div>
                 <div className="flex items-center gap-3 text-[10px] font-mono tabular-nums text-zinc-500">
                   <span>{drone.flight_mode}</span>
-                  <span className="text-emerald-400">{drone.altitude?.toFixed(0) ?? '--'}m</span>
-                  <span>{drone.battery_voltage?.toFixed(1) ?? '--'}V</span>
+                  <span className="text-emerald-400">{fmtNum(drone.altitude, 0)}m</span>
+                  <span>{fmtNum(drone.battery_voltage, 1)}V</span>
                   <span>{drone.signal_strength ?? '--'}%</span>
                 </div>
               </div>
