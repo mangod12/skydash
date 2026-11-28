@@ -61,10 +61,10 @@ describe('ClockWidget', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-11-28T10:00:00Z'));
     render(<ClockWidget />);
-    expect(screen.getByText('10:00:00')).toBeTruthy();
+    expect(screen.getAllByText('10:00:00')[0].className).toContain('text-cyan-400'); // UTC row; local row may match in a UTC runner
     expect(screen.getByText('2026-11-28')).toBeTruthy();
     act(() => { vi.advanceTimersByTime(1000); });
-    expect(screen.getByText('10:00:01')).toBeTruthy();
+    expect(screen.getAllByText('10:00:01')[0].className).toContain('text-cyan-400');
   });
 });
 
