@@ -40,7 +40,7 @@ export default function EntityRadar() {
   const blips = useMemo(() => {
     if (!dronePos) return [];
     return entities
-      .filter((e) => e.coordinates)
+      .filter((e) => Array.isArray(e.coordinates) && Number.isFinite(e.coordinates[0]) && Number.isFinite(e.coordinates[1]))
       .map((e) => {
         const [lat, lng] = e.coordinates;
         const dist = haversineKm(dronePos.lat, dronePos.lng, lat, lng);
@@ -66,7 +66,7 @@ export default function EntityRadar() {
         ENTITY RADAR
       </h3>
       <div className="flex items-center justify-center">
-        <svg width={SIZE} height={SIZE} className="overflow-visible">
+        <svg width={SIZE} height={SIZE} className="overflow-visible" role="img" aria-label={`Entity radar: ${blips.length} ${blips.length === 1 ? 'entity' : 'entities'} within ${RANGE_KM} km of the drone`}>
           {/* Background */}
           <circle cx={CX} cy={CY} r={MAX_R} fill="rgba(9,9,11,0.8)" stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
 
