@@ -82,7 +82,11 @@ export function ThreatBreakdownChart({ threatData }) {
   return (
     <GlassCard>
       <SectionLabel>THREAT BREAKDOWN</SectionLabel>
-      <div className="h-[180px]">
+      <div
+        className="h-[180px]"
+        role="img"
+        aria-label={threatData.length > 0 ? `Threat breakdown: ${threatData.map((d) => `${d.name} ${d.value}`).join(', ')}` : 'Threat breakdown: no data'}
+      >
         {threatData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={threatData} layout="vertical" margin={{ left: 40 }}>
@@ -116,7 +120,16 @@ export function AltitudeTrendChart({ history }) {
   return (
     <GlassCard>
       <SectionLabel>ALTITUDE TREND</SectionLabel>
-      <div className="h-[180px]">
+      <div
+        className="h-[180px]"
+        role="img"
+        aria-label={(() => {
+          const alts = history.map((h) => h.altitude).filter(Number.isFinite);
+          return alts.length > 1
+            ? `Altitude trend over ${alts.length} samples, latest ${Math.round(alts[alts.length - 1])} m, range ${Math.round(Math.min(...alts))} to ${Math.round(Math.max(...alts))} m`
+            : 'Altitude trend: awaiting data';
+        })()}
+      >
         {history.length > 1 ? (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={history} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
