@@ -72,17 +72,32 @@ export function ResizeHandle({ widgetId, currentW, currentH }) {
       startRef.current = null;
       el.removeEventListener('pointermove', onMove);
       el.removeEventListener('pointerup', onUp);
+      el.removeEventListener('pointercancel', onUp);
     };
 
     el.addEventListener('pointermove', onMove);
     el.addEventListener('pointerup', onUp);
+    el.addEventListener('pointercancel', onUp);
   }, [widgetId, currentW, currentH, resizeWidget]);
+
+  const onKeyDown = (e) => {
+    const step = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    e.stopPropagation();
+    resizeWidget(widgetId, currentW + step[0], currentH + step[1]);
+  };
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Resize widget, currently ${currentW} by ${currentH}. Use arrow keys.`}
       onPointerDown={onPointerDown}
+      onKeyDown={onKeyDown}
       className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize
                  flex items-center justify-center opacity-0 group-hover:opacity-100
+                 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-1 focus-visible:outline-indigo-400
                  transition-opacity"
     >
       <Maximize2 size={10} className="text-zinc-500 rotate-90" />
