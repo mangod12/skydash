@@ -37,6 +37,20 @@ export default function IntelView() {
     setFilterTag(tag);
   }, [setFilterTag]);
 
+  const handleTabKey = useCallback((event, index) => {
+    const last = CENTER_TABS.length - 1;
+    const next = {
+      ArrowRight: index === last ? 0 : index + 1,
+      ArrowLeft: index === 0 ? last : index - 1,
+      Home: 0,
+      End: last,
+    }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    setCenterTab(CENTER_TABS[next].id);
+    document.getElementById(`intel-tab-${CENTER_TABS[next].id}`)?.focus();
+  }, []);
+
   useEffect(() => {
     if (comparedEntities[0] || comparedEntities[1]) {
       const id = requestAnimationFrame(() => setCenterTab('compare'));
@@ -66,13 +80,15 @@ export default function IntelView() {
       <div className="h-[90svh] shrink-0 md:h-auto md:shrink md:flex-1 min-w-0 md:border-r border-white/[0.06] flex flex-col">
         {/* Tab switcher */}
         <div className="flex border-b border-white/[0.06] shrink-0" role="tablist" aria-label="Intel analysis views">
-          {CENTER_TABS.map((tab) => (
+          {CENTER_TABS.map((tab, index) => (
             <button
               key={tab.id}
               id={`intel-tab-${tab.id}`}
               role="tab"
               aria-selected={centerTab === tab.id}
               aria-controls={`intel-panel-${tab.id}`}
+              tabIndex={centerTab === tab.id ? 0 : -1}
+              onKeyDown={(event) => handleTabKey(event, index)}
               onClick={() => setCenterTab(tab.id)}
               className={clsx(
                 'flex items-center gap-2 px-4 py-2.5 text-[10px] font-semibold tracking-[0.1em] transition-colors',
