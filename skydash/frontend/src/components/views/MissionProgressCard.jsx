@@ -11,7 +11,8 @@ const PHASES = [
 ];
 
 function formatElapsed(ms) {
-  const sec = Math.floor(ms / 1000);
+  if (!Number.isFinite(ms)) return '--:--:--';
+  const sec = Math.max(0, Math.floor(ms / 1000));
   const h = String(Math.floor(sec / 3600)).padStart(2, '0');
   const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
   const s = String(sec % 60).padStart(2, '0');
@@ -68,7 +69,11 @@ export default function MissionProgressCard({ mission }) {
       </div>
 
       {/* Phase indicators */}
-      <div className="flex items-center gap-1 mb-3">
+      <div
+        role="img"
+        aria-label={`Mission phase: ${PHASES[currentPhase]?.label || 'PLAN'}, step ${currentPhase + 1} of ${PHASES.length}`}
+        className="flex items-center gap-1 mb-3"
+      >
         {PHASES.map((phase, i) => (
           <div key={phase.id} className="flex items-center flex-1">
             <div className={clsx(
