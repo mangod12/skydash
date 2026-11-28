@@ -66,7 +66,9 @@ function WidgetCell({ widget, editMode, onSwapDrag }) {
           </div>
           {editMode && (
             <button onClick={() => removeWidget(widget.id)}
-              className="w-5 h-5 flex items-center justify-center rounded hover:bg-red-500/20 text-zinc-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+              aria-label={`Remove ${WIDGET_LABELS[widget.type] || widget.type} widget`}
+              title="Remove widget"
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-red-500/20 text-zinc-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100">
               <X size={10} />
             </button>
           )}
