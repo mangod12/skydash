@@ -67,7 +67,7 @@ const SEVERITY_TEXT = {
 };
 
 export function ActivityFeed({ items }) {
-  if (items.length === 0) {
+  if (!Array.isArray(items) || items.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-zinc-700 text-[10px] tracking-wider">
         NO RECENT ACTIVITY
@@ -82,7 +82,11 @@ export function ActivityFeed({ items }) {
           key={item.id}
           className="flex items-start gap-2.5 py-1.5 border-b border-white/[0.03] last:border-0"
         >
-          <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${SEVERITY_DOT[item.severity] || SEVERITY_DOT.info}`} />
+          <div
+            role="img"
+            aria-label={`Severity: ${SEVERITY_DOT[item.severity] ? item.severity : 'info'}`}
+            className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${SEVERITY_DOT[item.severity] || SEVERITY_DOT.info}`}
+          />
           <div className="min-w-0 flex-1">
             <p className={`text-[11px] leading-tight ${SEVERITY_TEXT[item.severity] || 'text-zinc-400'}`}>
               {item.description}
