@@ -35,14 +35,16 @@ export default function AnalyticsView() {
 
   const typeData = Object.entries(
     entities.reduce((acc, e) => {
-      acc[e.type] = (acc[e.type] || 0) + 1;
+      const key = e.type || 'unknown';
+      acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {})
   ).map(([name, value]) => ({ name, value }));
 
   const threatData = Object.entries(
     entities.reduce((acc, e) => {
-      acc[e.threatLevel] = (acc[e.threatLevel] || 0) + 1;
+      const key = e.threatLevel || 'none';
+      acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {})
   ).map(([name, value]) => ({ name, value }));
