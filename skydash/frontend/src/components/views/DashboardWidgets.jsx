@@ -23,7 +23,7 @@ function useStatData(metric) {
 
   return useMemo(() => {
     const avgBat = fleet.length > 0
-      ? Math.round(fleet.reduce((s, d) => s + (d.battery_percentage ?? 0), 0) / fleet.length)
+      ? Math.round(fleet.reduce((s, d) => s + (Number.isFinite(d.battery_percentage) ? d.battery_percentage : 0), 0) / fleet.length)
       : 0;
     const threats = { high: 0, critical: 0 };
     entities.forEach((e) => { if (threats[e.threatLevel] !== undefined) threats[e.threatLevel]++; });
@@ -33,7 +33,7 @@ function useStatData(metric) {
       fleet: { label: 'FLEET STATUS', value: fleet.length, accent: fleet.length > 0 && isConnected ? 'emerald' : 'amber', sub: `${avgBat}% AVG BAT`, icon: Wifi },
       threat: { label: 'THREAT OVERVIEW', value: threats.high + threats.critical, accent: threats.critical > 0 ? 'red' : threats.high > 0 ? 'amber' : 'emerald', sub: `${threats.high} HIGH / ${threats.critical} CRIT`, icon: Shield },
       missions: { label: 'ACTIVE MISSIONS', value: active.length, accent: 'indigo', sub: `${entities.length} ENTITIES`, icon: Crosshair },
-      system: { label: 'SYSTEM HEALTH', value: isConnected ? 'ONLINE' : 'OFFLINE', accent: isConnected ? 'cyan' : 'red', sub: `${latency}ms LATENCY`, icon: isConnected ? Activity : WifiOff },
+      system: { label: 'SYSTEM HEALTH', value: isConnected ? 'ONLINE' : 'OFFLINE', accent: isConnected ? 'cyan' : 'red', sub: Number.isFinite(latency) ? `${latency}ms LATENCY` : 'LATENCY UNKNOWN', icon: isConnected ? Activity : WifiOff },
     };
     return map[metric] || map.fleet;
   }, [fleet, isConnected, latency, entities, missions, metric]);
