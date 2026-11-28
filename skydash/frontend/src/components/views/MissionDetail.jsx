@@ -152,7 +152,7 @@ function MapTab({ mission }) {
       <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
         <h4 className="text-[10px] font-semibold tracking-[0.15em] text-zinc-500 mb-2">SAVED MAP CONTEXT</h4>
         <div className="font-mono tabular-nums text-[11px] text-zinc-400">
-          {mission.center_lat != null ? `${mission.center_lat.toFixed(6)}, ${mission.center_lng.toFixed(6)} at zoom ${mission.zoom_level}` : 'No map view saved'}
+          {Number.isFinite(mission.center_lat) && Number.isFinite(mission.center_lng) ? `${mission.center_lat.toFixed(6)}, ${mission.center_lng.toFixed(6)} at zoom ${mission.zoom_level}` : 'No map view saved'}
         </div>
       </div>
       <button onClick={saveView} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[10px] font-semibold tracking-wider hover:bg-indigo-500/25 transition-colors">
