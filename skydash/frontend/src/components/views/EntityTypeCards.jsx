@@ -26,8 +26,8 @@ function computeTypeStats(entities) {
     }
     const t = types[e.type];
     t.count++;
-    t.totalConfidence += e.confidence || 0;
-    t.threats[e.threatLevel || 'none']++;
+    t.totalConfidence += Number.isFinite(e.confidence) ? e.confidence : 0;
+    t.threats[e.threatLevel in t.threats ? e.threatLevel : 'none']++;
 
     const threatRank = { none: 0, low: 1, medium: 2, high: 3, critical: 4 };
     const rank = threatRank[e.threatLevel] || 0;
@@ -47,7 +47,11 @@ function computeTypeStats(entities) {
 function ThreatBar({ threats, total }) {
   const levels = ['critical', 'high', 'medium', 'low', 'none'];
   return (
-    <div className="flex h-1.5 rounded-full overflow-hidden bg-zinc-800/50">
+    <div
+      role="img"
+      aria-label={`Threat levels: ${levels.filter((l) => threats[l] > 0).map((l) => `${threats[l]} ${l}`).join(', ') || 'none'}`}
+      className="flex h-1.5 rounded-full overflow-hidden bg-zinc-800/50"
+    >
       {levels.map((level) => {
         const pct = total > 0 ? (threats[level] / total) * 100 : 0;
         if (pct === 0) return null;
