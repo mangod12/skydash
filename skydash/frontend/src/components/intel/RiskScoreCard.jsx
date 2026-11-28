@@ -153,6 +153,11 @@ export default function RiskScoreCard({ entityId, trendHistory = [] }) {
           className="flex items-center gap-3 cursor-help relative"
           onMouseEnter={() => setShowBreakdown(true)}
           onMouseLeave={() => setShowBreakdown(false)}
+          onFocus={() => setShowBreakdown(true)}
+          onBlur={() => setShowBreakdown(false)}
+          tabIndex={0}
+          role="group"
+          aria-label={`Risk score ${score} of 100, ${level}. Focus or hover for factor breakdown`}
         >
           <RiskGauge score={score} />
 
